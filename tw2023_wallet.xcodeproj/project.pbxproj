@@ -226,7 +226,7 @@
 		F657D5C72B3C44F100901A6A /* sharingHistoryData.json in Resources */ = {isa = PBXBuildFile; fileRef = F657D5C62B3C44F100901A6A /* sharingHistoryData.json */; };
 		F657D5C92B3C450600901A6A /* CredentialSharingHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5C82B3C450600901A6A /* CredentialSharingHistory.swift */; };
 		F657D5CB2B3C456600901A6A /* HistoryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CA2B3C456600901A6A /* HistoryRow.swift */; };
-		F657D5CD2B3C457300901A6A /* DisclosureLow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CC2B3C457300901A6A /* DisclosureLow.swift */; };
+		F657D5CD2B3C457300901A6A /* DisclosureRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CC2B3C457300901A6A /* DisclosureRow.swift */; };
 		F657D5CF2B3C469500901A6A /* CredentialDetailModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CE2B3C469500901A6A /* CredentialDetailModel.swift */; };
 		F657D5D12B3C46F800901A6A /* CredentialDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5D02B3C46F800901A6A /* CredentialDetailViewModel.swift */; };
 		F657D5D32B3C478B00901A6A /* CredentialDetailPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5D22B3C478B00901A6A /* CredentialDetailPreviewModel.swift */; };
@@ -459,7 +459,7 @@
 		F657D5C62B3C44F100901A6A /* sharingHistoryData.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = sharingHistoryData.json; sourceTree = "<group>"; };
 		F657D5C82B3C450600901A6A /* CredentialSharingHistory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CredentialSharingHistory.swift; sourceTree = "<group>"; };
 		F657D5CA2B3C456600901A6A /* HistoryRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HistoryRow.swift; sourceTree = "<group>"; };
-		F657D5CC2B3C457300901A6A /* DisclosureLow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DisclosureLow.swift; sourceTree = "<group>"; };
+		F657D5CC2B3C457300901A6A /* DisclosureRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DisclosureRow.swift; sourceTree = "<group>"; };
 		F657D5CE2B3C469500901A6A /* CredentialDetailModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialDetailModel.swift; sourceTree = "<group>"; };
 		F657D5D02B3C46F800901A6A /* CredentialDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialDetailViewModel.swift; sourceTree = "<group>"; };
 		F657D5D22B3C478B00901A6A /* CredentialDetailPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialDetailPreviewModel.swift; sourceTree = "<group>"; };
@@ -858,7 +858,7 @@
 			isa = PBXGroup;
 			children = (
 				8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */,
-				F657D5CC2B3C457300901A6A /* DisclosureLow.swift */,
+				F657D5CC2B3C457300901A6A /* DisclosureRow.swift */,
 				F657D5CA2B3C456600901A6A /* HistoryRow.swift */,
 				8B81E2D92B34209400ED3B4E /* CredentialDetail.swift */,
 				8B81E2CC2B33D86200ED3B4E /* CredentialList.swift */,
@@ -1669,7 +1669,7 @@
 				A892975B2B3AA81C007315BE /* CertificateUtil.swift in Sources */,
 				F6BB10412B50F96C0063DBBF /* ProvideID.swift in Sources */,
 				F67102FC2B4A6D64006D48CB /* WalkThrough4.swift in Sources */,
-				F657D5CD2B3C457300901A6A /* DisclosureLow.swift in Sources */,
+				F657D5CD2B3C457300901A6A /* DisclosureRow.swift in Sources */,
 				F657D5CF2B3C469500901A6A /* CredentialDetailModel.swift in Sources */,
 				8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */,
 				A84AB6F42B50111500E8C88B /* id_token_sharing_history.pb.swift in Sources */,

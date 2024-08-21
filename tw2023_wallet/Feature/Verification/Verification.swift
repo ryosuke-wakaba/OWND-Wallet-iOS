@@ -39,7 +39,7 @@ struct Verification: View {
                             Text("verification_result_description").modifier(BodyBlack())
                             if !viewModel.dataModel.claims.isEmpty {
                                 ForEach(viewModel.dataModel.claims, id: \.0) { key, value in
-                                    DisclosureLow(disclosure: (key: key, value: value))
+                                    DisclosureRow(disclosure: (key: key, value: value))
                                         .padding(.vertical, 8)
                                 }
                             }

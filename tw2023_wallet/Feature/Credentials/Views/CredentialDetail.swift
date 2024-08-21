@@ -85,7 +85,7 @@ struct CredentialDetail: View {
                             if let disclosureDict = credential.disclosure {
                                 ForEach(disclosureDict.sorted(by: { $0.key < $1.key }), id: \.key) {
                                     key, value in
-                                    DisclosureLow(disclosure: (key: key, value: value))
+                                    DisclosureRow(disclosure: (key: key, value: value))
                                 }
                             }
                         }
@@ -96,7 +96,7 @@ struct CredentialDetail: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .modifier(BodyGray())
                             ForEach(viewModel.claimsToDisclose, id: \.self.id) { it in
-                                DisclosureLow(disclosure: (key: it.key!, value: it.value!))
+                                DisclosureRow(disclosure: (key: it.key!, value: it.value!))
                             }
 
                             // not sharing claims
@@ -105,7 +105,7 @@ struct CredentialDetail: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .modifier(BodyGray())
                             ForEach(viewModel.claimsNotToDisclosed, id: \.self.id) { it in
-                                DisclosureLow(disclosure: (key: it.key!, value: it.value!))
+                                DisclosureRow(disclosure: (key: it.key!, value: it.value!))
                             }
 
                         }

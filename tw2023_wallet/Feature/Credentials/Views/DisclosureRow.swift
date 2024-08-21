@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct DisclosureLow: View {
+struct DisclosureRow: View {
     var disclosure: (key: String, value: String)
 
     var body: some View {
@@ -29,5 +29,5 @@ struct DisclosureLow: View {
     let modelData = ModelData()
     modelData.loadCredentials()
     let disclosure = modelData.credentials.first?.disclosure?.first
-    return DisclosureLow(disclosure: disclosure!)
+    return DisclosureRow(disclosure: disclosure!)
 }
