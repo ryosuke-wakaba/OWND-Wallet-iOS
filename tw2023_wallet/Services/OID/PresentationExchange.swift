@@ -84,17 +84,17 @@ struct Field: Codable {
 
 struct SubmissionRequirement: Codable {
     let rule: Rule
-    // MUST contain either a from or from_nested property. 
+    // MUST contain either a from or from_nested property.
     // If both properties are present, the implementation MUST produce an error
     let from: String?
     let fromNested: [SubmissionRequirement]?
-    let name: String? // used by a consuming User Agent to display the general name of the requirement set to a user
-    let purpose: String? // string that describes the purpose for which the submission is being requested
+    let name: String?  // used by a consuming User Agent to display the general name of the requirement set to a user
+    let purpose: String?  // string that describes the purpose for which the submission is being requested
     // count, min, and max may be present with a pick rule
     let count: Int?
     let min: Int?
     let max: Int?
-    
+
     init(
         rule: Rule,
         from: String? = nil,
