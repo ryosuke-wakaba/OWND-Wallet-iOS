@@ -83,10 +83,41 @@ struct Field: Codable {
 }
 
 struct SubmissionRequirement: Codable {
-    let name: String?
     let rule: Rule
+    // MUST contain either a from or from_nested property. 
+    // If both properties are present, the implementation MUST produce an error
+    let from: String?
+    let fromNested: [SubmissionRequirement]?
+    let name: String? // used by a consuming User Agent to display the general name of the requirement set to a user
+    let purpose: String? // string that describes the purpose for which the submission is being requested
+    // count, min, and max may be present with a pick rule
     let count: Int?
-    let from: String
+    let min: Int?
+    let max: Int?
+    
+    init(
+        rule: Rule,
+        from: String? = nil,
+        fromNested: [SubmissionRequirement]? = nil,
+        name: String? = nil,
+        purpose: String? = nil,
+        count: Int? = nil,
+        min: Int? = nil,
+        max: Int? = nil
+    ) {
+        if (from != nil && fromNested != nil) || (from == nil && fromNested == nil) {
+            fatalError("Either 'from' or 'fromNested' must be present, but not both.")
+        }
+
+        self.rule = rule
+        self.from = from
+        self.fromNested = fromNested
+        self.name = name
+        self.purpose = purpose
+        self.count = count
+        self.min = min
+        self.max = max
+    }
 }
 
 struct Path: Codable {
