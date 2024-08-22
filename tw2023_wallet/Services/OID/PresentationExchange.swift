@@ -26,6 +26,7 @@ enum LimitDisclosure: String, Codable {
 
 enum Rule: String, Codable {
     case pick = "pick"
+    case all = "all"
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -40,17 +41,36 @@ enum Rule: String, Codable {
     }
 }
 
+enum SubjectIsIssuer: String, Codable {
+    case required = "required"
+    case preferred = "preferred"
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+
+        guard let subjectIsIssuer = SubjectIsIssuer(rawValue: value) else {
+            throw DecodingError.dataCorruptedError(
+                in: container, debugDescription: "Invalid SubjectIsIssuer type value: \(value)")
+        }
+
+        self = subjectIsIssuer
+    }
+}
+
 struct PresentationDefinition: Codable {
     let id: String
     let inputDescriptors: [InputDescriptor]
-    let submissionRequirements: [SubmissionRequirement]?
     let name: String?
     let purpose: String?
+
+    // extension
+    let submissionRequirements: [SubmissionRequirement]?
 }
 
 struct ClaimFormat: Codable {
     let alg: [String]?
-    let proof_type: [String]?
+    let proofType: [String]?
 }
 
 struct InputDescriptor: Codable {
@@ -58,13 +78,18 @@ struct InputDescriptor: Codable {
     let name: String?
     let purpose: String?
     let format: [String: ClaimFormat]?
-    let group: [String]?
     let constraints: InputDescriptorConstraints
+    
+    // extension
+    let group: [String]? // value MUST match one of the grouping strings listed in the from values of a Submission Requirement Rule object
 }
 
 struct InputDescriptorConstraints: Codable {
-    let limitDisclosure: LimitDisclosure?
     let fields: [Field]?
+    let limitDisclosure: LimitDisclosure?
+    
+    // extension
+    let subjectIsIssuer: SubjectIsIssuer?
 }
 
 struct JSONSchemaProperties: Codable {
@@ -79,15 +104,25 @@ struct Filter: Codable {
 
 struct Field: Codable {
     let path: [String]
+    let id: String?
+    let purpose: String?
+    let name: String?
     let filter: Filter?
+    let optional: Bool? // true indicates the field is optional, and false or non-presence of the property indicates the field is required
+}
+
+enum InitializationError: Error {
+    case invalidValue
 }
 
 struct SubmissionRequirement: Codable {
     let rule: Rule
+    
     // MUST contain either a from or from_nested property.
     // If both properties are present, the implementation MUST produce an error
     let from: String?
     let fromNested: [SubmissionRequirement]?
+    
     let name: String?  // used by a consuming User Agent to display the general name of the requirement set to a user
     let purpose: String?  // string that describes the purpose for which the submission is being requested
     // count, min, and max may be present with a pick rule
@@ -104,9 +139,26 @@ struct SubmissionRequirement: Codable {
         count: Int? = nil,
         min: Int? = nil,
         max: Int? = nil
-    ) {
+    ) throws {
         if (from != nil && fromNested != nil) || (from == nil && fromNested == nil) {
-            fatalError("Either 'from' or 'fromNested' must be present, but not both.")
+            throw InitializationError.invalidValue
+        }
+        
+        if let cnt = count, cnt <= 0 {
+            throw InitializationError.invalidValue
+        }
+        
+        if let minimum = min, minimum < 0 {
+            throw InitializationError.invalidValue
+        }
+        
+        if let maximum = max {
+            if maximum <= 0 {
+                throw InitializationError.invalidValue
+            }
+            if let minimum = min, maximum <= minimum {
+                throw InitializationError.invalidValue
+            }
         }
 
         self.rule = rule
