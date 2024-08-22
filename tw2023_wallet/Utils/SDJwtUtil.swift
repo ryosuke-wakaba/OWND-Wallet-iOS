@@ -19,8 +19,8 @@ struct Disclosure {
         self.key = key
         self.value = value
 
-        if self.disclosure != nil {
-            self.id = self.disclosure!
+        if let disclosure = self.disclosure {
+            self.id = disclosure
         }
         else {
             if let key = key, let value = value {
