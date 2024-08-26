@@ -201,6 +201,122 @@ final class OpenIdProviderTests: XCTestCase {
         }
         """
 
+    let presetationDefinition3 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"}
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
+    let presetationDefinition4 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"}
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                        "optional": true
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
+    let presetationDefinition5 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"}
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                        "optional": false
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
+    let presetationDefinition6 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"}
+                        "optional": true
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                        "optional": true
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
     func testSelectDisclosureNoSelected() throws {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure0
@@ -229,8 +345,8 @@ final class OpenIdProviderTests: XCTestCase {
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 1)
-            XCTAssertEqual(disclosures[0].key, "claim1")
-            XCTAssertEqual(disclosures[0].value, "foo")
+            XCTAssertEqual(disclosures[0].disclosure.key, "claim1")
+            XCTAssertEqual(disclosures[0].disclosure.value, "foo")
         }
         else {
             XCTFail()
@@ -251,8 +367,8 @@ final class OpenIdProviderTests: XCTestCase {
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 1)
-            XCTAssertEqual(disclosures[0].key, "claim2")
-            XCTAssertEqual(disclosures[0].value, "bar")
+            XCTAssertEqual(disclosures[0].disclosure.key, "claim2")
+            XCTAssertEqual(disclosures[0].disclosure.value, "bar")
         }
         else {
             XCTFail()
@@ -271,7 +387,9 @@ final class OpenIdProviderTests: XCTestCase {
 
         let credential = SubmissionCredential(
             id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt,
-            inputDescriptor: presentationDefinition.inputDescriptors[0])
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: []
+        )
         let idProvider = OpenIdProvider(ProviderOption())
 
         try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
@@ -318,7 +436,9 @@ final class OpenIdProviderTests: XCTestCase {
 
         let credential = SubmissionCredential(
             id: "internal-id-1", format: "jwt_vp_json", types: [], credential: vcJwt,
-            inputDescriptor: presentationDefinition.inputDescriptors[0])
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: []
+        )
         let idProvider = OpenIdProvider(ProviderOption())
 
         try KeyPairUtil.generateSignVerifyKeyPair(
@@ -414,7 +534,9 @@ final class OpenIdProviderTests: XCTestCase {
 
         let credential = SubmissionCredential(
             id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt,
-            inputDescriptor: presentationDefinition.inputDescriptors[0])
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: []
+        )
 
         let authRequestProcessedData = ProcessedRequestData(
             authorizationRequest: AuthorizationRequestPayloadImpl(),
