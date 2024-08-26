@@ -171,7 +171,7 @@ struct CredentialOfferView: View {
 
 }
 
-#Preview ("2. invalid credential offer"){
+#Preview("2. invalid credential offer") {
     let args = CredentialOfferArgs()
     args.credentialOffer =
         "openid-credential-offer://?credential_offer=broken"
