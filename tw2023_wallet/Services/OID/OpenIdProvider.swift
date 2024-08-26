@@ -813,8 +813,7 @@ func selectDisclosure(sdJwt: String, presentationDefinition: PresentationDefinit
         // fieldKeysを取得
         let fieldKeys = extractFieldKeys(from: sourcePayload, using: inputDescriptor)
 
-        // matchingDisclosuresを取得
-        let matchingDisclosures = findMatchingDisclosures(
+        let matchingDisclosures = createDisclosureWithOptionality(
             from: disclosures,
             with: fieldKeys
         )
@@ -839,7 +838,7 @@ private func extractFieldKeys(
     }
 }
 
-private func findMatchingDisclosures(
+private func createDisclosureWithOptionality(
     from disclosures: [Disclosure], with fieldKeys: [(String, Bool)]
 ) -> [DisclosureWithOptionality] {
     return disclosures.map { disclosure in

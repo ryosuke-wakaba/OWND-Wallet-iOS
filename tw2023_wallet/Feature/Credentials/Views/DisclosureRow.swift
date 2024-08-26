@@ -44,15 +44,16 @@ struct DisclosureRow: View {
     let disclosure = modelData.credentials.first?.disclosure?.first
     return DisclosureRow(
         submitDisclosure:
-                .constant(DisclosureWithOptionality(
-                disclosure: Disclosure(
-                    disclosure: nil,
-                    key: disclosure?.key,
-                    value: disclosure?.value
-                ),
-                isSubmit: true,
-                optional: false
-            )))
+            .constant(
+                DisclosureWithOptionality(
+                    disclosure: Disclosure(
+                        disclosure: nil,
+                        key: disclosure?.key,
+                        value: disclosure?.value
+                    ),
+                    isSubmit: true,
+                    optional: false
+                )))
 }
 
 #Preview("2. optional off") {
@@ -61,15 +62,15 @@ struct DisclosureRow: View {
     let disclosure = modelData.credentials.first?.disclosure?.first
     return DisclosureRow(
         submitDisclosure:
-                .constant(DisclosureWithOptionality(
-                disclosure: Disclosure(
-                    disclosure: nil, key: disclosure?.key, value: disclosure?.value),
-                isSubmit: false,
-                optional: true
-            ))
+            .constant(
+                DisclosureWithOptionality(
+                    disclosure: Disclosure(
+                        disclosure: nil, key: disclosure?.key, value: disclosure?.value),
+                    isSubmit: false,
+                    optional: true
+                ))
     )
 }
-
 
 #Preview("2. optional on") {
     let modelData = ModelData()
@@ -77,11 +78,12 @@ struct DisclosureRow: View {
     let disclosure = modelData.credentials.first?.disclosure?.first
     return DisclosureRow(
         submitDisclosure:
-                .constant(DisclosureWithOptionality(
-                disclosure: Disclosure(
-                    disclosure: nil, key: disclosure?.key, value: disclosure?.value),
-                isSubmit: true,
-                optional: true
-            ))
+            .constant(
+                DisclosureWithOptionality(
+                    disclosure: Disclosure(
+                        disclosure: nil, key: disclosure?.key, value: disclosure?.value),
+                    isSubmit: true,
+                    optional: true
+                ))
     )
 }

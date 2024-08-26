@@ -54,7 +54,7 @@ class CredentialListViewModel {
                 let ret = selectDisclosure(
                     sdJwt: credential.payload, presentationDefinition: presentationDefinition)
                 if let (_, disclosures) = ret {
-                    return 0 < disclosures.count
+                    return 0 < disclosures.filter { it in (it.optional || it.isSubmit) }.count
                 }
                 return false
             }
