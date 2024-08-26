@@ -8,7 +8,7 @@
 import ASN1Decoder
 import Foundation
 
-struct Disclosure {
+struct Disclosure: Codable {
     let id: String
     let disclosure: String?
     let key: String?
