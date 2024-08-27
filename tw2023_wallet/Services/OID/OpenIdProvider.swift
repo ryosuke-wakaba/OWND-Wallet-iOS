@@ -112,10 +112,14 @@ class OpenIdProvider {
                             the Client Identifier MUST be a DNS name and match a dNSName Subject Alternative Name (SAN) [RFC5280] entry in the leaf certificate passed with the request.
                              */
                                 let (decoded, certificates) = verifedX5CJwt
-                            
+
                                 guard let url = URL(string: _clientId),
-                                      let domainName = url.host else {
-                                    return .failure(.authRequestInputError(reason: .compliantError(reason: "Unable to get host name")))
+                                    let domainName = url.host
+                                else {
+                                    return .failure(
+                                        .authRequestInputError(
+                                            reason: .compliantError(
+                                                reason: "Unable to get host name")))
                                 }
 
                                 if isDomainInSAN(certificate: certificates[0], domain: domainName) {
@@ -522,7 +526,7 @@ class OpenIdProvider {
 
         // selectDisclosure関数の使用
         guard
-            let (inputDescriptor, selectedDisclosures) = selectDisclosure(
+            let (inputDescriptor, _) = selectDisclosure(
                 sdJwt: sdJwt, presentationDefinition: presentationDefinition)
         else {
             // TODO: エラーハンドリングかダミーの戻り値
@@ -534,6 +538,7 @@ class OpenIdProvider {
                 "dummyPurpose"
             )
         }
+        let selectedDisclosures = credential.discloseClaims.map { $0.disclosure }
         print(String(describing: inputDescriptor))
         guard let keyBinding = keyBinding else {
             throw OpenIdProviderIllegalStateException.illegalKeyBindingState
@@ -564,6 +569,8 @@ class OpenIdProvider {
             issuerSignedJwt + "~"
             + selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
             + keyBindingJwt
+
+        print("### Created vpToken\n\(vpToken)")
 
         let dm = DescriptorMap(
             id: credential.inputDescriptor.id,
@@ -713,6 +720,7 @@ struct SubmissionCredential: Codable, Equatable {
     let types: [String]
     let credential: String
     let inputDescriptor: InputDescriptor
+    let discloseClaims: [DisclosureWithOptionality]
 
     static func == (lhs: SubmissionCredential, rhs: SubmissionCredential) -> Bool {
         return lhs.id == rhs.id
@@ -783,72 +791,69 @@ func satisfyConstrains(credential: [String: Any], presentationDefinition: Presen
 }
 
 func selectDisclosure(sdJwt: String, presentationDefinition: PresentationDefinition) -> (
-    InputDescriptor, [Disclosure]
+    InputDescriptor, [DisclosureWithOptionality]
 )? {
     let parts = sdJwt.split(separator: "~").map(String.init)
     let newList = parts.count > 2 ? Array(parts.dropFirst().dropLast()) : []
 
     // [Disclosure]
     let disclosures = decodeDisclosureFunction(newList)
-    /*
-     example of source payload
-         {
-           "claim1": "foo",
-           "claim2": "bar"
-         }
-     */
-    let sourcePayload = Dictionary(uniqueKeysWithValues: disclosures.map { ($0.key, $0.value) })
-
-    for inputDescriptor in presentationDefinition.inputDescriptors {
-        let matchingDisclosures: [Disclosure] = presentationDefinition.inputDescriptors.compactMap {
-            inputDescriptor in
-            /*
-             array of string values filtered by `inputDescriptor.constraints.fields.path`
-
-             example of input_descriptors
-                 "input_descriptors": [
-                   {
-                     "constraints": {
-                       "fields": [
-                         {
-                           "path": ["$.claim1"], ここが配列になっている理由はformat毎に異なるpathを指定するため
-                         }
-                       ]
-                     }
-                   }
-                 ]
-             */
-            let fieldKeys = inputDescriptor.constraints.fields?.flatMap { field in
-                // field.pathからfieldkeysを抽出
-                field.path.compactMap { jsonPath in
-                    let key = String(jsonPath.dropFirst(2))  // "$."を削除
-                    if sourcePayload.keys.contains(key) {
-                        return key
-                    }
-                    else {
-                        return nil
-                    }
-                }
+    let sourcePayload = Dictionary(
+        uniqueKeysWithValues: disclosures.compactMap { disclosure in
+            if let key = disclosure.key, let value = disclosure.value {
+                return (key, value)
             }
+            else {
+                return nil
+            }
+        })
 
-            // disclosuresをfieldKeysに基づいてフィルタリング
-            return fieldKeys.flatMap { fieldKey in
-                disclosures.filter { disclosure in
-                    if let disclosureKey = disclosure.key {
-                        return fieldKey.contains(disclosureKey)
-                    }
-                    else {
-                        return false
-                    }
-                }
-            } ?? []
-        }.flatMap { $0 }
+    // 各InputDescriptorをループ
+    for inputDescriptor in presentationDefinition.inputDescriptors {
+        // fieldKeysを取得
+        let fieldKeys = extractFieldKeys(from: sourcePayload, using: inputDescriptor)
+
+        let matchingDisclosures = createDisclosureWithOptionality(
+            from: disclosures,
+            with: fieldKeys
+        )
 
         if !matchingDisclosures.isEmpty {
             return (inputDescriptor, matchingDisclosures)
         }
     }
     return nil
+}
+
+private func extractFieldKeys(
+    from sourcePayload: [String: String], using inputDescriptor: InputDescriptor
+) -> [(String, Bool)] {
+    guard let fields = inputDescriptor.constraints.fields else { return [] }
+    return fields.flatMap { field in
+        let optional = field.optional ?? false
+        return field.path.compactMap { jsonPath in
+            let key = String(jsonPath.dropFirst(2))  // "$."を削除
+            return sourcePayload.keys.contains(key) ? (key, optional) : nil
+        }
+    }
+}
+
+private func createDisclosureWithOptionality(
+    from disclosures: [Disclosure], with fieldKeys: [(String, Bool)]
+) -> [DisclosureWithOptionality] {
+    return disclosures.map { disclosure in
+        guard let dkey = disclosure.key else {
+            return DisclosureWithOptionality(
+                disclosure: disclosure, isSubmit: false, optional: false)
+        }
+        for (keyName, optionality) in fieldKeys {
+            if keyName.contains(dkey) {
+                return DisclosureWithOptionality(
+                    disclosure: disclosure, isSubmit: !optionality, optional: optionality)
+            }
+        }
+        return DisclosureWithOptionality(disclosure: disclosure, isSubmit: false, optional: false)
+    }
 }
 
 var decodeDisclosureFunction: ([String]) -> [Disclosure] = SDJwtUtil.decodeDisclosure

@@ -9,8 +9,10 @@ import Foundation
 
 @Observable
 class CredentialDetailViewModel {
-    var claimsToDisclose: [Disclosure] = []
-    var claimsNotToDisclosed: [Disclosure] = []
+    var requiredClaims: [DisclosureWithOptionality] = []
+    var optionalClaims: [DisclosureWithOptionality] = []
+    var undisclosedClaims: [DisclosureWithOptionality] = []
+
     var dataModel: CredentialDetailModel = .init()
     var inputDescriptor: InputDescriptor? = nil
 
@@ -35,23 +37,28 @@ class CredentialDetailViewModel {
                     if let selected = selectDisclosure(
                         sdJwt: credential.payload, presentationDefinition: pd)
                     {
-                        let (inputDescriptors, _disclosures) = selected
+                        let (inputDescriptors, disclosuresWithOptionality) = selected
                         self.inputDescriptor = inputDescriptors
-                        self.claimsToDisclose = _disclosures
 
-                        let allDisclosures = try! SDJwtUtil.decodeSDJwt(credential.payload)
-                        self.claimsNotToDisclosed = allDisclosures.filter { disclosure in
-                            !claimsToDisclose.contains { selected in
-                                selected.disclosure == disclosure.disclosure
-                            }
+                        self.requiredClaims = disclosuresWithOptionality.filter { d in
+                            d.isSubmit && !d.optional
+                        }
+                        self.optionalClaims = disclosuresWithOptionality.filter { d in
+                            !d.isSubmit && d.optional
+                        }
+                        self.undisclosedClaims = disclosuresWithOptionality.filter { d in
+                            !d.isSubmit && !d.optional
                         }
                     }
                 case "jwt_vc_json":
                     inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定
-                    self.claimsNotToDisclosed = []
+                    self.undisclosedClaims = []
 
                     let jwt = credential.payload
-                    self.claimsToDisclose = JWTUtil.convertJWTClaimsAsDisclosure(jwt: jwt)
+                    self.requiredClaims = JWTUtil.convertJWTClaimsAsDisclosure(jwt: jwt).map { it in
+                        return DisclosureWithOptionality(
+                            disclosure: it, isSubmit: true, optional: false)
+                    }
                 default:
                     inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定
             }
@@ -60,7 +67,12 @@ class CredentialDetailViewModel {
         print("done")
     }
 
-    func getSubmissionCredential(credential: Credential) -> SubmissionCredential {
+    func createSubmissionCredential(
+        credential: Credential,
+        discloseClaims: [DisclosureWithOptionality]
+    )
+        -> SubmissionCredential
+    {
         let types = try! VCIMetadataUtil.extractTypes(
             format: credential.format, credential: credential.payload)
         let submissionCredential = SubmissionCredential(
@@ -68,7 +80,8 @@ class CredentialDetailViewModel {
             format: credential.format,
             types: types,
             credential: credential.payload,
-            inputDescriptor: self.inputDescriptor!
+            inputDescriptor: self.inputDescriptor!,
+            discloseClaims: discloseClaims
         )
         return submissionCredential
     }

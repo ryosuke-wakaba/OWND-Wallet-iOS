@@ -140,6 +140,13 @@ final class OpenIdProviderTests: XCTestCase {
     func mockDecodeDisclosure0(disclosures: [String]) -> [Disclosure] {
         return []
     }
+
+    func mockDecodeDisclosure1Records(disclosures: [String]) -> [Disclosure] {
+        return [
+            Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo")
+        ]
+    }
+
     func mockDecodeDisclosure2Records(disclosures: [String]) -> [Disclosure] {
         return [
             Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
@@ -201,6 +208,122 @@ final class OpenIdProviderTests: XCTestCase {
         }
         """
 
+    let presentationDefinition3 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"}
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
+    let presentationDefinition4 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"}
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                        "optional": true
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
+    let presentationDefinition5 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"},
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                        "optional": false
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
+    let presentationDefinition6 = """
+            {
+              "id": "12345",
+              "input_descriptors": [
+                {
+                  "id": "input1",
+                  "format": {
+                    "vc+sd-jwt": {}
+                  },
+                  "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
+                      {
+                        "path": ["$.claim1"],
+                        "filter": {"type": "string"},
+                        "optional": true
+                      },
+                      {
+                        "path": ["$.claim2"],
+                        "filter": {"type": "string"},
+                        "optional": true
+                      }
+                    ]
+                  }
+                }
+              ],
+              "submission_requirements": []
+            }
+        """
+
     func testSelectDisclosureNoSelected() throws {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure0
@@ -219,7 +342,7 @@ final class OpenIdProviderTests: XCTestCase {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure2Records
 
-        let sdJwt = "issuer-jwt~dummy-claim1~"
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
@@ -228,9 +351,21 @@ final class OpenIdProviderTests: XCTestCase {
             sdJwt: sdJwt, presentationDefinition: presentationDefinition)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
-            XCTAssertEqual(disclosures.count, 1)
-            XCTAssertEqual(disclosures[0].key, "claim1")
-            XCTAssertEqual(disclosures[0].value, "foo")
+            XCTAssertEqual(disclosures.count, 2)
+            for d in disclosures {
+                if d.disclosure.key == "claim2" {
+                    XCTAssertEqual(d.disclosure.key, "claim2")
+                    XCTAssertEqual(d.disclosure.value, "bar")
+                    XCTAssertTrue(!d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+                if d.disclosure.key == "claim1" {
+                    XCTAssertEqual(d.disclosure.key, "claim1")
+                    XCTAssertEqual(d.disclosure.value, "foo")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+            }
         }
         else {
             XCTFail()
@@ -241,7 +376,7 @@ final class OpenIdProviderTests: XCTestCase {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure2Records
 
-        let sdJwt = "issuer-jwt~dummy-claim1~"
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
@@ -250,9 +385,185 @@ final class OpenIdProviderTests: XCTestCase {
             sdJwt: sdJwt, presentationDefinition: presentationDefinition)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
+            XCTAssertEqual(disclosures.count, 2)
+            for d in disclosures {
+                if d.disclosure.key == "claim2" {
+                    XCTAssertEqual(d.disclosure.key, "claim2")
+                    XCTAssertEqual(d.disclosure.value, "bar")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+                if d.disclosure.key == "claim1" {
+                    XCTAssertEqual(d.disclosure.key, "claim1")
+                    XCTAssertEqual(d.disclosure.value, "foo")
+                    XCTAssertTrue(!d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+            }
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+    func testSelectDisclosureBothSelected() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition3.data(using: .utf8)!)
+        let selected = selectDisclosure(
+            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        if let (inputDescriptor, disclosures) = selected {
+            XCTAssertEqual(inputDescriptor.id, "input1")
+            XCTAssertEqual(disclosures.count, 2)
+            for d in disclosures {
+                if d.disclosure.key == "claim2" {
+                    XCTAssertEqual(d.disclosure.key, "claim2")
+                    XCTAssertEqual(d.disclosure.value, "bar")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+                if d.disclosure.key == "claim1" {
+                    XCTAssertEqual(d.disclosure.key, "claim1")
+                    XCTAssertEqual(d.disclosure.value, "foo")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+            }
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+    func testSelectDisclosureClaim2Optional() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition4.data(using: .utf8)!)
+        let selected = selectDisclosure(
+            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        if let (inputDescriptor, disclosures) = selected {
+            XCTAssertEqual(inputDescriptor.id, "input1")
+            XCTAssertEqual(disclosures.count, 2)
+            for d in disclosures {
+                if d.disclosure.key == "claim2" {
+                    XCTAssertEqual(d.disclosure.key, "claim2")
+                    XCTAssertEqual(d.disclosure.value, "bar")
+                    XCTAssertTrue(!d.isSubmit)
+                    XCTAssertTrue(d.optional)
+                }
+                if d.disclosure.key == "claim1" {
+                    XCTAssertEqual(d.disclosure.key, "claim1")
+                    XCTAssertEqual(d.disclosure.value, "foo")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+            }
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+    func testSelectDisclosureClaim2Optional2() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure1Records
+
+        let sdJwt = "issuer-jwt~dummy-claim1~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition4.data(using: .utf8)!)
+        let selected = selectDisclosure(
+            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        if let (inputDescriptor, disclosures) = selected {
+            XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 1)
-            XCTAssertEqual(disclosures[0].key, "claim2")
-            XCTAssertEqual(disclosures[0].value, "bar")
+            for d in disclosures {
+                if d.disclosure.key == "claim1" {
+                    XCTAssertEqual(d.disclosure.key, "claim1")
+                    XCTAssertEqual(d.disclosure.value, "foo")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+            }
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+    func testSelectDisclosureBothSelected2() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition5.data(using: .utf8)!)
+        let selected = selectDisclosure(
+            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        if let (inputDescriptor, disclosures) = selected {
+            XCTAssertEqual(inputDescriptor.id, "input1")
+            XCTAssertEqual(disclosures.count, 2)
+            for d in disclosures {
+                if d.disclosure.key == "claim2" {
+                    XCTAssertEqual(d.disclosure.key, "claim2")
+                    XCTAssertEqual(d.disclosure.value, "bar")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+                if d.disclosure.key == "claim1" {
+                    XCTAssertEqual(d.disclosure.key, "claim1")
+                    XCTAssertEqual(d.disclosure.value, "foo")
+                    XCTAssertTrue(d.isSubmit)
+                    XCTAssertTrue(!d.optional)
+                }
+            }
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+    func testSelectDisclosureBothOptional() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition6.data(using: .utf8)!)
+        let selected = selectDisclosure(
+            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        if let (inputDescriptor, disclosures) = selected {
+            XCTAssertEqual(inputDescriptor.id, "input1")
+            XCTAssertEqual(disclosures.count, 2)
+            for d in disclosures {
+                if d.disclosure.key == "claim2" {
+                    XCTAssertEqual(d.disclosure.key, "claim2")
+                    XCTAssertEqual(d.disclosure.value, "bar")
+                    XCTAssertTrue(!d.isSubmit)
+                    XCTAssertTrue(d.optional)
+                }
+                if d.disclosure.key == "claim1" {
+                    XCTAssertEqual(d.disclosure.key, "claim1")
+                    XCTAssertEqual(d.disclosure.value, "foo")
+                    XCTAssertTrue(!d.isSubmit)
+                    XCTAssertTrue(d.optional)
+                }
+            }
         }
         else {
             XCTFail()
@@ -271,7 +582,14 @@ final class OpenIdProviderTests: XCTestCase {
 
         let credential = SubmissionCredential(
             id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt,
-            inputDescriptor: presentationDefinition.inputDescriptors[0])
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
+                    isSubmit: true, optional: false)
+            ]
+        )
         let idProvider = OpenIdProvider(ProviderOption())
 
         try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
@@ -296,6 +614,58 @@ final class OpenIdProviderTests: XCTestCase {
         XCTAssertEqual(disclosedClaims[0].name, "claim1")
     }
 
+    func testCreatePresentationSubmissionSdJwtVcBothSubmit() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition3.data(using: .utf8)!)
+
+        let credential = SubmissionCredential(
+            id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt,
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
+                    isSubmit: true, optional: false),
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(disclosure: "claim2-digest", key: "claim2", value: "bar"),
+                    isSubmit: true, optional: false),
+
+            ]
+        )
+        let idProvider = OpenIdProvider(ProviderOption())
+
+        try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
+        let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
+        idProvider.setKeyBinding(keyBinding: keyBinding)
+
+        let presentationSubmission = try idProvider.createPresentationSubmissionSdJwtVc(
+            credential: credential,
+            presentationDefinition: presentationDefinition,
+            clientId: "https://rp.example.com",
+            nonce: "dummy-nonce"
+        )
+        let (vpToken, descriptorMap, disclosedClaims, _) = presentationSubmission
+        let parts = vpToken.split(separator: "~").map(String.init)
+        XCTAssertEqual(parts.count, 4)
+        XCTAssertEqual(parts[0], "issuer-jwt")
+        XCTAssertEqual(parts[1], "claim1-digest")
+        XCTAssertEqual(parts[2], "claim2-digest")
+        XCTAssertEqual(descriptorMap.format, "vc+sd-jwt")
+        XCTAssertEqual(descriptorMap.path, "$")
+        XCTAssertEqual(disclosedClaims.count, 2)
+        XCTAssertEqual(disclosedClaims[0].id, "internal-id-1")
+        XCTAssertEqual(disclosedClaims[0].name, "claim1")
+        XCTAssertEqual(disclosedClaims[1].id, "internal-id-1")
+        XCTAssertEqual(disclosedClaims[1].name, "claim2")
+    }
+
     func testCreatePresentationSubmissionJwtVpJson() throws {
 
         let tag = "jwt_signing_key"
@@ -318,7 +688,9 @@ final class OpenIdProviderTests: XCTestCase {
 
         let credential = SubmissionCredential(
             id: "internal-id-1", format: "jwt_vp_json", types: [], credential: vcJwt,
-            inputDescriptor: presentationDefinition.inputDescriptors[0])
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: []
+        )
         let idProvider = OpenIdProvider(ProviderOption())
 
         try KeyPairUtil.generateSignVerifyKeyPair(
@@ -414,7 +786,14 @@ final class OpenIdProviderTests: XCTestCase {
 
         let credential = SubmissionCredential(
             id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt,
-            inputDescriptor: presentationDefinition.inputDescriptors[0])
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
+                    isSubmit: true, optional: false)
+            ]
+        )
 
         let authRequestProcessedData = ProcessedRequestData(
             authorizationRequest: AuthorizationRequestPayloadImpl(),
