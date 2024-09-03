@@ -34,10 +34,10 @@ class CredentialDetailViewModel {
         if let pd = presentationDefinition {
             switch credential.format {
                 case "vc+sd-jwt":
-                    if let selected = selectDisclosure(
+                    if let matched = matchVcToRequirement(
                         sdJwt: credential.payload, presentationDefinition: pd)
                     {
-                        let (inputDescriptors, disclosuresWithOptionality) = selected
+                        let (inputDescriptors, disclosuresWithOptionality) = matched
                         self.inputDescriptor = inputDescriptors
 
                         self.requiredClaims = disclosuresWithOptionality.filter { d in

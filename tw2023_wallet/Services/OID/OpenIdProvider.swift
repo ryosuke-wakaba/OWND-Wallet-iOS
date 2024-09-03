@@ -526,7 +526,7 @@ class OpenIdProvider {
 
         // selectDisclosure関数の使用
         guard
-            let (inputDescriptor, _) = selectDisclosure(
+            let (inputDescriptor, _) = matchVcToRequirement(
                 sdJwt: sdJwt, presentationDefinition: presentationDefinition)
         else {
             // TODO: エラーハンドリングかダミーの戻り値
@@ -790,16 +790,16 @@ func satisfyConstrains(credential: [String: Any], presentationDefinition: Presen
     return matchingFieldsCount == inputDescriptors.compactMap({ $0.constraints.fields }).count
 }
 
-func selectDisclosure(sdJwt: String, presentationDefinition: PresentationDefinition) -> (
+func matchVcToRequirement(sdJwt: String, presentationDefinition: PresentationDefinition) -> (
     InputDescriptor, [DisclosureWithOptionality]
 )? {
     let parts = sdJwt.split(separator: "~").map(String.init)
     let newList = parts.count > 2 ? Array(parts.dropFirst().dropLast()) : []
 
     // [Disclosure]
-    let disclosures = decodeDisclosureFunction(newList)
+    let allDisclosures = decodeDisclosureFunction(newList)
     let sourcePayload = Dictionary(
-        uniqueKeysWithValues: disclosures.compactMap { disclosure in
+        uniqueKeysWithValues: allDisclosures.compactMap { disclosure in
             if let key = disclosure.key, let value = disclosure.value {
                 return (key, value)
             }
@@ -811,11 +811,11 @@ func selectDisclosure(sdJwt: String, presentationDefinition: PresentationDefinit
     // 各InputDescriptorをループ
     for inputDescriptor in presentationDefinition.inputDescriptors {
         // fieldKeysを取得
-        let fieldKeys = extractFieldKeys(from: sourcePayload, using: inputDescriptor)
+        let requiredOrOptionalKeys = filterKeysWithOptionality(from: sourcePayload, using: inputDescriptor)
 
         let matchingDisclosures = createDisclosureWithOptionality(
-            from: disclosures,
-            with: fieldKeys
+            from: allDisclosures,
+            with: requiredOrOptionalKeys
         )
 
         if !matchingDisclosures.isEmpty {
@@ -825,9 +825,27 @@ func selectDisclosure(sdJwt: String, presentationDefinition: PresentationDefinit
     return nil
 }
 
-private func extractFieldKeys(
+private func filterKeysWithOptionality(
     from sourcePayload: [String: String], using inputDescriptor: InputDescriptor
 ) -> [(String, Bool)] {
+    /*
+     array of (String, Bool) values filtered by `inputDescriptor.constraints.fields.path`
+     A Bool value represents whether the field is required.
+     
+     example of input_descriptors
+         "input_descriptors": [
+           {
+             "constraints": {
+               "fields": [
+                 {
+                   "path": ["$.claim1"], ここが配列になっている理由はformat毎に異なるpathを指定するため
+                   "optional": true
+                 }
+               ]
+             }
+           }
+         ]
+     */
     guard let fields = inputDescriptor.constraints.fields else { return [] }
     return fields.flatMap { field in
         let optional = field.optional ?? false
@@ -839,14 +857,14 @@ private func extractFieldKeys(
 }
 
 private func createDisclosureWithOptionality(
-    from disclosures: [Disclosure], with fieldKeys: [(String, Bool)]
+    from allDisclosures: [Disclosure], with requiredOrOptionalKeys: [(String, Bool)]
 ) -> [DisclosureWithOptionality] {
-    return disclosures.map { disclosure in
+    return allDisclosures.map { disclosure in
         guard let dkey = disclosure.key else {
             return DisclosureWithOptionality(
                 disclosure: disclosure, isSubmit: false, optional: false)
         }
-        for (keyName, optionality) in fieldKeys {
+        for (keyName, optionality) in requiredOrOptionalKeys {
             if keyName.contains(dkey) {
                 return DisclosureWithOptionality(
                     disclosure: disclosure, isSubmit: !optionality, optional: optionality)
