@@ -1143,6 +1143,17 @@
     "OK" : {
 
     },
+    "optional_to_provide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提供がオプションの情報"
+          }
+        }
+      }
+    },
     "organizerName" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -26,6 +26,7 @@ enum LimitDisclosure: String, Codable {
 
 enum Rule: String, Codable {
     case pick = "pick"
+    case all = "all"
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -40,17 +41,36 @@ enum Rule: String, Codable {
     }
 }
 
+enum SubjectIsIssuer: String, Codable {
+    case required = "required"
+    case preferred = "preferred"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+
+        guard let subjectIsIssuer = SubjectIsIssuer(rawValue: value) else {
+            throw DecodingError.dataCorruptedError(
+                in: container, debugDescription: "Invalid SubjectIsIssuer type value: \(value)")
+        }
+
+        self = subjectIsIssuer
+    }
+}
+
 struct PresentationDefinition: Codable {
     let id: String
     let inputDescriptors: [InputDescriptor]
-    let submissionRequirements: [SubmissionRequirement]?
     let name: String?
     let purpose: String?
+
+    // extension
+    let submissionRequirements: [SubmissionRequirement]?
 }
 
 struct ClaimFormat: Codable {
     let alg: [String]?
-    let proof_type: [String]?
+    let proofType: [String]?
 }
 
 struct InputDescriptor: Codable {
@@ -58,13 +78,18 @@ struct InputDescriptor: Codable {
     let name: String?
     let purpose: String?
     let format: [String: ClaimFormat]?
-    let group: [String]?
     let constraints: InputDescriptorConstraints
+
+    // extension
+    let group: [String]?  // value MUST match one of the grouping strings listed in the from values of a Submission Requirement Rule object
 }
 
 struct InputDescriptorConstraints: Codable {
-    let limitDisclosure: LimitDisclosure?
     let fields: [Field]?
+    let limitDisclosure: LimitDisclosure?
+
+    // extension
+    let subjectIsIssuer: SubjectIsIssuer?
 }
 
 struct JSONSchemaProperties: Codable {
@@ -79,14 +104,72 @@ struct Filter: Codable {
 
 struct Field: Codable {
     let path: [String]
+    let id: String?
+    let purpose: String?
+    let name: String?
     let filter: Filter?
+    let optional: Bool?  // true indicates the field is optional, and false or non-presence of the property indicates the field is required
+}
+
+enum InitializationError: Error {
+    case invalidValue
 }
 
 struct SubmissionRequirement: Codable {
-    let name: String?
     let rule: Rule
+
+    // MUST contain either a from or from_nested property.
+    // If both properties are present, the implementation MUST produce an error
+    let from: String?
+    let fromNested: [SubmissionRequirement]?
+
+    let name: String?  // used by a consuming User Agent to display the general name of the requirement set to a user
+    let purpose: String?  // string that describes the purpose for which the submission is being requested
+    // count, min, and max may be present with a pick rule
     let count: Int?
-    let from: String
+    let min: Int?
+    let max: Int?
+
+    init(
+        rule: Rule,
+        from: String? = nil,
+        fromNested: [SubmissionRequirement]? = nil,
+        name: String? = nil,
+        purpose: String? = nil,
+        count: Int? = nil,
+        min: Int? = nil,
+        max: Int? = nil
+    ) throws {
+        if (from != nil && fromNested != nil) || (from == nil && fromNested == nil) {
+            throw InitializationError.invalidValue
+        }
+
+        if let cnt = count, cnt <= 0 {
+            throw InitializationError.invalidValue
+        }
+
+        if let minimum = min, minimum < 0 {
+            throw InitializationError.invalidValue
+        }
+
+        if let maximum = max {
+            if maximum <= 0 {
+                throw InitializationError.invalidValue
+            }
+            if let minimum = min, maximum <= minimum {
+                throw InitializationError.invalidValue
+            }
+        }
+
+        self.rule = rule
+        self.from = from
+        self.fromNested = fromNested
+        self.name = name
+        self.purpose = purpose
+        self.count = count
+        self.min = min
+        self.max = max
+    }
 }
 
 struct Path: Codable {
@@ -106,6 +189,21 @@ struct PresentationSubmission: Codable {
     let id: String
     let definitionId: String
     let descriptorMap: [DescriptorMap]
+}
+
+struct DisclosureWithOptionality: Codable {
+    var disclosure: Disclosure
+    
+    // If the value of `isUserSelectable` is `true`, the value of `isSubmit`
+    // is a mutable that can be changed by the user (via toggle operation).
+    var isSubmit: Bool
+    var isUserSelectable: Bool
+
+    init(disclosure: Disclosure, isSubmit: Bool, isUserSelectable: Bool) {
+        self.disclosure = disclosure
+        self.isSubmit = isSubmit
+        self.isUserSelectable = isUserSelectable
+    }
 }
 
 class JwtVpJsonPresentation {

@@ -35,27 +35,58 @@ class DetailVPModePreviewModel: CredentialDetailViewModel {
         // mock data for preview
         dataModel.isLoading = true
         print("load dummy data..")
-        claimsToDisclose = [
-            Disclosure(disclosure: "1", key: "last_name", value: "value1"),
-            Disclosure(disclosure: "3", key: "age", value: "value3"),
+        requiredClaims = [
+            DisclosureWithOptionality(
+                disclosure: Disclosure(disclosure: "1", key: "last_name", value: "value1"),
+                isSubmit: true,
+                isUserSelectable: false),
+            DisclosureWithOptionality(
+                disclosure: Disclosure(disclosure: "2", key: "age", value: "value3"),
+                isSubmit: true,
+                isUserSelectable: false),
         ]
-        claimsNotToDisclosed = [
-            Disclosure(disclosure: "2", key: "first_name", value: "value2")
+        undisclosedClaims = [
+            DisclosureWithOptionality(
+                disclosure: Disclosure(disclosure: "3", key: "first_name", value: "value2"),
+                isSubmit: false,
+                isUserSelectable: false)
         ]
+
+        userSelectableClaims = [
+            DisclosureWithOptionality(
+                disclosure: Disclosure(disclosure: "4", key: "address", value: "value4"),
+                isSubmit: false,
+                isUserSelectable: true),
+            DisclosureWithOptionality(
+                disclosure: Disclosure(disclosure: "5", key: "gender", value: "value4"),
+                isSubmit: true,
+                isUserSelectable: true),
+
+        ]
+
         print("done")
         dataModel.isLoading = false
     }
 
-    func dummyPresentationDefinition() -> PresentationDefinition {
+    func dummyPresentationDefinition1() -> PresentationDefinition {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let presentationJsonData = presentationJson.data(using: .utf8)
+        let presentationJsonData = presentationJson1.data(using: .utf8)
         let presentationDefinition = try! decoder.decode(
             PresentationDefinition.self, from: presentationJsonData!)
         return presentationDefinition
     }
 
-    let presentationJson = """
+    func dummyPresentationDefinition2() -> PresentationDefinition {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationJsonData = presentationJson2.data(using: .utf8)
+        let presentationDefinition = try! decoder.decode(
+            PresentationDefinition.self, from: presentationJsonData!)
+        return presentationDefinition
+    }
+
+    let presentationJson1 = """
           {
             "id": "12345",
             "inputDescriptors": [
@@ -79,6 +110,47 @@ class DetailVPModePreviewModel: CredentialDetailViewModel {
                       "filter": {
                         "type": "boolean"
                       }
+                    }
+                  ]
+                }
+              }
+            ],
+            "submissionRequirements": [
+              {
+                "name": "Over13 Proof",
+                "rule": "pick",
+                "count": 1,
+                "from": "A"
+              }
+            ]
+          }
+        """
+
+    let presentationJson2 = """
+          {
+            "id": "12345",
+            "inputDescriptors": [
+              {
+                "id": "input1",
+                "name": "First Input",
+                "purpose": "For identification",
+                "format": {
+                  "vc+sd-jwt": {}
+                },
+                "group": [
+                  "A"
+                ],
+                "constraints": {
+                  "limitDisclosure": "required",
+                  "fields": [
+                    {
+                      "path": [
+                        "$.is_older_than_13"
+                      ],
+                      "filter": {
+                        "type": "boolean"
+                      },
+                      "optional": true
                     }
                   ]
                 }

@@ -18,8 +18,9 @@ struct CredentialDetail: View {
     @State var vpMode: Bool = false
     @State private var showingQRCodeModal: Bool = false
     @State private var navigateToIssuerDetail: Bool = false
-    @Binding var path: [ScreensOnFullScreen]
     @State private var showAlert = false
+    @State private var userSelectableClaims: [DisclosureWithOptionality] = []
+    @Binding var path: [ScreensOnFullScreen]
 
     init(
         viewModel: CredentialDetailViewModel = CredentialDetailViewModel(),
@@ -85,29 +86,43 @@ struct CredentialDetail: View {
                             if let disclosureDict = credential.disclosure {
                                 ForEach(disclosureDict.sorted(by: { $0.key < $1.key }), id: \.key) {
                                     key, value in
-                                    DisclosureLow(disclosure: (key: key, value: value))
+                                    let submitDisclosure = DisclosureWithOptionality(
+                                        disclosure: Disclosure(
+                                            disclosure: nil,
+                                            key: key,
+                                            value: value),
+                                        isSubmit: false, isUserSelectable: false)
+                                    DisclosureRow(submitDisclosure: .constant(submitDisclosure))
                                 }
                             }
                         }
                         else {
-                            // sharing claims
+                            // required claims
                             Text("Sharing Contents of this certificate")
                                 .padding(.vertical, 16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .modifier(BodyGray())
-                            ForEach(viewModel.claimsToDisclose, id: \.self.id) { it in
-                                DisclosureLow(disclosure: (key: it.key!, value: it.value!))
+                            ForEach(viewModel.requiredClaims, id: \.self.disclosure.id) { it in
+                                DisclosureRow(submitDisclosure: .constant(it))
                             }
 
-                            // not sharing claims
+                            // undisclosed claims
                             Text("Not Sharing Contents of this certificate")
                                 .padding(.vertical, 16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .modifier(BodyGray())
-                            ForEach(viewModel.claimsNotToDisclosed, id: \.self.id) { it in
-                                DisclosureLow(disclosure: (key: it.key!, value: it.value!))
+                            ForEach(viewModel.undisclosedClaims, id: \.self.disclosure.id) { it in
+                                DisclosureRow(submitDisclosure: .constant(it))
                             }
 
+                            // Claims that can be disclosed or not at the user's will.
+                            Text("optional_to_provide")
+                                .padding(.vertical, 16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .modifier(BodyGray())
+                            ForEach($userSelectableClaims, id: \.self.disclosure.id) { $claim in
+                                DisclosureRow(submitDisclosure: $claim)
+                            }
                         }
 
                         // ------------------------- history section -------------------------
@@ -130,10 +145,17 @@ struct CredentialDetail: View {
                             ActionButtonBlack(
                                 title: "Select This Credential",
                                 action: {
-                                    let submissionCredential = viewModel.getSubmissionCredential(
-                                        credential: credential)
+                                    let claims = (viewModel.requiredClaims + userSelectableClaims).filter
+                                    { it in
+                                        it.isSubmit
+                                    }
+                                    let submissionCredential = viewModel.createSubmissionCredential(
+                                        credential: credential,
+                                        discloseClaims: claims
+                                    )
                                     sharingRequestModel?.setSelectedCredential(
                                         data: submissionCredential,
+                                        submissionClaims: claims,
                                         metadata: credential.metaData
                                     )
                                     path.removeLast(2)
@@ -194,6 +216,7 @@ struct CredentialDetail: View {
                 if let model = sharingRequestModel, let pd = model.presentationDefinition {
                     self.vpMode = true
                     await viewModel.loadData(credential: credential, presentationDefinition: pd)
+                    self.userSelectableClaims = viewModel.userSelectableClaims
                 }
                 else {
                     await viewModel.loadData(credential: credential)
@@ -237,7 +260,19 @@ struct CredentialDetail: View {
     let modelData = ModelData()
     modelData.loadCredentials()
     let viewModel = DetailVPModePreviewModel()
-    let pd = viewModel.dummyPresentationDefinition()
+    let pd = viewModel.dummyPresentationDefinition1()
+    return CredentialDetail(
+        viewModel: viewModel,
+        credential: modelData.credentials[2],
+        path: .constant([])
+    ).environment(SharingRequestModel(presentationDefinition: pd))
+}
+
+#Preview("5. mode: vp-sharing with optional field") {
+    let modelData = ModelData()
+    modelData.loadCredentials()
+    let viewModel = DetailVPModePreviewModel()
+    let pd = viewModel.dummyPresentationDefinition2()
     return CredentialDetail(
         viewModel: viewModel,
         credential: modelData.credentials[2],

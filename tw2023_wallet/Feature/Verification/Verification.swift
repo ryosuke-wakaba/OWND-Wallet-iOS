@@ -39,8 +39,17 @@ struct Verification: View {
                             Text("verification_result_description").modifier(BodyBlack())
                             if !viewModel.dataModel.claims.isEmpty {
                                 ForEach(viewModel.dataModel.claims, id: \.0) { key, value in
-                                    DisclosureLow(disclosure: (key: key, value: value))
-                                        .padding(.vertical, 8)
+                                    DisclosureRow(
+                                        submitDisclosure: .constant(
+                                            DisclosureWithOptionality(
+                                                disclosure: Disclosure(
+                                                    disclosure: nil, key: key, value: value),
+                                                isSubmit: false,
+                                                isUserSelectable: false
+                                            )
+                                        )
+                                    )
+                                    .padding(.vertical, 8)
                                 }
                             }
                         }

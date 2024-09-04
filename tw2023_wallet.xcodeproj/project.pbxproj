@@ -175,12 +175,12 @@
 		A84AB70D2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84AB70C2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift */; };
 		A8509C292B82315D00B28C35 /* RecipientClaims.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8509C282B82315D00B28C35 /* RecipientClaims.swift */; };
 		A857C25A2C0DD3200059A82F /* swift-format in Frameworks */ = {isa = PBXBuildFile; productRef = A857C2592C0DD3200059A82F /* swift-format */; };
+		A88779BD2C33DC08002EE9C2 /* WebViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88779BC2C33DC08002EE9C2 /* WebViewTests.swift */; };
 		A88D323A2C26997700429E75 /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC782C22738900B9784B /* Metadata.swift */; };
 		A88D323C2C26B0DF00429E75 /* UrlEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC7F2C23A6AB00B9784B /* UrlEncoder.swift */; };
 		A88D32442C27001B00429E75 /* credential_display_filled.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601A82C267A2A00BF8139 /* credential_display_filled.json */; };
 		A88D32452C27001F00429E75 /* credential_display_minimum.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601AA2C267B1000BF8139 /* credential_display_minimum.json */; };
 		A88D32462C27002300429E75 /* claim_map_mixed.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601AD2C2685F200BF8139 /* claim_map_mixed.json */; };
-		A88779BD2C33DC08002EE9C2 /* WebViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88779BC2C33DC08002EE9C2 /* WebViewTests.swift */; };
 		A89108022B82D1650060DD71 /* RecipientClaimsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A89108012B82D1650060DD71 /* RecipientClaimsViewModel.swift */; };
 		A89108042B82D2880060DD71 /* RecipientClaimsPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A89108032B82D2880060DD71 /* RecipientClaimsPreviewModel.swift */; };
 		A891080C2B84785F0060DD71 /* credential_sharing_history.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = A891080B2B84785F0060DD71 /* credential_sharing_history.pb.swift */; };
@@ -218,6 +218,7 @@
 		A8C810442B82042300CF8CD6 /* SharingToRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C810402B82042200CF8CD6 /* SharingToRow.swift */; };
 		A8C810452B82042300CF8CD6 /* SharingTo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C810412B82042200CF8CD6 /* SharingTo.swift */; };
 		A8E892302B3A705D009F3755 /* SerializeUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E8922F2B3A705D009F3755 /* SerializeUtil.swift */; };
+		A8EF7F302C75D78000BA9D9C /* ModelDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EF7F2F2C75D78000BA9D9C /* ModelDataTests.swift */; };
 		F613F8602B55FEF800DA4B9E /* PinCodeInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F613F85F2B55FEF800DA4B9E /* PinCodeInput.swift */; };
 		F621E1F32B6C654D0034BF95 /* RecipientDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = F621E1F22B6C654D0034BF95 /* RecipientDetail.swift */; };
 		F621E1F52B6C6A610034BF95 /* RecipientDetailArgs.swift in Sources */ = {isa = PBXBuildFile; fileRef = F621E1F42B6C6A610034BF95 /* RecipientDetailArgs.swift */; };
@@ -225,7 +226,7 @@
 		F657D5C72B3C44F100901A6A /* sharingHistoryData.json in Resources */ = {isa = PBXBuildFile; fileRef = F657D5C62B3C44F100901A6A /* sharingHistoryData.json */; };
 		F657D5C92B3C450600901A6A /* CredentialSharingHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5C82B3C450600901A6A /* CredentialSharingHistory.swift */; };
 		F657D5CB2B3C456600901A6A /* HistoryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CA2B3C456600901A6A /* HistoryRow.swift */; };
-		F657D5CD2B3C457300901A6A /* DisclosureLow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CC2B3C457300901A6A /* DisclosureLow.swift */; };
+		F657D5CD2B3C457300901A6A /* DisclosureRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CC2B3C457300901A6A /* DisclosureRow.swift */; };
 		F657D5CF2B3C469500901A6A /* CredentialDetailModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5CE2B3C469500901A6A /* CredentialDetailModel.swift */; };
 		F657D5D12B3C46F800901A6A /* CredentialDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5D02B3C46F800901A6A /* CredentialDetailViewModel.swift */; };
 		F657D5D32B3C478B00901A6A /* CredentialDetailPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F657D5D22B3C478B00901A6A /* CredentialDetailPreviewModel.swift */; };
@@ -450,6 +451,7 @@
 		A8CE83AC2C0464720061915C /* tw2023_wallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = tw2023_wallet.entitlements; sourceTree = "<group>"; };
 		A8CE83AD2C0465040061915C /* tw2023_wallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = tw2023_wallet.entitlements; sourceTree = "<group>"; };
 		A8E8922F2B3A705D009F3755 /* SerializeUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerializeUtil.swift; sourceTree = "<group>"; };
+		A8EF7F2F2C75D78000BA9D9C /* ModelDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDataTests.swift; sourceTree = "<group>"; };
 		F613F85F2B55FEF800DA4B9E /* PinCodeInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCodeInput.swift; sourceTree = "<group>"; };
 		F621E1F22B6C654D0034BF95 /* RecipientDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientDetail.swift; sourceTree = "<group>"; };
 		F621E1F42B6C6A610034BF95 /* RecipientDetailArgs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientDetailArgs.swift; sourceTree = "<group>"; };
@@ -457,7 +459,7 @@
 		F657D5C62B3C44F100901A6A /* sharingHistoryData.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = sharingHistoryData.json; sourceTree = "<group>"; };
 		F657D5C82B3C450600901A6A /* CredentialSharingHistory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CredentialSharingHistory.swift; sourceTree = "<group>"; };
 		F657D5CA2B3C456600901A6A /* HistoryRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HistoryRow.swift; sourceTree = "<group>"; };
-		F657D5CC2B3C457300901A6A /* DisclosureLow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DisclosureLow.swift; sourceTree = "<group>"; };
+		F657D5CC2B3C457300901A6A /* DisclosureRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DisclosureRow.swift; sourceTree = "<group>"; };
 		F657D5CE2B3C469500901A6A /* CredentialDetailModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialDetailModel.swift; sourceTree = "<group>"; };
 		F657D5D02B3C46F800901A6A /* CredentialDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialDetailViewModel.swift; sourceTree = "<group>"; };
 		F657D5D22B3C478B00901A6A /* CredentialDetailPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialDetailPreviewModel.swift; sourceTree = "<group>"; };
@@ -702,6 +704,7 @@
 		8B81E2AC2B33CC4300ED3B4E /* tw2023_walletTests */ = {
 			isa = PBXGroup;
 			children = (
+				A8EF7F2E2C75D76100BA9D9C /* Models */,
 				A88779B92C33DBDA002EE9C2 /* Feature */,
 				A8AF22892C12A61E00D6EDA5 /* Helper */,
 				A84AB6BF2B4F725000E8C88B /* datastore */,
@@ -855,7 +858,7 @@
 			isa = PBXGroup;
 			children = (
 				8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */,
-				F657D5CC2B3C457300901A6A /* DisclosureLow.swift */,
+				F657D5CC2B3C457300901A6A /* DisclosureRow.swift */,
 				F657D5CA2B3C456600901A6A /* HistoryRow.swift */,
 				8B81E2D92B34209400ED3B4E /* CredentialDetail.swift */,
 				8B81E2CC2B33D86200ED3B4E /* CredentialList.swift */,
@@ -1071,30 +1074,6 @@
 			path = datastore;
 			sourceTree = "<group>";
 		};
-		A88D323B2C26A75500429E75 /* metadata */ = {
-			isa = PBXGroup;
-			children = (
-				8B297C462B39825100D2998D /* credential_issuer_metadata_jwt_vc.json */,
-				8B43AE392B3A9DD20016CF83 /* authorization_server.json */,
-				8B0E0AAB2B3FD6660080F6A3 /* client_metadata.json */,
-				8B6C3B8A2B4822A200B5D784 /* credential_issuer_metadata_sd_jwt.json */,
-				A8AB4BE72C2A62B000C009A1 /* credential_issuer_metadata_ldp_vc.json */,
-			);
-			path = metadata;
-			sourceTree = "<group>";
-		};
-		A8AB4BD42C29853300C009A1 /* credential_response */ = {
-			isa = PBXGroup;
-			children = (
-				8BB5138E2B3B24BF00D4EFB3 /* credential_response_mock.json */,
-				A8AB4BD52C29865D00C009A1 /* credential_response_jwt_vc_json.json */,
-				A8AB4BD92C29873400C009A1 /* credential_response_vc_sd_jwt.json */,
-				A8AB4BDE2C298D3B00C009A1 /* credential_response_deferred.json */,
-				A8AB4BE12C298D9700C009A1 /* credential_response_notification.json */,
-			);
-			path = credential_response;
-			sourceTree = "<group>";
-		};
 		A88779B92C33DBDA002EE9C2 /* Feature */ = {
 			isa = PBXGroup;
 			children = (
@@ -1117,6 +1096,30 @@
 				A88779BC2C33DC08002EE9C2 /* WebViewTests.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		A88D323B2C26A75500429E75 /* metadata */ = {
+			isa = PBXGroup;
+			children = (
+				8B297C462B39825100D2998D /* credential_issuer_metadata_jwt_vc.json */,
+				8B43AE392B3A9DD20016CF83 /* authorization_server.json */,
+				8B0E0AAB2B3FD6660080F6A3 /* client_metadata.json */,
+				8B6C3B8A2B4822A200B5D784 /* credential_issuer_metadata_sd_jwt.json */,
+				A8AB4BE72C2A62B000C009A1 /* credential_issuer_metadata_ldp_vc.json */,
+			);
+			path = metadata;
+			sourceTree = "<group>";
+		};
+		A8AB4BD42C29853300C009A1 /* credential_response */ = {
+			isa = PBXGroup;
+			children = (
+				8BB5138E2B3B24BF00D4EFB3 /* credential_response_mock.json */,
+				A8AB4BD52C29865D00C009A1 /* credential_response_jwt_vc_json.json */,
+				A8AB4BD92C29873400C009A1 /* credential_response_vc_sd_jwt.json */,
+				A8AB4BDE2C298D3B00C009A1 /* credential_response_deferred.json */,
+				A8AB4BE12C298D9700C009A1 /* credential_response_notification.json */,
+			);
+			path = credential_response;
 			sourceTree = "<group>";
 		};
 		A8AF22892C12A61E00D6EDA5 /* Helper */ = {
@@ -1174,6 +1177,14 @@
 				A82ECC7F2C23A6AB00B9784B /* UrlEncoder.swift */,
 			);
 			path = Utils;
+			sourceTree = "<group>";
+		};
+		A8EF7F2E2C75D76100BA9D9C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A8EF7F2F2C75D78000BA9D9C /* ModelDataTests.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		F657D5D42B3D117800901A6A /* Styles */ = {
@@ -1658,7 +1669,7 @@
 				A892975B2B3AA81C007315BE /* CertificateUtil.swift in Sources */,
 				F6BB10412B50F96C0063DBBF /* ProvideID.swift in Sources */,
 				F67102FC2B4A6D64006D48CB /* WalkThrough4.swift in Sources */,
-				F657D5CD2B3C457300901A6A /* DisclosureLow.swift in Sources */,
+				F657D5CD2B3C457300901A6A /* DisclosureRow.swift in Sources */,
 				F657D5CF2B3C469500901A6A /* CredentialDetailModel.swift in Sources */,
 				8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */,
 				A84AB6F42B50111500E8C88B /* id_token_sharing_history.pb.swift in Sources */,
@@ -1746,6 +1757,7 @@
 				8BB513942B3BB69A00D4EFB3 /* AsynTestRunner.swift in Sources */,
 				8BB5138D2B3AD0CC00D4EFB3 /* VCIClient.swift in Sources */,
 				8B5C65962B5237C200D72289 /* Types.swift in Sources */,
+				A8EF7F302C75D78000BA9D9C /* ModelDataTests.swift in Sources */,
 				A84AB70B2B50B98C00E8C88B /* CredentialSharingHistoryManagerTest.swift in Sources */,
 				8B43AE2D2B3A5A730016CF83 /* VCIMetadataClient.swift in Sources */,
 				F6CC769E2B580EF600FA26A8 /* QRCodeGeneratorTest.swift in Sources */,
