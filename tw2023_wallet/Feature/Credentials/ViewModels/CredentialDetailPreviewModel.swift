@@ -39,28 +39,28 @@ class DetailVPModePreviewModel: CredentialDetailViewModel {
             DisclosureWithOptionality(
                 disclosure: Disclosure(disclosure: "1", key: "last_name", value: "value1"),
                 isSubmit: true,
-                optional: false),
+                isUserSelectable: false),
             DisclosureWithOptionality(
                 disclosure: Disclosure(disclosure: "2", key: "age", value: "value3"),
                 isSubmit: true,
-                optional: false),
+                isUserSelectable: false),
         ]
         undisclosedClaims = [
             DisclosureWithOptionality(
                 disclosure: Disclosure(disclosure: "3", key: "first_name", value: "value2"),
                 isSubmit: false,
-                optional: false)
+                isUserSelectable: false)
         ]
 
-        optionalClaims = [
+        userSelectableClaims = [
             DisclosureWithOptionality(
                 disclosure: Disclosure(disclosure: "4", key: "address", value: "value4"),
                 isSubmit: false,
-                optional: true),
+                isUserSelectable: true),
             DisclosureWithOptionality(
                 disclosure: Disclosure(disclosure: "5", key: "gender", value: "value4"),
                 isSubmit: true,
-                optional: true),
+                isUserSelectable: true),
 
         ]
 

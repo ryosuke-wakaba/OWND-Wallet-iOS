@@ -19,7 +19,7 @@ struct CredentialDetail: View {
     @State private var showingQRCodeModal: Bool = false
     @State private var navigateToIssuerDetail: Bool = false
     @State private var showAlert = false
-    @State private var optionalClaims: [DisclosureWithOptionality] = []
+    @State private var userSelectableClaims: [DisclosureWithOptionality] = []
     @Binding var path: [ScreensOnFullScreen]
 
     init(
@@ -91,7 +91,7 @@ struct CredentialDetail: View {
                                             disclosure: nil,
                                             key: key,
                                             value: value),
-                                        isSubmit: false, optional: false)
+                                        isSubmit: false, isUserSelectable: false)
                                     DisclosureRow(submitDisclosure: .constant(submitDisclosure))
                                 }
                             }
@@ -115,12 +115,12 @@ struct CredentialDetail: View {
                                 DisclosureRow(submitDisclosure: .constant(it))
                             }
 
-                            // optional claims
+                            // Claims that can be disclosed or not at the user's will.
                             Text("optional_to_provide")
                                 .padding(.vertical, 16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .modifier(BodyGray())
-                            ForEach($optionalClaims, id: \.self.disclosure.id) { $claim in
+                            ForEach($userSelectableClaims, id: \.self.disclosure.id) { $claim in
                                 DisclosureRow(submitDisclosure: $claim)
                             }
                         }
@@ -145,7 +145,7 @@ struct CredentialDetail: View {
                             ActionButtonBlack(
                                 title: "Select This Credential",
                                 action: {
-                                    let claims = (viewModel.requiredClaims + optionalClaims).filter
+                                    let claims = (viewModel.requiredClaims + userSelectableClaims).filter
                                     { it in
                                         it.isSubmit
                                     }
@@ -216,7 +216,7 @@ struct CredentialDetail: View {
                 if let model = sharingRequestModel, let pd = model.presentationDefinition {
                     self.vpMode = true
                     await viewModel.loadData(credential: credential, presentationDefinition: pd)
-                    self.optionalClaims = viewModel.optionalClaims
+                    self.userSelectableClaims = viewModel.userSelectableClaims
                 }
                 else {
                     await viewModel.loadData(credential: credential)

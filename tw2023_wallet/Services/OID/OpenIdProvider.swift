@@ -862,15 +862,15 @@ private func createDisclosureWithOptionality(
     return allDisclosures.map { disclosure in
         guard let dkey = disclosure.key else {
             return DisclosureWithOptionality(
-                disclosure: disclosure, isSubmit: false, optional: false)
+                disclosure: disclosure, isSubmit: false, isUserSelectable: false)
         }
         for (keyName, optionality) in requiredOrOptionalKeys {
             if keyName.contains(dkey) {
                 return DisclosureWithOptionality(
-                    disclosure: disclosure, isSubmit: !optionality, optional: optionality)
+                    disclosure: disclosure, isSubmit: !optionality, isUserSelectable: optionality)
             }
         }
-        return DisclosureWithOptionality(disclosure: disclosure, isSubmit: false, optional: false)
+        return DisclosureWithOptionality(disclosure: disclosure, isSubmit: false, isUserSelectable: false)
     }
 }
 

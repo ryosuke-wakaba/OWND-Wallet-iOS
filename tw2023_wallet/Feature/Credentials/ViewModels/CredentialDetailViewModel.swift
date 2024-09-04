@@ -10,7 +10,7 @@ import Foundation
 @Observable
 class CredentialDetailViewModel {
     var requiredClaims: [DisclosureWithOptionality] = []
-    var optionalClaims: [DisclosureWithOptionality] = []
+    var userSelectableClaims: [DisclosureWithOptionality] = []
     var undisclosedClaims: [DisclosureWithOptionality] = []
 
     var dataModel: CredentialDetailModel = .init()
@@ -41,13 +41,13 @@ class CredentialDetailViewModel {
                         self.inputDescriptor = inputDescriptors
 
                         self.requiredClaims = disclosuresWithOptionality.filter { d in
-                            d.isSubmit && !d.optional
+                            d.isSubmit && !d.isUserSelectable
                         }
-                        self.optionalClaims = disclosuresWithOptionality.filter { d in
-                            !d.isSubmit && d.optional
+                        self.userSelectableClaims = disclosuresWithOptionality.filter { d in
+                            d.isUserSelectable
                         }
                         self.undisclosedClaims = disclosuresWithOptionality.filter { d in
-                            !d.isSubmit && !d.optional
+                            !d.isSubmit && !d.isUserSelectable
                         }
                     }
                 case "jwt_vc_json":
@@ -57,7 +57,7 @@ class CredentialDetailViewModel {
                     let jwt = credential.payload
                     self.requiredClaims = JWTUtil.convertJWTClaimsAsDisclosure(jwt: jwt).map { it in
                         return DisclosureWithOptionality(
-                            disclosure: it, isSubmit: true, optional: false)
+                            disclosure: it, isSubmit: true, isUserSelectable: false)
                     }
                 default:
                     inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定

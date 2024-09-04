@@ -357,13 +357,13 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(d.disclosure.key, "claim2")
                     XCTAssertEqual(d.disclosure.value, "bar")
                     XCTAssertTrue(!d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
                 if d.disclosure.key == "claim1" {
                     XCTAssertEqual(d.disclosure.key, "claim1")
                     XCTAssertEqual(d.disclosure.value, "foo")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
             }
         }
@@ -391,13 +391,13 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(d.disclosure.key, "claim2")
                     XCTAssertEqual(d.disclosure.value, "bar")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
                 if d.disclosure.key == "claim1" {
                     XCTAssertEqual(d.disclosure.key, "claim1")
                     XCTAssertEqual(d.disclosure.value, "foo")
                     XCTAssertTrue(!d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
             }
         }
@@ -425,13 +425,13 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(d.disclosure.key, "claim2")
                     XCTAssertEqual(d.disclosure.value, "bar")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
                 if d.disclosure.key == "claim1" {
                     XCTAssertEqual(d.disclosure.key, "claim1")
                     XCTAssertEqual(d.disclosure.value, "foo")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
             }
         }
@@ -459,13 +459,13 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(d.disclosure.key, "claim2")
                     XCTAssertEqual(d.disclosure.value, "bar")
                     XCTAssertTrue(!d.isSubmit)
-                    XCTAssertTrue(d.optional)
+                    XCTAssertTrue(d.isUserSelectable)
                 }
                 if d.disclosure.key == "claim1" {
                     XCTAssertEqual(d.disclosure.key, "claim1")
                     XCTAssertEqual(d.disclosure.value, "foo")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
             }
         }
@@ -493,7 +493,7 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(d.disclosure.key, "claim1")
                     XCTAssertEqual(d.disclosure.value, "foo")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
             }
         }
@@ -521,13 +521,13 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(d.disclosure.key, "claim2")
                     XCTAssertEqual(d.disclosure.value, "bar")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
                 if d.disclosure.key == "claim1" {
                     XCTAssertEqual(d.disclosure.key, "claim1")
                     XCTAssertEqual(d.disclosure.value, "foo")
                     XCTAssertTrue(d.isSubmit)
-                    XCTAssertTrue(!d.optional)
+                    XCTAssertTrue(!d.isUserSelectable)
                 }
             }
         }
@@ -555,13 +555,13 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(d.disclosure.key, "claim2")
                     XCTAssertEqual(d.disclosure.value, "bar")
                     XCTAssertTrue(!d.isSubmit)
-                    XCTAssertTrue(d.optional)
+                    XCTAssertTrue(d.isUserSelectable)
                 }
                 if d.disclosure.key == "claim1" {
                     XCTAssertEqual(d.disclosure.key, "claim1")
                     XCTAssertEqual(d.disclosure.value, "foo")
                     XCTAssertTrue(!d.isSubmit)
-                    XCTAssertTrue(d.optional)
+                    XCTAssertTrue(d.isUserSelectable)
                 }
             }
         }
@@ -587,7 +587,7 @@ final class OpenIdProviderTests: XCTestCase {
                 DisclosureWithOptionality(
                     disclosure:
                         Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
-                    isSubmit: true, optional: false)
+                    isSubmit: true, isUserSelectable: false)
             ]
         )
         let idProvider = OpenIdProvider(ProviderOption())
@@ -631,11 +631,11 @@ final class OpenIdProviderTests: XCTestCase {
                 DisclosureWithOptionality(
                     disclosure:
                         Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
-                    isSubmit: true, optional: false),
+                    isSubmit: true, isUserSelectable: false),
                 DisclosureWithOptionality(
                     disclosure:
                         Disclosure(disclosure: "claim2-digest", key: "claim2", value: "bar"),
-                    isSubmit: true, optional: false),
+                    isSubmit: true, isUserSelectable: false),
 
             ]
         )
@@ -791,7 +791,7 @@ final class OpenIdProviderTests: XCTestCase {
                 DisclosureWithOptionality(
                     disclosure:
                         Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
-                    isSubmit: true, optional: false)
+                    isSubmit: true, isUserSelectable: false)
             ]
         )
 

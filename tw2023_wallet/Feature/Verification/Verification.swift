@@ -45,7 +45,7 @@ struct Verification: View {
                                                 disclosure: Disclosure(
                                                     disclosure: nil, key: key, value: value),
                                                 isSubmit: false,
-                                                optional: false
+                                                isUserSelectable: false
                                             )
                                         )
                                     )

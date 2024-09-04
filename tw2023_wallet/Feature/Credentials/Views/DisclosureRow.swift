@@ -25,7 +25,7 @@ struct DisclosureRow: View {
                             .padding(.bottom, 2)
                             .modifier(BodyBlack())
                     }
-                    if submitDisclosure.optional {
+                    if submitDisclosure.isUserSelectable {
                         Spacer()
                         Toggle("", isOn: $submitDisclosure.isSubmit).labelsHidden()
                     }
@@ -52,7 +52,7 @@ struct DisclosureRow: View {
                         value: disclosure?.value
                     ),
                     isSubmit: true,
-                    optional: false
+                    isUserSelectable: false
                 )))
 }
 
@@ -67,7 +67,7 @@ struct DisclosureRow: View {
                     disclosure: Disclosure(
                         disclosure: nil, key: disclosure?.key, value: disclosure?.value),
                     isSubmit: false,
-                    optional: true
+                    isUserSelectable: true
                 ))
     )
 }
@@ -83,7 +83,7 @@ struct DisclosureRow: View {
                     disclosure: Disclosure(
                         disclosure: nil, key: disclosure?.key, value: disclosure?.value),
                     isSubmit: true,
-                    optional: true
+                    isUserSelectable: true
                 ))
     )
 }
