@@ -10,7 +10,6 @@ import SwiftUI
 struct CredentialDetail: View {
     @Environment(\.presentationMode) var presentationMode
     @Environment(SharingRequestModel.self) var sharingRequestModel: SharingRequestModel?
-    // @Environment(CredentialSharingModel.self) var credentialSharingModel: CredentialSharingModel?
     var credential: Credential
     var viewModel: CredentialDetailViewModel
     var deleteAction: (() -> Void)?
@@ -153,8 +152,8 @@ struct CredentialDetail: View {
                                         credential: credential,
                                         discloseClaims: claims
                                     )
-                                    sharingRequestModel?.setSelectedCredential(
-                                        data: submissionCredential,
+                                    sharingRequestModel?.setSelectedCredentials(
+                                        data: [submissionCredential],
                                         metadata: credential.metaData
                                     )
                                     path.removeLast(2)
