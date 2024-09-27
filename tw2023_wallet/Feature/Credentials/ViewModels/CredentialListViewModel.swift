@@ -54,7 +54,8 @@ class CredentialListViewModel {
                 let ret = matchVcToRequirement(
                     sdJwt: credential.payload, presentationDefinition: presentationDefinition)
                 if let (_, disclosures) = ret {
-                    return 0 < disclosures.filter { it in (it.isUserSelectable || it.isSubmit) }.count
+                    return 0
+                        < disclosures.filter { it in (it.isUserSelectable || it.isSubmit) }.count
                 }
                 return false
             }

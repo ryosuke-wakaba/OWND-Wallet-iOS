@@ -145,10 +145,10 @@ struct CredentialDetail: View {
                             ActionButtonBlack(
                                 title: "Select This Credential",
                                 action: {
-                                    let claims = (viewModel.requiredClaims + userSelectableClaims).filter
-                                    { it in
-                                        it.isSubmit
-                                    }
+                                    let claims = (viewModel.requiredClaims + userSelectableClaims)
+                                        .filter { it in
+                                            it.isSubmit
+                                        }
                                     let submissionCredential = viewModel.createSubmissionCredential(
                                         credential: credential,
                                         discloseClaims: claims
