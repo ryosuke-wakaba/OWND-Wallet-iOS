@@ -324,6 +324,85 @@ final class OpenIdProviderTests: XCTestCase {
             }
         """
 
+    let presentationDefinition7 = """
+        {
+          "id": "12345",
+          "submission_requirements": [
+            {
+              "name": "Citizenship Information",
+              "rule": "pick",
+              "count": 2,
+              "from": "A"
+            }
+          ],
+          "input_descriptors": [
+            {
+              "id": "input1",
+              "group": [
+                "A"
+              ],
+              "format": {
+                "vc+sd-jwt": {}
+              },
+              "constraints": {
+                "limit_disclosure": "required",
+                "fields": [
+                  {
+                    "path": [
+                      "$.claim1"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    },
+                    "optional": false
+                  },
+                  {
+                    "path": [
+                      "$.claim2"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    },
+                    "optional": true
+                  }
+                ]
+              }
+            },
+            {
+              "id": "input2",
+              "group": [
+                "A"
+              ],
+              "format": {
+                "vc+sd-jwt": {}
+              },
+              "constraints": {
+                "fields": [
+                  {
+                    "path": [
+                      "$.claim3"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "path": [
+                      "$.claim4"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    },
+                    "optional": false
+                  }
+                ]
+              }
+            }
+          ]
+        }
+
+        """
+
     func testSelectDisclosureNoSelected() throws {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure0
@@ -753,7 +832,7 @@ final class OpenIdProviderTests: XCTestCase {
         XCTAssertEqual(preparedData.disclosedClaims[0].value, "foo")
     }
 
-    func testRespondVPResponseDirectPost() throws {
+    func testDirectPostSingleVpToken() throws {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure2Records
         let requestObject = RequestObjectPayloadImpl(
@@ -825,6 +904,117 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(sharedContents[0].id, "internal-id-1")
                     XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
                     XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+
+                    if let lastRequest = MockURLProtocol.lastRequest {
+                        XCTAssertEqual(lastRequest.httpMethod, "POST")
+                        XCTAssertEqual(lastRequest.url, testURL)
+                    }
+                    else {
+                        XCTFail("No request was made")
+                    }
+                case .failure(let error):
+                    XCTFail()
+            }
+        }
+    }
+
+    func testDirectPostMultipleVpToken() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+        let requestObject = RequestObjectPayloadImpl(
+            clientId: "https://rp.example.com",
+            redirectUri: "https://rp.example.com/cb",
+            nonce: "dummy-nonce",
+            responseMode: ResponseMode.directPost,
+            responseUri: "https://rp.example.com/cb"
+        )
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let mockSession = URLSession(configuration: configuration)
+
+        let urlString = "https://rp.example.com/cb"
+        let testURL = URL(string: urlString)!
+        let mockData = "dummy response".data(using: .utf8)
+        let response = HTTPURLResponse(
+            url: testURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+        MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
+
+        let sdJwt1 = "issuer-jwt~dummy-claim1-digest~dummy-claim2-digest~"
+        let sdJwt2 = "issuer-jwt~dummy-claim3-digest~dummy-claim4-digest~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition7.data(using: .utf8)!)
+
+        let credential1 = SubmissionCredential(
+            id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt1,
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(
+                            disclosure: "claim1-digest", key: "claim1", value: "claim1-value"),
+                    isSubmit: true, isUserSelectable: false)
+            ]
+        )
+
+        let credential2 = SubmissionCredential(
+            id: "internal-id-2", format: "vc+sd-jwt", types: [], credential: sdJwt2,
+            inputDescriptor: presentationDefinition.inputDescriptors[1],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(
+                            disclosure: "claim3-digest", key: "claim3", value: "claim3-value"),
+                    isSubmit: true, isUserSelectable: false),
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(
+                            disclosure: "claim4-digest", key: "claim4", value: "claim4-value"),
+                    isSubmit: true, isUserSelectable: false),
+
+            ]
+        )
+
+        let authRequestProcessedData = ProcessedRequestData(
+            authorizationRequest: AuthorizationRequestPayloadImpl(),
+            requestObjectJwt: "dummy-jwt",
+            requestObject: requestObject,
+            clientMetadata: RPRegistrationMetadataPayload(),
+            presentationDefinition: presentationDefinition,
+            requestIsSigned: false
+        )
+
+        runAsyncTest {
+            let idProvider = OpenIdProvider(ProviderOption())
+            idProvider.authRequestProcessedData = authRequestProcessedData
+
+            let requestObj = authRequestProcessedData.requestObject
+            let authRequest = authRequestProcessedData.authorizationRequest
+            idProvider.clientId = requestObj?.clientId ?? authRequest.clientId
+            idProvider.responseMode = requestObj?.responseMode ?? authRequest.responseMode
+            idProvider.nonce = requestObj?.nonce ?? authRequest.nonce
+            idProvider.presentationDefinition = authRequestProcessedData.presentationDefinition
+
+            try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
+            let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
+            idProvider.setKeyBinding(keyBinding: keyBinding)
+            let result = await idProvider.respondVPResponse(
+                credentials: [credential1, credential2], using: mockSession)
+            switch result {
+                case .success(let data):
+                    let (_, arrayOfSharedContent, _) = data
+                    let sharedContents = arrayOfSharedContent
+                    XCTAssertEqual(sharedContents.count, 2)
+                    XCTAssertEqual(sharedContents[0].id, "internal-id-1")
+                    XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
+                    XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+
+                    XCTAssertEqual(sharedContents[1].id, "internal-id-2")
+                    XCTAssertEqual(sharedContents[1].sharedClaims.count, 2)
+                    XCTAssertEqual(sharedContents[1].sharedClaims[0].name, "claim3")
+                    XCTAssertEqual(sharedContents[1].sharedClaims[1].name, "claim4")
 
                     if let lastRequest = MockURLProtocol.lastRequest {
                         XCTAssertEqual(lastRequest.httpMethod, "POST")
