@@ -155,7 +155,6 @@ struct CredentialDetail: View {
                                     )
                                     sharingRequestModel?.setSelectedCredential(
                                         data: submissionCredential,
-                                        submissionClaims: claims,
                                         metadata: credential.metaData
                                     )
                                     path.removeLast(2)
