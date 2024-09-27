@@ -432,12 +432,12 @@ class OpenIdProvider {
         }
 
         let vpTokens = try! credentials.compactMap {
-            credential -> (String, (String, DescriptorMap, [DisclosedClaim], String?))? in
+            credential -> (String, PreparedSubmissionData)? in
             switch credential.format {
                 case "vc+sd-jwt":
                     return (
                         credential.id,
-                        try createPresentationSubmissionSdJwtVc(
+                        try createVpTokenForSdJwtVc(
                             credential: credential,
                             presentationDefinition: presentationDefinition,
                             clientId: clientId,
@@ -448,7 +448,7 @@ class OpenIdProvider {
                 case "jwt_vc_json":
                     return (
                         credential.id,
-                        try createPresentationSubmissionJwtVc(
+                        try createVpTokenForJwtVc(
                             credential: credential,
                             presentationDefinition: presentationDefinition,
                             clientId: clientId,
@@ -463,10 +463,10 @@ class OpenIdProvider {
 
         let vpTokenValue: String
         if vpTokens.count == 1 {
-            vpTokenValue = vpTokens[0].1.0
+            vpTokenValue = vpTokens[0].1.vpToken
         }
         else if !vpTokens.isEmpty {
-            let tokens = vpTokens.map { $0.1.0 }
+            let tokens = vpTokens.map { $0.1.vpToken }
             let jsonEncoder = JSONEncoder()
             if let jsonData = try? jsonEncoder.encode(tokens),
                 let jsonString = String(data: jsonData, encoding: .utf8)
@@ -484,7 +484,7 @@ class OpenIdProvider {
         let presentationSubmission = PresentationSubmission(
             id: UUID().uuidString,
             definitionId: presentationDefinition.id,
-            descriptorMap: vpTokens.map { $0.1.1 }
+            descriptorMap: vpTokens.map { $0.1.descriptorMap }
         )
 
         let jsonEncoder = JSONEncoder()
@@ -507,20 +507,20 @@ class OpenIdProvider {
                 convert: convertVpTokenResponseResponse,
                 using: session
             )
-            let sharedContents = vpTokens.map { SharedContent(id: $0.0, sharedClaims: $0.1.2) }
-            let purposes = vpTokens.map { $0.1.3 }
+            let sharedContents = vpTokens.map { SharedContent(id: $0.0, sharedClaims: $0.1.disclosedClaims) }
+            let purposes = vpTokens.map { $0.1.purpose }
             return .success((postResult, sharedContents, purposes))
         }
         catch {
             return .failure(error)
         }
     }
-    func createPresentationSubmissionSdJwtVc(
+    func createVpTokenForSdJwtVc(
         credential: SubmissionCredential,
         presentationDefinition: PresentationDefinition,
         clientId: String,
         nonce: String
-    ) throws -> (String, DescriptorMap, [DisclosedClaim], String?) {
+    ) throws -> PreparedSubmissionData {
         // ここに実装を追加します
         let sdJwt = credential.credential
 
@@ -529,14 +529,7 @@ class OpenIdProvider {
             let (inputDescriptor, _) = matchVcToRequirement(
                 sdJwt: sdJwt, presentationDefinition: presentationDefinition)
         else {
-            // TODO: エラーハンドリングかダミーの戻り値
-            return (
-                "Dummy",
-                DescriptorMap(
-                    id: "dummyId", format: "dummyFormat", path: "dummyPath",
-                    pathNested: Path(format: "dummyFormat", path: "dummyPath")), [DisclosedClaim](),
-                "dummyPurpose"
-            )
+            throw OpenIdProviderIllegalInputException.illegalCredentialInput
         }
         let selectedDisclosures = credential.discloseClaims.map { $0.disclosure }
         print(String(describing: inputDescriptor))
@@ -548,13 +541,7 @@ class OpenIdProvider {
 
         let parts = sdJwt.split(separator: "~").map(String.init)
         guard let issuerSignedJwt = parts.first else {
-            return (
-                "Error",
-                DescriptorMap(
-                    id: "error", format: "error", path: "error",
-                    pathNested: Path(format: "error", path: "error")), [DisclosedClaim](),
-                "dummyPurpose"
-            )
+            throw OpenIdProviderIllegalInputException.illegalCredentialInput
         }
 
         let hasNilValue = selectedDisclosures.contains { disclosure in
@@ -585,14 +572,16 @@ class OpenIdProvider {
                 id: credential.id, types: credential.types, name: key, value: disclosure.value)
         }
 
-        return (vpToken, dm, disclosedClaims, inputDescriptor.purpose)
+        return PreparedSubmissionData(
+            vpToken: vpToken, descriptorMap: dm, disclosedClaims: disclosedClaims,
+            purpose: inputDescriptor.purpose)
     }
 
-    func createPresentationSubmissionJwtVc(
+    func createVpTokenForJwtVc(
         credential: SubmissionCredential,
         presentationDefinition: PresentationDefinition,
         clientId: String, nonce: String
-    ) throws -> (String, DescriptorMap, [DisclosedClaim], String?) {
+    ) throws -> PreparedSubmissionData {
         do {
             let (_, payload, _) = try JWTUtil.decodeJwt(jwt: credential.credential)
             if let vcDictionary = payload["vc"] as? [String: Any],
@@ -613,11 +602,11 @@ class OpenIdProvider {
 
                 let descriptorMap = JwtVpJsonPresentation.genDescriptorMap(
                     inputDescriptorId: credential.inputDescriptor.id)
-                return (
-                    vpToken,
-                    descriptorMap,
-                    disclosedClaims,
-                    nil
+                return PreparedSubmissionData(
+                    vpToken: vpToken,
+                    descriptorMap: descriptorMap,
+                    disclosedClaims: disclosedClaims,
+                    purpose: nil
                 )
             }
             else {
@@ -727,6 +716,13 @@ struct SubmissionCredential: Codable, Equatable {
     }
 }
 
+struct PreparedSubmissionData {
+    let vpToken: String
+    let descriptorMap: DescriptorMap
+    let disclosedClaims: [DisclosedClaim]
+    let purpose: String?
+}
+
 struct DisclosedClaim: Codable {
     let id: String  // credential identifier
     let types: [String]
@@ -811,7 +807,8 @@ func matchVcToRequirement(sdJwt: String, presentationDefinition: PresentationDef
     // 各InputDescriptorをループ
     for inputDescriptor in presentationDefinition.inputDescriptors {
         // fieldKeysを取得
-        let requiredOrOptionalKeys = filterKeysWithOptionality(from: sourcePayload, using: inputDescriptor)
+        let requiredOrOptionalKeys = filterKeysWithOptionality(
+            from: sourcePayload, using: inputDescriptor)
 
         let matchingDisclosures = createDisclosureWithOptionality(
             from: allDisclosures,
@@ -831,7 +828,7 @@ private func filterKeysWithOptionality(
     /*
      array of (String, Bool) values filtered by `inputDescriptor.constraints.fields.path`
      A Bool value represents whether the field is required.
-     
+
      example of input_descriptors
          "input_descriptors": [
            {
@@ -870,7 +867,8 @@ private func createDisclosureWithOptionality(
                     disclosure: disclosure, isSubmit: !optionality, isUserSelectable: optionality)
             }
         }
-        return DisclosureWithOptionality(disclosure: disclosure, isSubmit: false, isUserSelectable: false)
+        return DisclosureWithOptionality(
+            disclosure: disclosure, isSubmit: false, isUserSelectable: false)
     }
 }
 

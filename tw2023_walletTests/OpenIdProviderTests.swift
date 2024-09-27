@@ -596,22 +596,21 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let presentationSubmission = try idProvider.createPresentationSubmissionSdJwtVc(
+        let preparedData = try idProvider.createVpTokenForSdJwtVc(
             credential: credential,
             presentationDefinition: presentationDefinition,
             clientId: "https://rp.example.com",
             nonce: "dummy-nonce"
         )
-        let (vpToken, descriptorMap, disclosedClaims, _) = presentationSubmission
-        let parts = vpToken.split(separator: "~").map(String.init)
+        let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 3)
         XCTAssertEqual(parts[0], "issuer-jwt")
         XCTAssertEqual(parts[1], "claim1-digest")
-        XCTAssertEqual(descriptorMap.format, "vc+sd-jwt")
-        XCTAssertEqual(descriptorMap.path, "$")
-        XCTAssertEqual(disclosedClaims.count, 1)
-        XCTAssertEqual(disclosedClaims[0].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[0].name, "claim1")
+        XCTAssertEqual(preparedData.descriptorMap.format, "vc+sd-jwt")
+        XCTAssertEqual(preparedData.descriptorMap.path, "$")
+        XCTAssertEqual(preparedData.disclosedClaims.count, 1)
+        XCTAssertEqual(preparedData.disclosedClaims[0].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].name, "claim1")
     }
 
     func testCreatePresentationSubmissionSdJwtVcBothSubmit() throws {
@@ -645,25 +644,24 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let presentationSubmission = try idProvider.createPresentationSubmissionSdJwtVc(
+        let preparedData = try idProvider.createVpTokenForSdJwtVc(
             credential: credential,
             presentationDefinition: presentationDefinition,
             clientId: "https://rp.example.com",
             nonce: "dummy-nonce"
         )
-        let (vpToken, descriptorMap, disclosedClaims, _) = presentationSubmission
-        let parts = vpToken.split(separator: "~").map(String.init)
+        let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 4)
         XCTAssertEqual(parts[0], "issuer-jwt")
         XCTAssertEqual(parts[1], "claim1-digest")
         XCTAssertEqual(parts[2], "claim2-digest")
-        XCTAssertEqual(descriptorMap.format, "vc+sd-jwt")
-        XCTAssertEqual(descriptorMap.path, "$")
-        XCTAssertEqual(disclosedClaims.count, 2)
-        XCTAssertEqual(disclosedClaims[0].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[0].name, "claim1")
-        XCTAssertEqual(disclosedClaims[1].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[1].name, "claim2")
+        XCTAssertEqual(preparedData.descriptorMap.format, "vc+sd-jwt")
+        XCTAssertEqual(preparedData.descriptorMap.path, "$")
+        XCTAssertEqual(preparedData.disclosedClaims.count, 2)
+        XCTAssertEqual(preparedData.disclosedClaims[0].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].name, "claim1")
+        XCTAssertEqual(preparedData.disclosedClaims[1].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[1].name, "claim2")
     }
 
     func testCreatePresentationSubmissionJwtVpJson() throws {
@@ -699,19 +697,18 @@ final class OpenIdProviderTests: XCTestCase {
             keyAlias: Constants.Cryptography.KEY_PAIR_ALIAS_FOR_KEY_JWT_VP_JSON)
         idProvider.setJwtVpJsonGenerator(jwtVpJsonGenerator: jwtVpJsonGenerator)
 
-        let presentationSubmission = try idProvider.createPresentationSubmissionJwtVc(
+        let preparedData = try idProvider.createVpTokenForJwtVc(
             credential: credential,
             presentationDefinition: presentationDefinition,
             clientId: "https://rp.example.com",
             nonce: "dummy-nonce"
         )
-        let (vpToken, descriptorMap, disclosedClaims, _) = presentationSubmission
         do {
-            let decodedJwt = try JWTUtil.decodeJwt(jwt: vpToken)
+            let decodedJwt = try JWTUtil.decodeJwt(jwt: preparedData.vpToken)
             let jwk = decodedJwt.0["jwk"]
             //            let payload = decodedJwt.1
             let publicKey = try! KeyPairUtil.createPublicKey(jwk: jwk as! [String: String])
-            let result = JWTUtil.verifyJwt(jwt: vpToken, publicKey: publicKey)
+            let result = JWTUtil.verifyJwt(jwt: preparedData.vpToken, publicKey: publicKey)
             switch result {
                 case .success(let verifiedJwt):
                     let decodedPayload = verifiedJwt.body
@@ -746,14 +743,14 @@ final class OpenIdProviderTests: XCTestCase {
         catch {
             XCTFail("Error generating JWT: \(error)")
         }
-        XCTAssertEqual(descriptorMap.format, "jwt_vp_json")
-        XCTAssertEqual(descriptorMap.path, "$")
-        XCTAssertEqual(descriptorMap.pathNested?.format, "jwt_vc_json")
-        XCTAssertEqual(descriptorMap.pathNested?.path, "$.vp.verifiableCredential[0]")
-        XCTAssertEqual(disclosedClaims.count, 1)
-        XCTAssertEqual(disclosedClaims[0].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[0].name, "claim1")
-        XCTAssertEqual(disclosedClaims[0].value, "foo")
+        XCTAssertEqual(preparedData.descriptorMap.format, "jwt_vp_json")
+        XCTAssertEqual(preparedData.descriptorMap.path, "$")
+        XCTAssertEqual(preparedData.descriptorMap.pathNested?.format, "jwt_vc_json")
+        XCTAssertEqual(preparedData.descriptorMap.pathNested?.path, "$.vp.verifiableCredential[0]")
+        XCTAssertEqual(preparedData.disclosedClaims.count, 1)
+        XCTAssertEqual(preparedData.disclosedClaims[0].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].name, "claim1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].value, "foo")
     }
 
     func testRespondVPResponseDirectPost() throws {
