@@ -507,7 +507,9 @@ class OpenIdProvider {
                 convert: convertVpTokenResponseResponse,
                 using: session
             )
-            let sharedContents = vpTokens.map { SharedContent(id: $0.0, sharedClaims: $0.1.disclosedClaims) }
+            let sharedContents = vpTokens.map {
+                SharedContent(id: $0.0, sharedClaims: $0.1.disclosedClaims)
+            }
             let purposes = vpTokens.map { $0.1.purpose }
             return .success((postResult, sharedContents, purposes))
         }
