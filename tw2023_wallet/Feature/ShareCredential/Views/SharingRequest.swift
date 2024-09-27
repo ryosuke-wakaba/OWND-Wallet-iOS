@@ -214,7 +214,7 @@ struct SharingRequest: View {
                     viewModel.selectedCredential = true
                     if let submission = sharingRequestModel.data,
                         let metadata = sharingRequestModel.metadata,
-                       let firstSubmission = submission.first // Workaround until multiple credentials are possible on the UI.
+                        let firstSubmission = submission.first  // Workaround until multiple credentials are possible on the UI.
                     {
                         if let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
                             format: firstSubmission.format,
