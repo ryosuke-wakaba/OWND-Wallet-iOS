@@ -212,6 +212,8 @@
 		A8ADC69B2BCEAD090077A0C4 /* idTokenSharingHistories.json in Resources */ = {isa = PBXBuildFile; fileRef = A8ADC69A2BCEAD090077A0C4 /* idTokenSharingHistories.json */; };
 		A8AF22882C12A59B00D6EDA5 /* RestoreHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AF22872C12A59B00D6EDA5 /* RestoreHelper.swift */; };
 		A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AF228C2C12A6C100D6EDA5 /* RestoreHelperTests.swift */; };
+		A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C0A3D22CABD088008998C5 /* Errors.swift */; };
+		A8C0A3D42CABD089008998C5 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C0A3D22CABD088008998C5 /* Errors.swift */; };
 		A8C810422B82042300CF8CD6 /* SharingToViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C8103C2B82042200CF8CD6 /* SharingToViewModel.swift */; };
 		A8C810432B82042300CF8CD6 /* SharingToModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C8103E2B82042200CF8CD6 /* SharingToModel.swift */; };
 		A8C810442B82042300CF8CD6 /* SharingToRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C810402B82042200CF8CD6 /* SharingToRow.swift */; };
@@ -441,6 +443,7 @@
 		A8ADC69A2BCEAD090077A0C4 /* idTokenSharingHistories.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = idTokenSharingHistories.json; sourceTree = "<group>"; };
 		A8AF22872C12A59B00D6EDA5 /* RestoreHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreHelper.swift; sourceTree = "<group>"; };
 		A8AF228C2C12A6C100D6EDA5 /* RestoreHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreHelperTests.swift; sourceTree = "<group>"; };
+		A8C0A3D22CABD088008998C5 /* Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errors.swift; sourceTree = "<group>"; };
 		A8C810382B80951800CF8CD6 /* SharingToRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToRow.swift; sourceTree = "<group>"; };
 		A8C8103C2B82042200CF8CD6 /* SharingToViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A8C8103E2B82042200CF8CD6 /* SharingToModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
@@ -583,12 +586,12 @@
 		8B297C322B393B6700D2998D /* OID */ = {
 			isa = PBXGroup;
 			children = (
+				A8C0A3C82CABCEA0008998C5 /* Provider */,
 				8B297C352B393BC800D2998D /* VCI */,
 				8B43AE332B3A81960016CF83 /* Enums.swift */,
 				8B43AE362B3A93C60016CF83 /* AuthServerMetadata.swift */,
 				8B0E0AA52B3ED4860080F6A3 /* AuthorizationRequest.swift */,
 				8B0E0AAE2B403D510080F6A3 /* PresentationExchange.swift */,
-				8B6C3B832B45082A00B5D784 /* OpenIdProvider.swift */,
 				8B5C65942B5237C200D72289 /* Types.swift */,
 				8B5C65972B5251C000D72289 /* KeyBindingImpl.swift */,
 				8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */,
@@ -1128,6 +1131,15 @@
 			path = Helper;
 			sourceTree = "<group>";
 		};
+		A8C0A3C82CABCEA0008998C5 /* Provider */ = {
+			isa = PBXGroup;
+			children = (
+				A8C0A3D22CABD088008998C5 /* Errors.swift */,
+				8B6C3B832B45082A00B5D784 /* OpenIdProvider.swift */,
+			);
+			path = Provider;
+			sourceTree = "<group>";
+		};
 		A8C8103A2B82042200CF8CD6 /* SharingTo */ = {
 			isa = PBXGroup;
 			children = (
@@ -1630,6 +1642,7 @@
 				F6CC76932B567BDF00FA26A8 /* QRReaderViewModel.swift in Sources */,
 				8BB2BA742B4BC46400C668BA /* BiometricAuth.swift in Sources */,
 				F6CB1FAE2B68FB180078C857 /* DateFormatterUtil.swift in Sources */,
+				A8C0A3D42CABD089008998C5 /* Errors.swift in Sources */,
 				8B81E29D2B33CC4000ED3B4E /* tw2023_walletApp.swift in Sources */,
 				8B81E2E92B3451DC00ED3B4E /* FloatingActionButton.swift in Sources */,
 				A8AF22882C12A59B00D6EDA5 /* RestoreHelper.swift in Sources */,
@@ -1743,6 +1756,7 @@
 				A83039BD2B4E4229004139A7 /* JWTTest.swift in Sources */,
 				8B6C3B892B481BEC00B5D784 /* VCIMetadataUtilTests.swift in Sources */,
 				8B0E0AA02B3D69240080F6A3 /* PairwiseAccount.swift in Sources */,
+				A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */,
 				A88D323A2C26997700429E75 /* Metadata.swift in Sources */,
 				8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */,
 				8B43AE382B3A93C60016CF83 /* AuthServerMetadata.swift in Sources */,
