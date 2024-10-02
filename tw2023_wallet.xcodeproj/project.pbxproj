@@ -82,7 +82,6 @@
 		8B80569C2B5F7815009A87C8 /* SharingCredentialArgs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B80569B2B5F7815009A87C8 /* SharingCredentialArgs.swift */; };
 		8B80569D2B5F7815009A87C8 /* SharingCredentialArgs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B80569B2B5F7815009A87C8 /* SharingCredentialArgs.swift */; };
 		8B80569F2B60E2FB009A87C8 /* PreferencesDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B80569E2B60E2FB009A87C8 /* PreferencesDataStore.swift */; };
-		8B8056A12B6381BD009A87C8 /* CredentialSharingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8056A02B6381BD009A87C8 /* CredentialSharingModel.swift */; };
 		8B81E29D2B33CC4000ED3B4E /* tw2023_walletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B81E29C2B33CC4000ED3B4E /* tw2023_walletApp.swift */; };
 		8B81E29F2B33CC4000ED3B4E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B81E29E2B33CC4000ED3B4E /* ContentView.swift */; };
 		8B81E2A12B33CC4200ED3B4E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B81E2A02B33CC4200ED3B4E /* Assets.xcassets */; };
@@ -340,7 +339,6 @@
 		8B774A532B7B7B5400F5ED55 /* QRReaderViewLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRReaderViewLauncher.swift; sourceTree = "<group>"; };
 		8B80569B2B5F7815009A87C8 /* SharingCredentialArgs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingCredentialArgs.swift; sourceTree = "<group>"; };
 		8B80569E2B60E2FB009A87C8 /* PreferencesDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesDataStore.swift; sourceTree = "<group>"; };
-		8B8056A02B6381BD009A87C8 /* CredentialSharingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialSharingModel.swift; sourceTree = "<group>"; };
 		8B81E2992B33CC4000ED3B4E /* tw2023_wallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tw2023_wallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B81E29C2B33CC4000ED3B4E /* tw2023_walletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tw2023_walletApp.swift; sourceTree = "<group>"; };
 		8B81E29E2B33CC4000ED3B4E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -886,7 +884,6 @@
 			children = (
 				8B81E2F92B35AC0C00ED3B4E /* CredentialListModel.swift */,
 				F657D5CE2B3C469500901A6A /* CredentialDetailModel.swift */,
-				8B8056A02B6381BD009A87C8 /* CredentialSharingModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1652,7 +1649,6 @@
 				F6CC769C2B57CDB900FA26A8 /* QRCodeGenerator.swift in Sources */,
 				F6CC768D2B567A7B00FA26A8 /* QrCodeCameraDelegate.swift in Sources */,
 				F6BB10352B4FA1D60063DBBF /* RecipientOrgInfo.swift in Sources */,
-				8B8056A12B6381BD009A87C8 /* CredentialSharingModel.swift in Sources */,
 				F699A8D52B3FF6B500F60B91 /* CredentialOfferPreviewModel.swift in Sources */,
 				F621E1F52B6C6A610034BF95 /* RecipientDetailArgs.swift in Sources */,
 				A83039C92B4E6E7E004139A7 /* credential_data.proto in Sources */,

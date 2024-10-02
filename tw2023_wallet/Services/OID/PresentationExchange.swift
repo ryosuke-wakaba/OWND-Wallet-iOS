@@ -193,7 +193,7 @@ struct PresentationSubmission: Codable {
 
 struct DisclosureWithOptionality: Codable {
     var disclosure: Disclosure
-    
+
     // If the value of `isUserSelectable` is `true`, the value of `isSubmit`
     // is a mutable that can be changed by the user (via toggle operation).
     var isSubmit: Bool

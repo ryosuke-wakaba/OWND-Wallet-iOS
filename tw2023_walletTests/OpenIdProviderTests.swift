@@ -324,6 +324,85 @@ final class OpenIdProviderTests: XCTestCase {
             }
         """
 
+    let presentationDefinition7 = """
+        {
+          "id": "12345",
+          "submission_requirements": [
+            {
+              "name": "Citizenship Information",
+              "rule": "pick",
+              "count": 2,
+              "from": "A"
+            }
+          ],
+          "input_descriptors": [
+            {
+              "id": "input1",
+              "group": [
+                "A"
+              ],
+              "format": {
+                "vc+sd-jwt": {}
+              },
+              "constraints": {
+                "limit_disclosure": "required",
+                "fields": [
+                  {
+                    "path": [
+                      "$.claim1"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    },
+                    "optional": false
+                  },
+                  {
+                    "path": [
+                      "$.claim2"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    },
+                    "optional": true
+                  }
+                ]
+              }
+            },
+            {
+              "id": "input2",
+              "group": [
+                "A"
+              ],
+              "format": {
+                "vc+sd-jwt": {}
+              },
+              "constraints": {
+                "fields": [
+                  {
+                    "path": [
+                      "$.claim3"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "path": [
+                      "$.claim4"
+                    ],
+                    "filter": {
+                      "type": "string"
+                    },
+                    "optional": false
+                  }
+                ]
+              }
+            }
+          ]
+        }
+
+        """
+
     func testSelectDisclosureNoSelected() throws {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure0
@@ -596,22 +675,21 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let presentationSubmission = try idProvider.createPresentationSubmissionSdJwtVc(
+        let preparedData = try idProvider.createVpTokenForSdJwtVc(
             credential: credential,
             presentationDefinition: presentationDefinition,
             clientId: "https://rp.example.com",
             nonce: "dummy-nonce"
         )
-        let (vpToken, descriptorMap, disclosedClaims, _) = presentationSubmission
-        let parts = vpToken.split(separator: "~").map(String.init)
+        let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 3)
         XCTAssertEqual(parts[0], "issuer-jwt")
         XCTAssertEqual(parts[1], "claim1-digest")
-        XCTAssertEqual(descriptorMap.format, "vc+sd-jwt")
-        XCTAssertEqual(descriptorMap.path, "$")
-        XCTAssertEqual(disclosedClaims.count, 1)
-        XCTAssertEqual(disclosedClaims[0].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[0].name, "claim1")
+        XCTAssertEqual(preparedData.descriptorMap.format, "vc+sd-jwt")
+        XCTAssertEqual(preparedData.descriptorMap.path, "$")
+        XCTAssertEqual(preparedData.disclosedClaims.count, 1)
+        XCTAssertEqual(preparedData.disclosedClaims[0].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].name, "claim1")
     }
 
     func testCreatePresentationSubmissionSdJwtVcBothSubmit() throws {
@@ -645,25 +723,24 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let presentationSubmission = try idProvider.createPresentationSubmissionSdJwtVc(
+        let preparedData = try idProvider.createVpTokenForSdJwtVc(
             credential: credential,
             presentationDefinition: presentationDefinition,
             clientId: "https://rp.example.com",
             nonce: "dummy-nonce"
         )
-        let (vpToken, descriptorMap, disclosedClaims, _) = presentationSubmission
-        let parts = vpToken.split(separator: "~").map(String.init)
+        let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 4)
         XCTAssertEqual(parts[0], "issuer-jwt")
         XCTAssertEqual(parts[1], "claim1-digest")
         XCTAssertEqual(parts[2], "claim2-digest")
-        XCTAssertEqual(descriptorMap.format, "vc+sd-jwt")
-        XCTAssertEqual(descriptorMap.path, "$")
-        XCTAssertEqual(disclosedClaims.count, 2)
-        XCTAssertEqual(disclosedClaims[0].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[0].name, "claim1")
-        XCTAssertEqual(disclosedClaims[1].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[1].name, "claim2")
+        XCTAssertEqual(preparedData.descriptorMap.format, "vc+sd-jwt")
+        XCTAssertEqual(preparedData.descriptorMap.path, "$")
+        XCTAssertEqual(preparedData.disclosedClaims.count, 2)
+        XCTAssertEqual(preparedData.disclosedClaims[0].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].name, "claim1")
+        XCTAssertEqual(preparedData.disclosedClaims[1].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[1].name, "claim2")
     }
 
     func testCreatePresentationSubmissionJwtVpJson() throws {
@@ -699,19 +776,18 @@ final class OpenIdProviderTests: XCTestCase {
             keyAlias: Constants.Cryptography.KEY_PAIR_ALIAS_FOR_KEY_JWT_VP_JSON)
         idProvider.setJwtVpJsonGenerator(jwtVpJsonGenerator: jwtVpJsonGenerator)
 
-        let presentationSubmission = try idProvider.createPresentationSubmissionJwtVc(
+        let preparedData = try idProvider.createVpTokenForJwtVc(
             credential: credential,
             presentationDefinition: presentationDefinition,
             clientId: "https://rp.example.com",
             nonce: "dummy-nonce"
         )
-        let (vpToken, descriptorMap, disclosedClaims, _) = presentationSubmission
         do {
-            let decodedJwt = try JWTUtil.decodeJwt(jwt: vpToken)
+            let decodedJwt = try JWTUtil.decodeJwt(jwt: preparedData.vpToken)
             let jwk = decodedJwt.0["jwk"]
             //            let payload = decodedJwt.1
             let publicKey = try! KeyPairUtil.createPublicKey(jwk: jwk as! [String: String])
-            let result = JWTUtil.verifyJwt(jwt: vpToken, publicKey: publicKey)
+            let result = JWTUtil.verifyJwt(jwt: preparedData.vpToken, publicKey: publicKey)
             switch result {
                 case .success(let verifiedJwt):
                     let decodedPayload = verifiedJwt.body
@@ -746,17 +822,17 @@ final class OpenIdProviderTests: XCTestCase {
         catch {
             XCTFail("Error generating JWT: \(error)")
         }
-        XCTAssertEqual(descriptorMap.format, "jwt_vp_json")
-        XCTAssertEqual(descriptorMap.path, "$")
-        XCTAssertEqual(descriptorMap.pathNested?.format, "jwt_vc_json")
-        XCTAssertEqual(descriptorMap.pathNested?.path, "$.vp.verifiableCredential[0]")
-        XCTAssertEqual(disclosedClaims.count, 1)
-        XCTAssertEqual(disclosedClaims[0].id, "internal-id-1")
-        XCTAssertEqual(disclosedClaims[0].name, "claim1")
-        XCTAssertEqual(disclosedClaims[0].value, "foo")
+        XCTAssertEqual(preparedData.descriptorMap.format, "jwt_vp_json")
+        XCTAssertEqual(preparedData.descriptorMap.path, "$")
+        XCTAssertEqual(preparedData.descriptorMap.pathNested?.format, "jwt_vc_json")
+        XCTAssertEqual(preparedData.descriptorMap.pathNested?.path, "$.vp.verifiableCredential[0]")
+        XCTAssertEqual(preparedData.disclosedClaims.count, 1)
+        XCTAssertEqual(preparedData.disclosedClaims[0].id, "internal-id-1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].name, "claim1")
+        XCTAssertEqual(preparedData.disclosedClaims[0].value, "foo")
     }
 
-    func testRespondVPResponseDirectPost() throws {
+    func testDirectPostSingleVpToken() throws {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure2Records
         let requestObject = RequestObjectPayloadImpl(
@@ -828,6 +904,117 @@ final class OpenIdProviderTests: XCTestCase {
                     XCTAssertEqual(sharedContents[0].id, "internal-id-1")
                     XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
                     XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+
+                    if let lastRequest = MockURLProtocol.lastRequest {
+                        XCTAssertEqual(lastRequest.httpMethod, "POST")
+                        XCTAssertEqual(lastRequest.url, testURL)
+                    }
+                    else {
+                        XCTFail("No request was made")
+                    }
+                case .failure(let error):
+                    XCTFail()
+            }
+        }
+    }
+
+    func testDirectPostMultipleVpToken() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+        let requestObject = RequestObjectPayloadImpl(
+            clientId: "https://rp.example.com",
+            redirectUri: "https://rp.example.com/cb",
+            nonce: "dummy-nonce",
+            responseMode: ResponseMode.directPost,
+            responseUri: "https://rp.example.com/cb"
+        )
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let mockSession = URLSession(configuration: configuration)
+
+        let urlString = "https://rp.example.com/cb"
+        let testURL = URL(string: urlString)!
+        let mockData = "dummy response".data(using: .utf8)
+        let response = HTTPURLResponse(
+            url: testURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+        MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
+
+        let sdJwt1 = "issuer-jwt~dummy-claim1-digest~dummy-claim2-digest~"
+        let sdJwt2 = "issuer-jwt~dummy-claim3-digest~dummy-claim4-digest~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition7.data(using: .utf8)!)
+
+        let credential1 = SubmissionCredential(
+            id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt1,
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(
+                            disclosure: "claim1-digest", key: "claim1", value: "claim1-value"),
+                    isSubmit: true, isUserSelectable: false)
+            ]
+        )
+
+        let credential2 = SubmissionCredential(
+            id: "internal-id-2", format: "vc+sd-jwt", types: [], credential: sdJwt2,
+            inputDescriptor: presentationDefinition.inputDescriptors[1],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(
+                            disclosure: "claim3-digest", key: "claim3", value: "claim3-value"),
+                    isSubmit: true, isUserSelectable: false),
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(
+                            disclosure: "claim4-digest", key: "claim4", value: "claim4-value"),
+                    isSubmit: true, isUserSelectable: false),
+
+            ]
+        )
+
+        let authRequestProcessedData = ProcessedRequestData(
+            authorizationRequest: AuthorizationRequestPayloadImpl(),
+            requestObjectJwt: "dummy-jwt",
+            requestObject: requestObject,
+            clientMetadata: RPRegistrationMetadataPayload(),
+            presentationDefinition: presentationDefinition,
+            requestIsSigned: false
+        )
+
+        runAsyncTest {
+            let idProvider = OpenIdProvider(ProviderOption())
+            idProvider.authRequestProcessedData = authRequestProcessedData
+
+            let requestObj = authRequestProcessedData.requestObject
+            let authRequest = authRequestProcessedData.authorizationRequest
+            idProvider.clientId = requestObj?.clientId ?? authRequest.clientId
+            idProvider.responseMode = requestObj?.responseMode ?? authRequest.responseMode
+            idProvider.nonce = requestObj?.nonce ?? authRequest.nonce
+            idProvider.presentationDefinition = authRequestProcessedData.presentationDefinition
+
+            try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
+            let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
+            idProvider.setKeyBinding(keyBinding: keyBinding)
+            let result = await idProvider.respondVPResponse(
+                credentials: [credential1, credential2], using: mockSession)
+            switch result {
+                case .success(let data):
+                    let (_, arrayOfSharedContent, _) = data
+                    let sharedContents = arrayOfSharedContent
+                    XCTAssertEqual(sharedContents.count, 2)
+                    XCTAssertEqual(sharedContents[0].id, "internal-id-1")
+                    XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
+                    XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+
+                    XCTAssertEqual(sharedContents[1].id, "internal-id-2")
+                    XCTAssertEqual(sharedContents[1].sharedClaims.count, 2)
+                    XCTAssertEqual(sharedContents[1].sharedClaims[0].name, "claim3")
+                    XCTAssertEqual(sharedContents[1].sharedClaims[1].name, "claim4")
 
                     if let lastRequest = MockURLProtocol.lastRequest {
                         XCTAssertEqual(lastRequest.httpMethod, "POST")

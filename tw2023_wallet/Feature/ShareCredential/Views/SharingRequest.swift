@@ -159,7 +159,7 @@ struct SharingRequest: View {
                                                         viewModel.selectedCredential
                                                     {
                                                         let result = await viewModel.shareVpToken(
-                                                            credentials: [sharingRequestModel.data!]
+                                                            credentials: sharingRequestModel.data!
                                                         )
                                                         switch result {
                                                             case .success(let postResult):
@@ -213,11 +213,12 @@ struct SharingRequest: View {
                 if sharingRequestModel.data != nil {
                     viewModel.selectedCredential = true
                     if let submission = sharingRequestModel.data,
-                        let metadata = sharingRequestModel.metadata
+                        let metadata = sharingRequestModel.metadata,
+                        let firstSubmission = submission.first  // Workaround until multiple credentials are possible on the UI.
                     {
                         if let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
-                            format: submission.format,
-                            types: submission.types,
+                            format: firstSubmission.format,
+                            types: firstSubmission.types,
                             metadata: metadata
                         ) {
                             if let display = credentialSupported.display {

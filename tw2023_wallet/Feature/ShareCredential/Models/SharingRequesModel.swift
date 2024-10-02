@@ -17,15 +17,13 @@ class SharingRequestModel {
     }
 
     var type: String? = nil
-    var data: SubmissionCredential? = nil
+    var data: [SubmissionCredential]? = nil
     var metadata: CredentialIssuerMetadata? = nil
-    var submissionClaims: [DisclosureWithOptionality]? = nil
-    func setSelectedCredential(
-        data: SubmissionCredential, submissionClaims: [DisclosureWithOptionality],
+    func setSelectedCredentials(
+        data: [SubmissionCredential],
         metadata: CredentialIssuerMetadata
     ) {
         self.data = data
-        self.submissionClaims = submissionClaims
         self.metadata = metadata
     }
 }
