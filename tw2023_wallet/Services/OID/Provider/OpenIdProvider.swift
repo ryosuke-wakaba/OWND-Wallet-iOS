@@ -8,13 +8,17 @@
 import Foundation
 import JOSESwift
 
-struct ProviderOption {
-    let signingCurve: String = "secp256k1"
-    let signingAlgo: String = "ES256K"
-    let expiresIn: Int64 = 600
+
+class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        // リダイレクトを停止する
+        completionHandler(nil)
+    }
 }
-
-
 
 class OpenIdProvider {
     private var option: ProviderOption
@@ -497,8 +501,8 @@ class OpenIdProvider {
 
         // selectDisclosure関数の使用
         guard
-            let (inputDescriptor, _) = matchVcToRequirement(
-                sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+            let (inputDescriptor, _) = presentationDefinition.matchSdJwtVcToRequirement(
+                sdJwt: sdJwt)
         else {
             throw OpenIdProviderIllegalInputException.illegalCredentialInput
         }
@@ -591,7 +595,6 @@ class OpenIdProvider {
     }
 }
 
-
 func sendRequest<T: Decodable>(
     formData: [String: String],
     url: URL,
@@ -643,275 +646,5 @@ func sendRequest<T: Decodable>(
     }
     catch {
         throw NetworkError.other(error)
-    }
-}
-
-class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
-    func urlSession(
-        _ session: URLSession, task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
-        completionHandler: @escaping (URLRequest?) -> Void
-    ) {
-        // リダイレクトを停止する
-        completionHandler(nil)
-    }
-}
-
-//enum IllegalStateException: Error {
-//    case illegalState
-//
-//    var message: String {
-//        switch self {
-//        case .illegalState:
-//            return "Illegal state occurred."
-//        }
-//    }
-//}
-
-struct SubmissionCredential: Codable, Equatable {
-    let id: String
-    let format: String
-    let types: [String]
-    let credential: String
-    let inputDescriptor: InputDescriptor
-    let discloseClaims: [DisclosureWithOptionality]
-
-    static func == (lhs: SubmissionCredential, rhs: SubmissionCredential) -> Bool {
-        return lhs.id == rhs.id
-    }
-}
-
-struct PreparedSubmissionData {
-    let vpToken: String
-    let descriptorMap: DescriptorMap
-    let disclosedClaims: [DisclosedClaim]
-    let purpose: String?
-}
-
-struct DisclosedClaim: Codable {
-    let id: String  // credential identifier
-    let types: [String]
-    let name: String
-    let value: String?
-    // let path: String   // when nested claim is supported, it may be needed
-}
-
-struct SharedContent: Codable {
-    let id: String
-    let sharedClaims: [DisclosedClaim]
-}
-
-
-func satisfyConstrains(credential: [String: Any], presentationDefinition: PresentationDefinition)
-    -> Bool
-{
-    // TODO: 暫定で固定パス(vc.credentialSubject)のクレデンシャルをサポートする
-    guard let vc = credential["vc"] as? [String: Any] else {
-        print("unsupported format")
-        print(credential)
-        return false
-    }
-    guard let credentialSubject: [String: Any] = vc["credentialSubject"] as? [String: Any] else {
-        print("unsupported format")
-        print(credential)
-        return false
-    }
-    let inputDescriptors = presentationDefinition.inputDescriptors
-
-    var matchingFieldsCount = 0
-
-    for inputDescriptor in inputDescriptors {
-        guard let fields = inputDescriptor.constraints.fields else { continue }
-
-        for field in fields {
-            let isFieldMatched = field.path.contains { jsonPath -> Bool in
-                let pathComponents = jsonPath.components(separatedBy: ".")
-                if let lastComponent = pathComponents.last, lastComponent != "$" {
-                    let key = lastComponent.replacingOccurrences(of: "vc.", with: "")
-                    // credentialのキーとして含まれているか判定
-                    return credentialSubject.keys.contains(key)
-                }
-                return false
-            }
-
-            if isFieldMatched {
-                matchingFieldsCount += 1
-                break  // pathのいずれかがマッチしたら、そのfieldは条件を満たしていると見なす
-            }
-        }
-    }
-
-    print("match count: \(matchingFieldsCount)")
-    // 元のfieldsの件数と該当したfieldの件数が一致するか判定
-    return matchingFieldsCount == inputDescriptors.compactMap({ $0.constraints.fields }).count
-}
-
-func matchVcToRequirement(sdJwt: String, presentationDefinition: PresentationDefinition) -> (
-    InputDescriptor, [DisclosureWithOptionality]
-)? {
-    let parts = sdJwt.split(separator: "~").map(String.init)
-    let newList = parts.count > 2 ? Array(parts.dropFirst().dropLast()) : []
-
-    // [Disclosure]
-    let allDisclosures = decodeDisclosureFunction(newList)
-    let sourcePayload = Dictionary(
-        uniqueKeysWithValues: allDisclosures.compactMap { disclosure in
-            if let key = disclosure.key, let value = disclosure.value {
-                return (key, value)
-            }
-            else {
-                return nil
-            }
-        })
-
-    // 各InputDescriptorをループ
-    for inputDescriptor in presentationDefinition.inputDescriptors {
-        // fieldKeysを取得
-        let requiredOrOptionalKeys = filterKeysWithOptionality(
-            from: sourcePayload, using: inputDescriptor)
-
-        let matchingDisclosures = createDisclosureWithOptionality(
-            from: allDisclosures,
-            with: requiredOrOptionalKeys
-        )
-
-        if !matchingDisclosures.isEmpty {
-            return (inputDescriptor, matchingDisclosures)
-        }
-    }
-    return nil
-}
-
-private func filterKeysWithOptionality(
-    from sourcePayload: [String: String], using inputDescriptor: InputDescriptor
-) -> [(String, Bool)] {
-    /*
-     array of (String, Bool) values filtered by `inputDescriptor.constraints.fields.path`
-     A Bool value represents whether the field is required.
-
-     example of input_descriptors
-         "input_descriptors": [
-           {
-             "constraints": {
-               "fields": [
-                 {
-                   "path": ["$.claim1"], ここが配列になっている理由はformat毎に異なるpathを指定するため
-                   "optional": true
-                 }
-               ]
-             }
-           }
-         ]
-     */
-    guard let fields = inputDescriptor.constraints.fields else { return [] }
-    return fields.flatMap { field in
-        let optional = field.optional ?? false
-        return field.path.compactMap { jsonPath in
-            let key = String(jsonPath.dropFirst(2))  // "$."を削除
-            return sourcePayload.keys.contains(key) ? (key, optional) : nil
-        }
-    }
-}
-
-private func createDisclosureWithOptionality(
-    from allDisclosures: [Disclosure], with requiredOrOptionalKeys: [(String, Bool)]
-) -> [DisclosureWithOptionality] {
-    return allDisclosures.map { disclosure in
-        guard let dkey = disclosure.key else {
-            return DisclosureWithOptionality(
-                disclosure: disclosure, isSubmit: false, isUserSelectable: false)
-        }
-        for (keyName, optionality) in requiredOrOptionalKeys {
-            if keyName.contains(dkey) {
-                return DisclosureWithOptionality(
-                    disclosure: disclosure, isSubmit: !optionality, isUserSelectable: optionality)
-            }
-        }
-        return DisclosureWithOptionality(
-            disclosure: disclosure, isSubmit: false, isUserSelectable: false)
-    }
-}
-
-var decodeDisclosureFunction: ([String]) -> [Disclosure] = SDJwtUtil.decodeDisclosure
-
-protocol KeyBinding {
-    func generateJwt(sdJwt: String, selectedDisclosures: [Disclosure], aud: String, nonce: String)
-        throws -> String
-}
-
-protocol JwtVpJsonGenerator {
-    func generateJwt(
-        vcJwt: String, headerOptions: HeaderOptions, payloadOptions: JwtVpJsonPayloadOptions
-    ) -> String
-    func getJwk() -> [String: String]
-}
-
-struct SIOPLoginResponseData: Decodable {
-    let Location: String
-}
-
-struct PostResult: Decodable {
-    let statusCode: Int
-    let location: String?
-    let cookies: [String]?
-}
-
-struct HeaderOptions: Codable {
-    var alg: String = "ES256"
-    var typ: String = "JWT"
-    var jwk: String? = nil
-}
-
-struct JwtVpJsonPayloadOptions: Codable {
-    var iss: String? = nil
-    var jti: String? = nil
-    var aud: String
-    var nbf: Int64? = nil
-    var iat: Int64? = nil
-    var exp: Int64? = nil
-    var nonce: String
-}
-
-struct VpJwtPayload {
-    var iss: String?
-    var jti: String?
-    var aud: String?
-    var nbf: Int64?
-    var iat: Int64?
-    var exp: Int64?
-    var nonce: String?
-    var vp: [String: Any]
-
-    enum CodingKeys: String, CodingKey {
-        case iss, jti, aud, nbf, iat, exp, nonce, vp
-    }
-
-    init(
-        iss: String?, jti: String?, aud: String?, nbf: Int64?, iat: Int64?, exp: Int64?,
-        nonce: String?, vp: [String: Any]
-    ) {
-        self.iss = iss
-        self.jti = jti
-        self.aud = aud
-        self.nbf = nbf
-        self.iat = iat
-        self.exp = exp
-        self.nonce = nonce
-        self.vp = vp
-    }
-
-    // 手動で辞書を構築し、エンコードするメソッド
-    func toDictionary() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        if let iss = iss { dict["iss"] = iss }
-        if let jti = jti { dict["jti"] = jti }
-        if let aud = aud { dict["aud"] = aud }
-        if let nbf = nbf { dict["nbf"] = nbf }
-        if let iat = iat { dict["iat"] = iat }
-        if let exp = exp { dict["exp"] = exp }
-        if let nonce = nonce { dict["nonce"] = nonce }
-        dict["vp"] = vp
-
-        return dict
     }
 }
