@@ -54,7 +54,7 @@ class OpenIdProvider {
         self.jwtVpJsonGenerator = jwtVpJsonGenerator
     }
 
-    func processSIOPRequest(_ url: String, using session: URLSession = URLSession.shared) async
+    func processAuthRequest(_ url: String, using session: URLSession = URLSession.shared) async
         -> Result<ProcessedRequestData, AuthorizationRequestError>
     {
         print("parseAndResolve")

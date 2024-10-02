@@ -74,7 +74,7 @@ class SharingRequestViewModel {
         openIdProvider = OpenIdProvider(ProviderOption())
         do {
             print("process SIOP Request")
-            let result = await openIdProvider?.processSIOPRequest(url)
+            let result = await openIdProvider?.processAuthRequest(url)
             switch result {
                 case .success(let processedRequestData):
                     // gen client info
