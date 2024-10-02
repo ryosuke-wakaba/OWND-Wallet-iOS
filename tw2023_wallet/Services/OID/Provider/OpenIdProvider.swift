@@ -218,7 +218,7 @@ class OpenIdProvider {
     }
 
     func respondSIOPResponse(using session: URLSession = URLSession.shared) async -> Result<
-        PostResult, Error
+        TokenSendResult, Error
     > {
         guard let authRequestProcessedData = self.authRequestProcessedData else {
             return .failure(
@@ -274,18 +274,21 @@ class OpenIdProvider {
             let formData = ["id_token": idToken]
             print("url: \(redirectUri)")
             print(formData)
-            let postResult = try await postFormData(
+            let (data, httpResponse, uri) = try await sendFormData(
                 formData: formData,
                 url: URL(string: redirectUri)!,
                 responseMode: ResponseMode.directPost,  // todo: change to appropriate value.
-                convert: convertIdTokenResponseResponse,
                 using: session
             )
-            print("status code: \(postResult.statusCode)")
-            if let location = postResult.location {
-                print("location: \(location)")
-            }
-            return .success(postResult)
+
+            let (statusCode, location, cookies) = try convertIdTokenResponseResponse(
+                data: data, response: httpResponse, requestURL: uri)
+
+            print("status code: \(statusCode)")
+            return .success(
+                TokenSendResult(
+                    statusCode: statusCode, location: location, cookies: cookies,
+                    sharedContents: nil))
         }
         catch {
             return .failure(error)
@@ -293,58 +296,43 @@ class OpenIdProvider {
     }
 
     func convertIdTokenResponseResponse(data: Data, response: HTTPURLResponse, requestURL: URL)
-        throws -> PostResult
+        throws -> (Int, String?, [String]?)
     {
         //        print("response body of siop response: \(String(data: data, encoding: .utf8) ?? "no utf string value")")
         var cookies: [String]? = nil
         if let setCookieHeader = response.allHeaderFields["Set-Cookie"] as? String {
-            // 単一のクッキーを配列に格納
             cookies = [setCookieHeader]
         }
         else if let setCookieHeaders = response.allHeaderFields["Set-Cookie"] as? [String] {
-            // 複数のクッキーがある場合はそのまま使用
             cookies = setCookieHeaders
         }
         if response.statusCode == 302 {
             if let locationHeader = response.allHeaderFields["Location"] as? String {
                 print("Location Header: \(locationHeader)")
-                // `Location`ヘッダーの値が絶対URLかどうかを確認
                 let location: String
                 if locationHeader.starts(with: "http://") || locationHeader.starts(with: "https://")
                 {
-                    // 絶対URLの場合はそのまま使用
                     location = locationHeader
                 }
                 else {
-                    // パスのみの場合はスキーム、ホスト、ポート情報を補完
                     let scheme = requestURL.scheme ?? "http"
                     let host = requestURL.host ?? ""
                     let port = requestURL.port.map { ":\($0)" } ?? ""
                     location = "\(scheme)://\(host)\(port)\(locationHeader)"
-                    //                    // パスのみの場合はホスト情報を補完
-                    //                    guard let base = requestURL.baseURL else {
-                    //                        // `requestURL`からベースURLを取得できない場合は`requestURL`自体を使用
-                    //                        location = requestURL.scheme! + "://" + requestURL.host! + locationHeader
-                    //                        return PostResult(statusCode: response.statusCode, location: location)
-                    //                    }
-                    //                    // ベースURLを使用して補完
-                    //                    location = base.absoluteString + locationHeader
                 }
-                return PostResult(
-                    statusCode: response.statusCode, location: location, cookies: cookies)
+                return (response.statusCode, location, cookies)
             }
             else {
-                // `Location`ヘッダーが見つからなかった場合の処理
                 throw NetworkError.invalidResponse  // 適切なエラー処理を行う
             }
         }
         else {
-            return PostResult(statusCode: response.statusCode, location: nil, cookies: cookies)
+            return (response.statusCode, nil, cookies)
         }
     }
 
     func convertVpTokenResponseResponse(data: Data, response: HTTPURLResponse, requestURL: URL)
-        throws -> PostResult
+        throws -> (Int, String?, [String]?)
     {
         let statusCode = response.statusCode
         if statusCode == 200 {
@@ -357,7 +345,7 @@ class OpenIdProvider {
                         throw AuthorizationError.invalidData
                     }
                     let location = jsonDict["redirect_uri"] as? String
-                    return PostResult(statusCode: statusCode, location: location, cookies: nil)
+                    return (statusCode, location, nil)
                 }
             }
         }
@@ -374,20 +362,19 @@ class OpenIdProvider {
                     let port = requestURL.port.map { ":\($0)" } ?? ""
                     location = "\(scheme)://\(host)\(port)\(locationHeader)"
                 }
-                return PostResult(
-                    statusCode: response.statusCode, location: location, cookies: nil)
+                return (response.statusCode, location, nil)
             }
             else {
                 throw NetworkError.invalidResponse
             }
         }
 
-        return PostResult(statusCode: statusCode, location: nil, cookies: nil)
+        return (statusCode, nil, nil)
     }
 
     func respondVPResponse(
         credentials: [SubmissionCredential], using session: URLSession = URLSession.shared
-    ) async -> Result<(PostResult, [SharedContent], [String?]), Error> {
+    ) async -> Result<TokenSendResult, Error> {
         //        guard let authRequestProcessedData = self.authRequestProcessedData else {
         //            throw OpenIdProviderIllegalStateException.illegalAuthRequestProcessedDataState
         //        }
@@ -444,28 +431,37 @@ class OpenIdProvider {
         let jsonData = try! jsonEncoder.encode(presentationSubmission)
         let jsonString = String(data: jsonData, encoding: .utf8)!
 
+        let sharedContents = preparedSubmissionData.map {
+            SharedContent(
+                id: $0.credentialId,
+                sharedPurpose: $0.purpose,
+                sharedClaims: $0.disclosedClaims)
+        }
+
         do {
             var formData = ["vp_token": vpTokenValue, "presentation_submission": jsonString]
             if let state = state {
                 formData["state"] = state
             }
             print("url: \(responseUri)")
-            let postResult = try await postFormData(
+            let (data, httpResponse, uri) = try await sendFormData(
                 formData: formData,
                 url: URL(string: responseUri)!,
                 responseMode: responseMode,
-                convert: convertVpTokenResponseResponse,
                 using: session
             )
-            let sharedContents = preparedSubmissionData.map {
-                SharedContent(id: $0.credentialId, sharedClaims: $0.disclosedClaims)
-            }
-            let purposes = preparedSubmissionData.map { $0.purpose }
-            return .success((postResult, sharedContents, purposes))
+
+            let (statusCode, location, cookies) = try convertVpTokenResponseResponse(
+                data: data, response: httpResponse, requestURL: uri)
+
+            return .success(
+                TokenSendResult(
+                    statusCode: statusCode, location: location, cookies: cookies,
+                    sharedContents: sharedContents
+                ))
         }
         catch {
             return .failure(error)
         }
     }
 }
-

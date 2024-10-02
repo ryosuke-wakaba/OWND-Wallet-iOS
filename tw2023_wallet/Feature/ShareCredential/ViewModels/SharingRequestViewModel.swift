@@ -19,6 +19,7 @@ enum SharingRequestIllegalStateException: Error {
     case illegalJwkThumbprintState
     case illegalSeedState
     case illegalState
+    case illegalSharedResult
 }
 
 @Observable
@@ -191,7 +192,7 @@ class SharingRequestViewModel {
         return idTokenSharingHistories
     }
 
-    func shareIdToken() async -> Result<PostResult, Error> {
+    func shareIdToken() async -> Result<TokenSendResult, Error> {
         print("share id token")
         guard let openIdProvider = openIdProvider,
             let account = account,
@@ -238,7 +239,7 @@ class SharingRequestViewModel {
         }
     }
 
-    func shareVpToken(credentials: [SubmissionCredential]) async -> Result<PostResult, Error> {
+    func shareVpToken(credentials: [SubmissionCredential]) async -> Result<TokenSendResult, Error> {
         print("share vp token")
         guard let openIdProvider = openIdProvider,
             let account = account,
@@ -265,11 +266,11 @@ class SharingRequestViewModel {
         switch result {
             case .success(let sharedResult):
                 print("sharing sucess")
-                let postResult = sharedResult.0
-                let sharedContent = sharedResult.1
-                let purposes = sharedResult.2
                 let storeManager = CredentialSharingHistoryManager(container: nil)
-                for (content, purpose) in zip(sharedContent, purposes) {
+                guard let sharedContents = sharedResult.sharedContents else {
+                    return .failure(SharingRequestIllegalStateException.illegalSharedResult)
+                }
+                for content in sharedContents {
                     var history = Datastore_CredentialSharingHistory()
                     history.accountIndex = Int32(account.index)
                     history.createdAt = Date().toGoogleTimestamp()
@@ -278,7 +279,7 @@ class SharingRequestViewModel {
                         var claimInfo = Datastore_ClaimInfo()
                         claimInfo.claimKey = claim.name
                         claimInfo.claimValue = claim.value ?? ""
-                        claimInfo.purpose = purpose ?? ""
+                        claimInfo.purpose = content.sharedPurpose ?? ""
                         history.claims.append(
                             claimInfo
                         )
@@ -291,7 +292,7 @@ class SharingRequestViewModel {
 
                     storeManager.save(history: history)
                 }
-                return .success(postResult)
+                return .success(sharedResult)
             case .failure(let error):
                 print("Response Error: \(error)")
                 return .failure(error)

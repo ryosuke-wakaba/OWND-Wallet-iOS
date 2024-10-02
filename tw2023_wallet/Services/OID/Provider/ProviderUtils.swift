@@ -29,13 +29,12 @@ func conformToFormData(preparedData: [PreparedSubmissionData]) -> String? {
     }
 }
 
-func postFormData<T: Decodable>(
+func sendFormData(
     formData: [String: String],
     url: URL,
     responseMode: ResponseMode,
-    convert: ((Data, HTTPURLResponse, URL) throws -> T)? = nil,
     using session: URLSession = URLSession.shared
-) async throws -> T {
+) async throws -> (Data, HTTPURLResponse, URL) {
 
     var request: URLRequest
 
@@ -71,12 +70,7 @@ func postFormData<T: Decodable>(
             throw NetworkError.statusCodeNotSuccessful(httpResponse.statusCode)
         }
 
-        if let convert = convert {
-            return try convert(data, httpResponse, url)
-        }
-        else {
-            return data as! T
-        }
+        return (data, httpResponse, url)
     }
     catch {
         throw NetworkError.other(error)

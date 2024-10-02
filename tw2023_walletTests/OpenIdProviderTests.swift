@@ -33,13 +33,13 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // When
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVpTokenResponseResponse(
             data: json, response: response, requestURL: requestURL)
 
         // Then
-        XCTAssertEqual(result.statusCode, 200)
-        XCTAssertEqual(result.location, "https://example.com")
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 200)
+        XCTAssertEqual(location, "https://example.com")
+        XCTAssertNil(cookies)
     }
 
     func testConvertVpTokenResponseResponse_withInvalid200JSONResponse() throws {
@@ -58,11 +58,11 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // Then
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVpTokenResponseResponse(
             data: json, response: response, requestURL: requestURL)
-        XCTAssertEqual(result.statusCode, 200)
-        XCTAssertNil(result.location)
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 200)
+        XCTAssertNil(location)
+        XCTAssertNil(cookies)
 
     }
 
@@ -77,13 +77,13 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // When
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVpTokenResponseResponse(
             data: Data(), response: response, requestURL: requestURL)
 
         // Then
-        XCTAssertEqual(result.statusCode, 302)
-        XCTAssertEqual(result.location, "https://example.com")
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 302)
+        XCTAssertEqual(location, "https://example.com")
+        XCTAssertNil(cookies)
     }
 
     func testConvertVpTokenResponseResponse_with302RedirectRelativeURL() throws {
@@ -97,13 +97,13 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // When
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVpTokenResponseResponse(
             data: Data(), response: response, requestURL: requestURL)
 
         // Then
-        XCTAssertEqual(result.statusCode, 302)
-        XCTAssertEqual(result.location, "https://example.com/path/to/resource")
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 302)
+        XCTAssertEqual(location, "https://example.com/path/to/resource")
+        XCTAssertNil(cookies)
     }
 
     func testConvertVpTokenResponseResponse_with302RedirectMissingLocationHeader() throws {
@@ -895,19 +895,22 @@ final class OpenIdProviderTests: XCTestCase {
                 credentials: [credential], using: mockSession)
             switch result {
                 case .success(let data):
-                    let (_, arrayOfSharedContent, _) = data
-                    let sharedContents = arrayOfSharedContent
-                    XCTAssertEqual(sharedContents.count, 1)
-                    XCTAssertEqual(sharedContents[0].id, "internal-id-1")
-                    XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
-                    XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+                    if let sharedContents = data.sharedContents {
+                        XCTAssertEqual(sharedContents.count, 1)
+                        XCTAssertEqual(sharedContents[0].id, "internal-id-1")
+                        XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
+                        XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
 
-                    if let lastRequest = MockURLProtocol.lastRequest {
-                        XCTAssertEqual(lastRequest.httpMethod, "POST")
-                        XCTAssertEqual(lastRequest.url, testURL)
-                    }
-                    else {
-                        XCTFail("No request was made")
+                        if let lastRequest = MockURLProtocol.lastRequest {
+                            XCTAssertEqual(lastRequest.httpMethod, "POST")
+                            XCTAssertEqual(lastRequest.url, testURL)
+                        }
+                        else {
+                            XCTFail("No request was made")
+                        }
+
+                    }else{
+                        XCTFail("sharedContents must be exist")
                     }
                 case .failure(let error):
                     XCTFail()
@@ -1001,24 +1004,27 @@ final class OpenIdProviderTests: XCTestCase {
                 credentials: [credential1, credential2], using: mockSession)
             switch result {
                 case .success(let data):
-                    let (_, arrayOfSharedContent, _) = data
-                    let sharedContents = arrayOfSharedContent
-                    XCTAssertEqual(sharedContents.count, 2)
-                    XCTAssertEqual(sharedContents[0].id, "internal-id-1")
-                    XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
-                    XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+                    if let sharedContents = data.sharedContents {
+                        XCTAssertEqual(sharedContents.count, 2)
+                        XCTAssertEqual(sharedContents[0].id, "internal-id-1")
+                        XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
+                        XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
 
-                    XCTAssertEqual(sharedContents[1].id, "internal-id-2")
-                    XCTAssertEqual(sharedContents[1].sharedClaims.count, 2)
-                    XCTAssertEqual(sharedContents[1].sharedClaims[0].name, "claim3")
-                    XCTAssertEqual(sharedContents[1].sharedClaims[1].name, "claim4")
+                        XCTAssertEqual(sharedContents[1].id, "internal-id-2")
+                        XCTAssertEqual(sharedContents[1].sharedClaims.count, 2)
+                        XCTAssertEqual(sharedContents[1].sharedClaims[0].name, "claim3")
+                        XCTAssertEqual(sharedContents[1].sharedClaims[1].name, "claim4")
 
-                    if let lastRequest = MockURLProtocol.lastRequest {
-                        XCTAssertEqual(lastRequest.httpMethod, "POST")
-                        XCTAssertEqual(lastRequest.url, testURL)
-                    }
-                    else {
-                        XCTFail("No request was made")
+                        if let lastRequest = MockURLProtocol.lastRequest {
+                            XCTAssertEqual(lastRequest.httpMethod, "POST")
+                            XCTAssertEqual(lastRequest.url, testURL)
+                        }
+                        else {
+                            XCTFail("No request was made")
+                        }
+
+                    }else{
+                        XCTFail("sharedContents must be exist")
                     }
                 case .failure(let error):
                     XCTFail()

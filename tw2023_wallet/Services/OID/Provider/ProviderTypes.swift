@@ -11,10 +11,26 @@ struct ProviderOption {
     let expiresIn: Int64 = 600
 }
 
-struct PostResult: Decodable {
+struct DisclosedClaim: Codable {
+    let id: String  // credential identifier
+    let types: [String]
+    let name: String
+    let value: String?
+    // let path: String   // when nested claim is supported, it may be needed
+}
+
+struct SharedContent: Codable {
+    let id: String
+    let sharedPurpose: String?
+    let sharedClaims: [DisclosedClaim]
+}
+
+struct TokenSendResult: Decodable {
     let statusCode: Int
     let location: String?
     let cookies: [String]?
+
+    let sharedContents: [SharedContent]?
 }
 
 struct PreparedSubmissionData {
@@ -135,17 +151,4 @@ struct SubmissionCredential: Codable, Equatable {
         }
     }
 
-}
-
-struct DisclosedClaim: Codable {
-    let id: String  // credential identifier
-    let types: [String]
-    let name: String
-    let value: String?
-    // let path: String   // when nested claim is supported, it may be needed
-}
-
-struct SharedContent: Codable {
-    let id: String
-    let sharedClaims: [DisclosedClaim]
 }
