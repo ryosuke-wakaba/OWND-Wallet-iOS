@@ -8,7 +8,6 @@
 import Foundation
 import JOSESwift
 
-
 class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
     func urlSession(
         _ session: URLSession, task: URLSessionTask,
@@ -410,22 +409,18 @@ class OpenIdProvider {
                 case "vc+sd-jwt":
                     return (
                         credential.id,
-                        try createVpTokenForSdJwtVc(
-                            credential: credential,
-                            presentationDefinition: presentationDefinition,
+                        try credential.createVpTokenForSdJwtVc(
                             clientId: clientId,
-                            nonce: nonce
-                        )
+                            nonce: nonce,
+                            keyBinding: keyBinding)
                     )
-
                 case "jwt_vc_json":
                     return (
                         credential.id,
-                        try createVpTokenForJwtVc(
-                            credential: credential,
-                            presentationDefinition: presentationDefinition,
+                        try credential.createVpTokenForJwtVc(
                             clientId: clientId,
-                            nonce: nonce
+                            nonce: nonce,
+                            jwtVpJsonGenerator: jwtVpJsonGenerator
                         )
                     )
 
@@ -488,109 +483,6 @@ class OpenIdProvider {
         }
         catch {
             return .failure(error)
-        }
-    }
-    func createVpTokenForSdJwtVc(
-        credential: SubmissionCredential,
-        presentationDefinition: PresentationDefinition,
-        clientId: String,
-        nonce: String
-    ) throws -> PreparedSubmissionData {
-        // ここに実装を追加します
-        let sdJwt = credential.credential
-
-        // selectDisclosure関数の使用
-        guard
-            let (inputDescriptor, _) = presentationDefinition.matchSdJwtVcToRequirement(
-                sdJwt: sdJwt)
-        else {
-            throw OpenIdProviderIllegalInputException.illegalCredentialInput
-        }
-        let selectedDisclosures = credential.discloseClaims.map { $0.disclosure }
-        print(String(describing: inputDescriptor))
-        guard let keyBinding = keyBinding else {
-            throw OpenIdProviderIllegalStateException.illegalKeyBindingState
-        }
-        let keyBindingJwt = try keyBinding.generateJwt(
-            sdJwt: sdJwt, selectedDisclosures: selectedDisclosures, aud: clientId, nonce: nonce)
-
-        let parts = sdJwt.split(separator: "~").map(String.init)
-        guard let issuerSignedJwt = parts.first else {
-            throw OpenIdProviderIllegalInputException.illegalCredentialInput
-        }
-
-        let hasNilValue = selectedDisclosures.contains { disclosure in
-            disclosure.disclosure == nil
-        }
-
-        if hasNilValue {
-            throw OpenIdProviderIllegalInputException.illegalDisclosureInput
-        }
-
-        let vpToken =
-            issuerSignedJwt + "~"
-            + selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
-            + keyBindingJwt
-
-        print("### Created vpToken\n\(vpToken)")
-
-        let dm = DescriptorMap(
-            id: credential.inputDescriptor.id,
-            format: credential.format,
-            path: "$",
-            pathNested: nil
-        )
-
-        let disclosedClaims = selectedDisclosures.compactMap { disclosure -> DisclosedClaim? in
-            guard let key = disclosure.key else { return nil }
-            return DisclosedClaim(
-                id: credential.id, types: credential.types, name: key, value: disclosure.value)
-        }
-
-        return PreparedSubmissionData(
-            vpToken: vpToken, descriptorMap: dm, disclosedClaims: disclosedClaims,
-            purpose: inputDescriptor.purpose)
-    }
-
-    func createVpTokenForJwtVc(
-        credential: SubmissionCredential,
-        presentationDefinition: PresentationDefinition,
-        clientId: String, nonce: String
-    ) throws -> PreparedSubmissionData {
-        do {
-            let (_, payload, _) = try JWTUtil.decodeJwt(jwt: credential.credential)
-            if let vcDictionary = payload["vc"] as? [String: Any],
-                let credentialSubject = vcDictionary["credentialSubject"] as? [String: Any]
-            {
-                let disclosedClaims = credentialSubject.map { key, value in
-                    return DisclosedClaim(
-                        id: credential.id, types: credential.types, name: key,
-                        value: value as? String)
-                }
-                guard
-                    let vpToken = self.jwtVpJsonGenerator?.generateJwt(
-                        vcJwt: credential.credential, headerOptions: HeaderOptions(),
-                        payloadOptions: JwtVpJsonPayloadOptions(aud: clientId, nonce: nonce))
-                else {
-                    throw OpenIdProviderIllegalInputException.illegalCredentialInput
-                }
-
-                let descriptorMap = JwtVpJsonPresentation.genDescriptorMap(
-                    inputDescriptorId: credential.inputDescriptor.id)
-                return PreparedSubmissionData(
-                    vpToken: vpToken,
-                    descriptorMap: descriptorMap,
-                    disclosedClaims: disclosedClaims,
-                    purpose: nil
-                )
-            }
-            else {
-                throw OpenIdProviderIllegalInputException.illegalCredentialInput
-            }
-        }
-        catch {
-            print("Error: \(error)")
-            throw error
         }
     }
 }

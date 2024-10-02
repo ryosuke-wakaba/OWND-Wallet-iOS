@@ -675,11 +675,10 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let preparedData = try idProvider.createVpTokenForSdJwtVc(
-            credential: credential,
-            presentationDefinition: presentationDefinition,
+        let preparedData = try credential.createVpTokenForSdJwtVc(
             clientId: "https://rp.example.com",
-            nonce: "dummy-nonce"
+            nonce: "dummy-nonce",
+            keyBinding: keyBinding
         )
         let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 3)
@@ -723,11 +722,10 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let preparedData = try idProvider.createVpTokenForSdJwtVc(
-            credential: credential,
-            presentationDefinition: presentationDefinition,
+        let preparedData = try credential.createVpTokenForSdJwtVc(
             clientId: "https://rp.example.com",
-            nonce: "dummy-nonce"
+            nonce: "dummy-nonce",
+            keyBinding: keyBinding
         )
         let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 4)
@@ -776,11 +774,10 @@ final class OpenIdProviderTests: XCTestCase {
             keyAlias: Constants.Cryptography.KEY_PAIR_ALIAS_FOR_KEY_JWT_VP_JSON)
         idProvider.setJwtVpJsonGenerator(jwtVpJsonGenerator: jwtVpJsonGenerator)
 
-        let preparedData = try idProvider.createVpTokenForJwtVc(
-            credential: credential,
-            presentationDefinition: presentationDefinition,
+        let preparedData = try credential.createVpTokenForJwtVc(
             clientId: "https://rp.example.com",
-            nonce: "dummy-nonce"
+            nonce: "dummy-nonce",
+            jwtVpJsonGenerator: jwtVpJsonGenerator
         )
         do {
             let decodedJwt = try JWTUtil.decodeJwt(jwt: preparedData.vpToken)
