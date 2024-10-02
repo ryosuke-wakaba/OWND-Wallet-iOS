@@ -274,7 +274,7 @@ class OpenIdProvider {
             let formData = ["id_token": idToken]
             print("url: \(redirectUri)")
             print(formData)
-            let postResult = try await sendRequest(
+            let postResult = try await postFormData(
                 formData: formData,
                 url: URL(string: redirectUri)!,
                 responseMode: ResponseMode.directPost,  // todo: change to appropriate value.
@@ -403,56 +403,38 @@ class OpenIdProvider {
             return .failure(OpenIdProviderIllegalStateException.illegalState)
         }
 
-        let vpTokens = try! credentials.compactMap {
-            credential -> (String, PreparedSubmissionData)? in
+        let preparedSubmissionData = try! credentials.compactMap {
+            credential -> PreparedSubmissionData? in
             switch credential.format {
                 case "vc+sd-jwt":
-                    return (
-                        credential.id,
+                    return
                         try credential.createVpTokenForSdJwtVc(
                             clientId: clientId,
                             nonce: nonce,
                             keyBinding: keyBinding)
-                    )
+
                 case "jwt_vc_json":
-                    return (
-                        credential.id,
+                    return
                         try credential.createVpTokenForJwtVc(
                             clientId: clientId,
                             nonce: nonce,
                             jwtVpJsonGenerator: jwtVpJsonGenerator
+
                         )
-                    )
 
                 default:
                     throw IllegalArgumentException.badParams
             }
         }
 
-        let vpTokenValue: String
-        if vpTokens.count == 1 {
-            vpTokenValue = vpTokens[0].1.vpToken
-        }
-        else if !vpTokens.isEmpty {
-            let tokens = vpTokens.map { $0.1.vpToken }
-            let jsonEncoder = JSONEncoder()
-            if let jsonData = try? jsonEncoder.encode(tokens),
-                let jsonString = String(data: jsonData, encoding: .utf8)
-            {
-                vpTokenValue = jsonString
-            }
-            else {
-                return .failure(OpenIdProviderIllegalStateException.illegalJsonState)
-            }
-        }
-        else {
-            vpTokenValue = ""  // 0件の場合はブランク
+        guard let vpTokenValue = conformToFormData(preparedData: preparedSubmissionData) else {
+            return .failure(OpenIdProviderIllegalStateException.illegalJsonState)
         }
 
         let presentationSubmission = PresentationSubmission(
             id: UUID().uuidString,
             definitionId: presentationDefinition.id,
-            descriptorMap: vpTokens.map { $0.1.descriptorMap }
+            descriptorMap: preparedSubmissionData.map { $0.descriptorMap }
         )
 
         let jsonEncoder = JSONEncoder()
@@ -468,17 +450,17 @@ class OpenIdProvider {
                 formData["state"] = state
             }
             print("url: \(responseUri)")
-            let postResult = try await sendRequest(
+            let postResult = try await postFormData(
                 formData: formData,
                 url: URL(string: responseUri)!,
                 responseMode: responseMode,
                 convert: convertVpTokenResponseResponse,
                 using: session
             )
-            let sharedContents = vpTokens.map {
-                SharedContent(id: $0.0, sharedClaims: $0.1.disclosedClaims)
+            let sharedContents = preparedSubmissionData.map {
+                SharedContent(id: $0.credentialId, sharedClaims: $0.disclosedClaims)
             }
-            let purposes = vpTokens.map { $0.1.purpose }
+            let purposes = preparedSubmissionData.map { $0.purpose }
             return .success((postResult, sharedContents, purposes))
         }
         catch {
@@ -487,56 +469,3 @@ class OpenIdProvider {
     }
 }
 
-func sendRequest<T: Decodable>(
-    formData: [String: String],
-    url: URL,
-    responseMode: ResponseMode,
-    convert: ((Data, HTTPURLResponse, URL) throws -> T)? = nil,
-    using session: URLSession = URLSession.shared
-) async throws -> T {
-
-    var request: URLRequest
-
-    switch responseMode {
-        case .directPost:
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-
-            let formBody = formData.map { key, value in
-                let encodedKey =
-                    key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                let encodedValue =
-                    value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                return "\(encodedKey)=\(encodedValue.replacingOccurrences(of: "+", with: "%2B"))"
-            }.joined(separator: "&")
-
-            request.httpBody = formBody.data(using: .utf8)
-            request.setValue(
-                "application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        default:
-            print("Unsupported responseMode : \(responseMode)")
-            throw OpenIdProviderIllegalStateException.illegalResponseModeState
-    }
-
-    do {
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.invalidResponse
-        }
-
-        guard (200...399).contains(httpResponse.statusCode) else {
-            throw NetworkError.statusCodeNotSuccessful(httpResponse.statusCode)
-        }
-
-        if let convert = convert {
-            return try convert(data, httpResponse, url)
-        }
-        else {
-            return data as! T
-        }
-    }
-    catch {
-        throw NetworkError.other(error)
-    }
-}

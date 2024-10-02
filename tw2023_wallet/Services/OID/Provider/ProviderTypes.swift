@@ -18,6 +18,7 @@ struct PostResult: Decodable {
 }
 
 struct PreparedSubmissionData {
+    let credentialId: String
     let vpToken: String
     let descriptorMap: DescriptorMap
     let disclosedClaims: [DisclosedClaim]
@@ -87,6 +88,7 @@ struct SubmissionCredential: Codable, Equatable {
         }
 
         return PreparedSubmissionData(
+            credentialId: id,
             vpToken: vpToken, descriptorMap: dm, disclosedClaims: disclosedClaims,
             purpose: inputDescriptor.purpose)
     }
@@ -116,6 +118,7 @@ struct SubmissionCredential: Codable, Equatable {
                 let descriptorMap = JwtVpJsonPresentation.genDescriptorMap(
                     inputDescriptorId: inputDescriptor.id)
                 return PreparedSubmissionData(
+                    credentialId: id,
                     vpToken: vpToken,
                     descriptorMap: descriptorMap,
                     disclosedClaims: disclosedClaims,
