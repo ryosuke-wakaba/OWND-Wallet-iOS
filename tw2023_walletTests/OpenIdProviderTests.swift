@@ -904,6 +904,12 @@ final class OpenIdProviderTests: XCTestCase {
 
             switch result {
                 case .success(let data):
+                    if let lastRequestData = MockURLProtocol.lastRequestBody,
+                        let postBodyString = String(data: lastRequestData, encoding: .utf8)
+                    {
+                        XCTAssertFalse(postBodyString.contains("id_token="))
+                        XCTAssertTrue(postBodyString.contains("vp_token="))
+                    }
                     if let sharedContents = data.sharedCredentials {
                         XCTAssertEqual(sharedContents.count, 1)
                         XCTAssertEqual(sharedContents[0].id, "internal-id-1")
@@ -1019,6 +1025,12 @@ final class OpenIdProviderTests: XCTestCase {
                 credentials: [credential1, credential2], using: mockSession)
             switch result {
                 case .success(let data):
+                    if let lastRequestData = MockURLProtocol.lastRequestBody,
+                        let postBodyString = String(data: lastRequestData, encoding: .utf8)
+                    {
+                        XCTAssertFalse(postBodyString.contains("id_token="))
+                        XCTAssertTrue(postBodyString.contains("vp_token="))
+                    }
                     if let sharedContents = data.sharedCredentials {
                         XCTAssertEqual(sharedContents.count, 2)
                         XCTAssertEqual(sharedContents[0].id, "internal-id-1")
@@ -1132,7 +1144,6 @@ final class OpenIdProviderTests: XCTestCase {
                     {
                         XCTAssertTrue(postBodyString.contains("id_token="))
                         XCTAssertTrue(postBodyString.contains("vp_token="))
-
                     }
 
                     if let sharedContents = data.sharedCredentials {
