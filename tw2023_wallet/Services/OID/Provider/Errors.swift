@@ -35,6 +35,7 @@ enum OpenIdProviderIllegalStateException: Error {
     case illegalAuthRequestProcessedDataState
     case illegalClientIdState
     case illegalResponseModeState
+    case illegalResponseTypeState
     case illegalNonceState
     case illegalPresentationDefinitionState
     case illegalRedirectUriState
@@ -43,4 +44,5 @@ enum OpenIdProviderIllegalStateException: Error {
     case illegalJwkThumbprintState
     case illegalJsonState
     case illegalState
+    case illegalAccountState
 }
