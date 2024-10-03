@@ -192,8 +192,8 @@ class SharingRequestViewModel {
         return idTokenSharingHistories
     }
 
-    func shareIdToken() async -> Result<TokenSendResult, Error> {
-        print("share id token")
+    func shareToken(credentials: [SubmissionCredential]?) async -> Result<TokenSendResult, Error> {
+        print("Start initialization process to send id_token")
         guard let openIdProvider = openIdProvider,
             let account = account,
             let seed = seed,
@@ -209,47 +209,9 @@ class SharingRequestViewModel {
             print("\(errorState): Initialization Failed")
             return .failure(errorState)
         }
+        openIdProvider.setSiopAccount(account: account, accountManager: accountManager)
 
-        let publicKey = accountManager.getPublicKey(index: account.index)
-        let privateKey = accountManager.getPrivateKey(index: account.index)
-
-        let keyPair = KeyPairData(publicKey: publicKey, privateKey: privateKey)
-        openIdProvider.setSecp256k1KeyPair(keyPair: keyPair)
-
-        let delegate = NoRedirectDelegate()
-        let configuration = URLSessionConfiguration.default
-        let session = URLSession(
-            configuration: configuration, delegate: delegate, delegateQueue: nil)
-
-        let result = await openIdProvider.respondSIOPResponse(using: session)
-        switch result {
-            case .success(let postResult):
-                print("save history")
-                let storeManager = IdTokenSharingHistoryManager(container: nil)
-                var history = Datastore_IdTokenSharingHistory()
-                history.rp = openIdProvider.clientId!
-                // history.rp = openIdProvider.authRequestProcessedData?.clientMetadata.clientId ?? ""
-                history.accountIndex = Int32(account.index)
-                history.createdAt = Date().toGoogleTimestamp()
-                storeManager.save(history: history)
-                return .success(postResult)
-            case .failure(let error):
-                print("Response Error: \(error)")
-                return .failure(error)
-        }
-    }
-
-    func shareVpToken(credentials: [SubmissionCredential]) async -> Result<TokenSendResult, Error> {
-        print("share vp token")
-        guard let openIdProvider = openIdProvider,
-            let account = account,
-            let _ = seed
-        else {
-            let errorState = SharingRequestIllegalStateException.illegalState
-            print("\(errorState): Initialization Failed")
-            return .failure(errorState)
-        }
-        print("get keypair")
+        print("Start initialization process to send vp_token")
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         openIdProvider.setKeyBinding(keyBinding: keyBinding)
 
@@ -257,46 +219,60 @@ class SharingRequestViewModel {
             keyAlias: Constants.Cryptography.KEY_PAIR_ALIAS_FOR_KEY_JWT_VP_JSON)
         openIdProvider.setJwtVpJsonGenerator(jwtVpJsonGenerator: jwtVpJsonGenerator)
 
+        print("Start initialization process for accessing network")
         let delegate = NoRedirectDelegate()
         let configuration = URLSessionConfiguration.default
         let session = URLSession(
             configuration: configuration, delegate: delegate, delegateQueue: nil)
-        let result = await openIdProvider.respondVPResponse(
-            credentials: credentials, using: session)
+
+        print("Responding to verifier")
+        let result = await openIdProvider.respondToken(credentials: credentials, using: session)
         switch result {
-            case .success(let sharedResult):
-                print("sharing sucess")
-                let storeManager = CredentialSharingHistoryManager(container: nil)
-                guard let sharedContents = sharedResult.sharedContents else {
-                    return .failure(SharingRequestIllegalStateException.illegalSharedResult)
+            case .success(let postResult):
+                print("Saving hitories")
+                if let sharedCredentials = postResult.sharedCredentials {
+                    print("Saving vp token history")
+                    let storeManager = CredentialSharingHistoryManager(container: nil)
+                    for content in sharedCredentials {
+                        var history = Datastore_CredentialSharingHistory()
+                        history.accountIndex = Int32(account.index)
+                        history.createdAt = Date().toGoogleTimestamp()
+                        history.credentialID = content.id
+                        for (_, claim) in content.sharedClaims.enumerated() {
+                            var claimInfo = Datastore_ClaimInfo()
+                            claimInfo.claimKey = claim.name
+                            claimInfo.claimValue = claim.value ?? ""
+                            claimInfo.purpose = content.purposeForSharing ?? ""
+                            history.claims.append(
+                                claimInfo
+                            )
+                        }
+                        let metadata = openIdProvider.authRequestProcessedData?.clientMetadata
+                        history.rp = metadata?.clientId ?? ""
+                        history.rpName = metadata?.clientName ?? ""
+                        history.privacyPolicyURL = metadata?.policyUri ?? ""
+                        history.logoURL = metadata?.logoUri ?? ""
+
+                        storeManager.save(history: history)
+                    }
+
                 }
-                for content in sharedContents {
-                    var history = Datastore_CredentialSharingHistory()
+
+                if postResult.sharedIdToken != nil {
+                    print("Saving id token history")
+                    let storeManager = IdTokenSharingHistoryManager(container: nil)
+                    var history = Datastore_IdTokenSharingHistory()
+                    history.rp = openIdProvider.clientId!
                     history.accountIndex = Int32(account.index)
                     history.createdAt = Date().toGoogleTimestamp()
-                    history.credentialID = content.id
-                    for (index, claim) in content.sharedClaims.enumerated() {
-                        var claimInfo = Datastore_ClaimInfo()
-                        claimInfo.claimKey = claim.name
-                        claimInfo.claimValue = claim.value ?? ""
-                        claimInfo.purpose = content.sharedPurpose ?? ""
-                        history.claims.append(
-                            claimInfo
-                        )
-                    }
-                    let metadata = openIdProvider.authRequestProcessedData?.clientMetadata
-                    history.rp = metadata?.clientId ?? ""
-                    history.rpName = metadata?.clientName ?? ""
-                    history.privacyPolicyURL = metadata?.policyUri ?? ""
-                    history.logoURL = metadata?.logoUri ?? ""
-
                     storeManager.save(history: history)
                 }
-                return .success(sharedResult)
+                return .success(postResult)
             case .failure(let error):
                 print("Response Error: \(error)")
                 return .failure(error)
         }
+
     }
 
     enum ShareIdTokenError: Error {

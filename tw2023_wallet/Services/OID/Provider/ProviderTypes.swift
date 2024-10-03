@@ -19,9 +19,9 @@ struct DisclosedClaim: Codable {
     // let path: String   // when nested claim is supported, it may be needed
 }
 
-struct SharedContent: Codable {
+struct SharedCredential: Codable {
     let id: String
-    let sharedPurpose: String?
+    let purposeForSharing: String?
     let sharedClaims: [DisclosedClaim]
 }
 
@@ -30,7 +30,8 @@ struct TokenSendResult: Decodable {
     let location: String?
     let cookies: [String]?
 
-    let sharedContents: [SharedContent]?
+    let sharedIdToken: String?
+    let sharedCredentials: [SharedCredential]?
 }
 
 struct PreparedSubmissionData {

@@ -22,7 +22,10 @@ class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
 class OpenIdProvider {
     private var option: ProviderOption
     private var keyPair: KeyPair?  // for proof of posession for jwt_vc_json presentation
-    private var secp256k1KeyPair: KeyPairData?  // for sub of id_token
+
+    private var account: Account?
+    private var accountManager: PairwiseAccount?
+
     private var keyBinding: KeyBinding?
     private var jwtVpJsonGenerator: JwtVpJsonGenerator?
     var authRequestProcessedData: ProcessedRequestData?
@@ -32,6 +35,7 @@ class OpenIdProvider {
     var nonce: String?
     var state: String?
     var redirectUri: String?
+    var responseUri: String?
     var presentationDefinition: PresentationDefinition?
 
     init(_ option: ProviderOption) {
@@ -42,8 +46,9 @@ class OpenIdProvider {
         self.keyPair = keyPair
     }
 
-    func setSecp256k1KeyPair(keyPair: KeyPairData) {
-        self.secp256k1KeyPair = keyPair
+    func setSiopAccount(account: Account, accountManager: PairwiseAccount) {
+        self.account = account
+        self.accountManager = accountManager
     }
 
     func setKeyBinding(keyBinding: KeyBinding) {
@@ -162,11 +167,14 @@ class OpenIdProvider {
                     }
                 }
 
-                guard let responseType = requestObj?.responseType ?? authRequest.responseType else {
+                guard let _responseType = requestObj?.responseType ?? authRequest.responseType
+                else {
                     return .failure(
                         .authRequestInputError(
                             reason: .compliantError(reason: "can not get response type")))
                 }
+                responseType = _responseType
+
                 // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5-11.6
                 // response_mode:
                 // OPTIONAL. Defined in [OAuth.Responses]. This parameter is used (through the new Response Mode direct_post) to ask the Wallet to send the response to the Verifier via an HTTPS connection (see Section 6.2 for more details). It is also used to request signing and encrypting (see Section 6.3 for more details). If the parameter is not present, the default value is fragment.
@@ -183,7 +191,7 @@ class OpenIdProvider {
                 }
                 nonce = _nonce
                 state = requestObj?.state ?? authRequest.state ?? ""
-                if responseType.contains("vp_token") {
+                if _responseType.contains("vp_token") {
                     guard let _presentationDefinition = processedRequestData.presentationDefinition
                     else {
                         return .failure(
@@ -193,13 +201,17 @@ class OpenIdProvider {
                     }
                     presentationDefinition = _presentationDefinition
                 }
-                if responseMode == ResponseMode.directPost {
+                if responseMode == ResponseMode.directPost
+                    || responseMode == ResponseMode.directPostJwt
+                    || responseMode == ResponseMode.post
+                {
                     guard let _responseUri = requestObj?.responseUri ?? authRequest.responseUri
                     else {
                         return .failure(
                             .authRequestInputError(
                                 reason: .compliantError(reason: "can not get response uri")))
                     }
+                    responseUri = _responseUri
                 }
                 else {
                     guard let _redirectUri = requestObj?.redirectUri ?? authRequest.redirectUri
@@ -217,9 +229,99 @@ class OpenIdProvider {
         }
     }
 
-    func respondSIOPResponse(using session: URLSession = URLSession.shared) async -> Result<
+    func respondToken(
+        credentials: [SubmissionCredential]?,
+        using session: URLSession = URLSession.shared
+    ) async -> Result<
         TokenSendResult, Error
     > {
+        guard let responseType = responseType else {
+            print("responseType is not setup")
+            return .failure(OpenIdProviderIllegalStateException.illegalResponseTypeState)
+        }
+
+        guard let responseMode = responseMode else {
+            return .failure(OpenIdProviderIllegalStateException.illegalResponseModeState)
+        }
+
+        let requireIdToken = responseType.contains("id_token")
+        let requireVpToken = responseType.contains("vp_token")
+
+        if !requireIdToken && !requireVpToken {
+            print("Both or either `id_token` and `vp_token` are required.")
+            return .failure(OpenIdProviderIllegalStateException.illegalResponseTypeState)
+        }
+
+        var idTokenFormData: [String: String]? = nil
+        var vpTokenFormData: [String: String]? = nil
+
+        var idTokenForHistory: String? = nil
+        var vpForHistory: [SharedCredential]? = nil
+
+        if requireIdToken {
+            let created = createSiopIdToken()
+            switch created {
+                case .success(let (successData, rawIdToken)):
+                    idTokenFormData = successData
+                    idTokenForHistory = rawIdToken
+                case .failure(let errorData):
+                    return .failure(errorData)
+            }
+        }
+        if requireVpToken {
+            guard let creds = credentials else {
+                return .failure(OpenIdProviderIllegalInputException.illegalCredentialInput)
+            }
+            let created = createVpToken(credentials: creds)
+            switch created {
+                case .success(let (successData, sharedCredentials)):
+                    vpTokenFormData = successData
+                    vpForHistory = sharedCredentials
+                case .failure(let errorData):
+                    return .failure(errorData)
+            }
+        }
+
+        let mergedFormData = (idTokenFormData ?? [:]).merging(vpTokenFormData ?? [:]) { (_, new) in
+            new
+        }
+
+        var uri: String? = nil
+        switch responseMode {
+            case .directPost, .directPostJwt, .post:
+                uri = responseUri
+            default:
+                uri = redirectUri
+        }
+        guard let whereToRespond = uri else {
+            return .failure(OpenIdProviderIllegalStateException.illegalRedirectUriState)
+        }
+
+        do {
+            let (data, httpResponse, uri) = try await sendFormData(
+                formData: mergedFormData,
+                url: URL(string: whereToRespond)!,
+                responseMode: responseMode,
+                using: session
+            )
+
+            let (statusCode, location, cookies) = try convertVerifierResponse(
+                data: data, response: httpResponse, requestURL: uri)
+
+            print("status code: \(statusCode)")
+            return .success(
+                TokenSendResult(
+                    statusCode: statusCode, location: location, cookies: cookies,
+                    sharedIdToken: idTokenForHistory,
+                    sharedCredentials: vpForHistory))
+        }
+        catch {
+            return .failure(error)
+        }
+
+    }
+
+    func createSiopIdToken() -> Result<([String: String], String), Error> {
         guard let authRequestProcessedData = self.authRequestProcessedData else {
             return .failure(
                 OpenIdProviderIllegalStateException.illegalAuthRequestProcessedDataState)
@@ -232,21 +334,25 @@ class OpenIdProvider {
         guard let nonce = requestObj?.nonce ?? authRequest.nonce else {
             return .failure(OpenIdProviderIllegalStateException.illegalNonceState)
         }
-        guard let redirectUri = requestObj?.redirectUri ?? authRequest.requestUri else {
-            return .failure(OpenIdProviderIllegalStateException.illegalRedirectUriState)
+
+        guard let account = account,
+            let accountManager = accountManager
+        else {
+            return .failure(OpenIdProviderIllegalStateException.illegalAccountState)
         }
 
-        let prefix = "urn:ietf:params:oauth:jwk-thumbprint:sha-256"
         // TODO: ProviderOptionのアルゴリズムで分岐可能にする
-        guard let keyPair = secp256k1KeyPair else {
-            return .failure(OpenIdProviderIllegalStateException.illegalKeypairState)
-        }
+        let publicKey = accountManager.getPublicKey(index: account.index)
+        let privateKey = accountManager.getPrivateKey(index: account.index)
+        let keyPair = KeyPairData(publicKey: publicKey, privateKey: privateKey)
         let x = keyPair.publicKey.0.base64URLEncodedString()
         let y = keyPair.publicKey.1.base64URLEncodedString()
         let jwk = ECPublicJwk(kty: "EC", crv: "secp256k1", x: x, y: y)
         guard let jwkThumbprint = SignatureUtil.toJwkThumbprint(jwk: jwk) else {
             return .failure(OpenIdProviderIllegalStateException.illegalJwkThumbprintState)
         }
+
+        let prefix = "urn:ietf:params:oauth:jwk-thumbprint:sha-256"
         let sub = "\(prefix):\(jwkThumbprint)"
         let currentMilliseconds = Int64(Date().timeIntervalSince1970 * 1000)
 
@@ -270,30 +376,119 @@ class OpenIdProvider {
             let jsonData = try encoder.encode(idTokenPayload)
             let payload = String(data: jsonData, encoding: .utf8)!
             let idToken = try ES256K.createJws(key: keyPair.privateKey, payload: payload)
-            // TODO: support redirect response when response_mode is not `direct_post`
             let formData = ["id_token": idToken]
-            print("url: \(redirectUri)")
-            print(formData)
-            let (data, httpResponse, uri) = try await sendFormData(
-                formData: formData,
-                url: URL(string: redirectUri)!,
-                responseMode: ResponseMode.directPost,  // todo: change to appropriate value.
-                using: session
-            )
 
-            let (statusCode, location, cookies) = try convertIdTokenResponseResponse(
-                data: data, response: httpResponse, requestURL: uri)
-
-            print("status code: \(statusCode)")
-            return .success(
-                TokenSendResult(
-                    statusCode: statusCode, location: location, cookies: cookies,
-                    sharedContents: nil))
+            return .success((formData, idToken))
         }
         catch {
             return .failure(error)
         }
     }
+
+    func createVpToken(
+        credentials: [SubmissionCredential],
+        using session: URLSession = URLSession.shared
+    ) -> Result<([String: String], [SharedCredential]), Error> {
+
+        guard let clientId = clientId,
+            let responseMode = responseMode,
+            let nonce = nonce,
+            let presentationDefinition = presentationDefinition
+        else {
+            return .failure(OpenIdProviderIllegalStateException.illegalState)
+        }
+
+        let preparedSubmissionData = try! credentials.compactMap {
+            credential -> PreparedSubmissionData? in
+            switch credential.format {
+                case "vc+sd-jwt":
+                    return
+                        try credential.createVpTokenForSdJwtVc(
+                            clientId: clientId,
+                            nonce: nonce,
+                            keyBinding: keyBinding)
+
+                case "jwt_vc_json":
+                    return
+                        try credential.createVpTokenForJwtVc(
+                            clientId: clientId,
+                            nonce: nonce,
+                            jwtVpJsonGenerator: jwtVpJsonGenerator
+
+                        )
+
+                default:
+                    throw IllegalArgumentException.badParams
+            }
+        }
+
+        guard let vpTokenValue = conformToFormData(preparedData: preparedSubmissionData) else {
+            return .failure(OpenIdProviderIllegalStateException.illegalJsonState)
+        }
+
+        let presentationSubmission = PresentationSubmission(
+            id: UUID().uuidString,
+            definitionId: presentationDefinition.id,
+            descriptorMap: preparedSubmissionData.map { $0.descriptorMap }
+        )
+
+        let jsonEncoder = JSONEncoder()
+        jsonEncoder.keyEncodingStrategy = .convertToSnakeCase
+
+        // オブジェクトをJSON文字列にエンコード
+        let jsonData = try! jsonEncoder.encode(presentationSubmission)
+        let jsonString = String(data: jsonData, encoding: .utf8)!
+
+        let sharedCredentials = preparedSubmissionData.map {
+            SharedCredential(
+                id: $0.credentialId,
+                purposeForSharing: $0.purpose,
+                sharedClaims: $0.disclosedClaims)
+        }
+
+        var formData = ["vp_token": vpTokenValue, "presentation_submission": jsonString]
+        if let state = state {
+            formData["state"] = state
+        }
+
+        return .success((formData, sharedCredentials))
+    }
+
+    func convertVerifierResponse(data: Data, response: HTTPURLResponse, requestURL: URL)
+        throws -> (Int, String?, [String]?)
+    {
+        let statusCode = response.statusCode
+        if statusCode == 200 {
+            if let contentType = response.allHeaderFields["Content-Type"] as? String {
+                if contentType.hasPrefix("application/json") {
+                    guard
+                        let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
+                        let jsonDict = jsonObject as? [String: Any]
+                    else {
+                        throw AuthorizationError.invalidData
+                    }
+                    let location = jsonDict["redirect_uri"] as? String
+                    return (statusCode, location, nil)
+                }
+            }
+        }
+        return (statusCode, nil, nil)
+    }
+
+    /*
+
+    The following code contains an implementation that is contrary to the current specification.
+    During initial development, a special implementation was required for the purpose of connecting to Matrix's Synapse server.
+    The following code needs to be removed at an appropriate time.
+
+    Specification:
+
+     https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.2
+     If the Response Endpoint has successfully processed the request, it MUST respond with HTTPS status code 200.
+
+     https://openid.net/specs/openid-connect-self-issued-v2-1_0.html#section-10.2
+     The Self-Issued OP MUST NOT follow redirects on this request
+
 
     func convertIdTokenResponseResponse(data: Data, response: HTTPURLResponse, requestURL: URL)
         throws -> (Int, String?, [String]?)
@@ -371,97 +566,6 @@ class OpenIdProvider {
 
         return (statusCode, nil, nil)
     }
+     */
 
-    func respondVPResponse(
-        credentials: [SubmissionCredential], using session: URLSession = URLSession.shared
-    ) async -> Result<TokenSendResult, Error> {
-        //        guard let authRequestProcessedData = self.authRequestProcessedData else {
-        //            throw OpenIdProviderIllegalStateException.illegalAuthRequestProcessedDataState
-        //        }
-        //        let authRequest = authRequestProcessedData.authorizationRequest
-        //        let requestObj = authRequestProcessedData.requestObject
-        guard let clientId = clientId,
-            let responseMode = responseMode,
-            let nonce = nonce,
-            let presentationDefinition = presentationDefinition,
-            let responseUri = authRequestProcessedData?.requestObject?.responseUri
-                ?? authRequestProcessedData?.authorizationRequest.responseUri
-        else {
-            return .failure(OpenIdProviderIllegalStateException.illegalState)
-        }
-
-        let preparedSubmissionData = try! credentials.compactMap {
-            credential -> PreparedSubmissionData? in
-            switch credential.format {
-                case "vc+sd-jwt":
-                    return
-                        try credential.createVpTokenForSdJwtVc(
-                            clientId: clientId,
-                            nonce: nonce,
-                            keyBinding: keyBinding)
-
-                case "jwt_vc_json":
-                    return
-                        try credential.createVpTokenForJwtVc(
-                            clientId: clientId,
-                            nonce: nonce,
-                            jwtVpJsonGenerator: jwtVpJsonGenerator
-
-                        )
-
-                default:
-                    throw IllegalArgumentException.badParams
-            }
-        }
-
-        guard let vpTokenValue = conformToFormData(preparedData: preparedSubmissionData) else {
-            return .failure(OpenIdProviderIllegalStateException.illegalJsonState)
-        }
-
-        let presentationSubmission = PresentationSubmission(
-            id: UUID().uuidString,
-            definitionId: presentationDefinition.id,
-            descriptorMap: preparedSubmissionData.map { $0.descriptorMap }
-        )
-
-        let jsonEncoder = JSONEncoder()
-        jsonEncoder.keyEncodingStrategy = .convertToSnakeCase
-
-        // オブジェクトをJSON文字列にエンコード
-        let jsonData = try! jsonEncoder.encode(presentationSubmission)
-        let jsonString = String(data: jsonData, encoding: .utf8)!
-
-        let sharedContents = preparedSubmissionData.map {
-            SharedContent(
-                id: $0.credentialId,
-                sharedPurpose: $0.purpose,
-                sharedClaims: $0.disclosedClaims)
-        }
-
-        do {
-            var formData = ["vp_token": vpTokenValue, "presentation_submission": jsonString]
-            if let state = state {
-                formData["state"] = state
-            }
-            print("url: \(responseUri)")
-            let (data, httpResponse, uri) = try await sendFormData(
-                formData: formData,
-                url: URL(string: responseUri)!,
-                responseMode: responseMode,
-                using: session
-            )
-
-            let (statusCode, location, cookies) = try convertVpTokenResponseResponse(
-                data: data, response: httpResponse, requestURL: uri)
-
-            return .success(
-                TokenSendResult(
-                    statusCode: statusCode, location: location, cookies: cookies,
-                    sharedContents: sharedContents
-                ))
-        }
-        catch {
-            return .failure(error)
-        }
-    }
 }
