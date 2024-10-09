@@ -209,7 +209,10 @@ class SharingRequestViewModel {
             print("\(errorState): Initialization Failed")
             return .failure(errorState)
         }
-        openIdProvider.setSiopAccount(account: account, accountManager: accountManager)
+        let publicKey = accountManager.getPublicKey(index: account.index)
+        let privateKey = accountManager.getPrivateKey(index: account.index)
+        let keyPair = KeyPairData(publicKey: publicKey, privateKey: privateKey)
+        openIdProvider.setSecp256k1KeyPair(keyPair: keyPair)
 
         print("Start initialization process to send vp_token")
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)

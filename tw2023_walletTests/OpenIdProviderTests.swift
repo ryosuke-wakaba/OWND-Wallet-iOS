@@ -1132,7 +1132,11 @@ final class OpenIdProviderTests: XCTestCase {
                 return
             }
             let newAccount = accountManager.nextAccount()
-            idProvider.setSiopAccount(account: newAccount, accountManager: accountManager)
+
+            let publicKey = accountManager.getPublicKey(index: newAccount.index)
+            let privateKey = accountManager.getPrivateKey(index: newAccount.index)
+            let keyPair = KeyPairData(publicKey: publicKey, privateKey: privateKey)
+            idProvider.setSecp256k1KeyPair(keyPair: keyPair)
 
             let result = await idProvider.respondToken(
                 credentials: [credential], using: mockSession)

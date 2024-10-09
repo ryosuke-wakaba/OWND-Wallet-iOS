@@ -22,10 +22,7 @@ class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
 class OpenIdProvider {
     private var option: ProviderOption
     private var keyPair: KeyPair?  // for proof of posession for jwt_vc_json presentation
-
-    private var account: Account?
-    private var accountManager: PairwiseAccount?
-
+    private var secp256k1KeyPair: KeyPairData?
     private var keyBinding: KeyBinding?
     private var jwtVpJsonGenerator: JwtVpJsonGenerator?
     var authRequestProcessedData: ProcessedRequestData?
@@ -46,9 +43,8 @@ class OpenIdProvider {
         self.keyPair = keyPair
     }
 
-    func setSiopAccount(account: Account, accountManager: PairwiseAccount) {
-        self.account = account
-        self.accountManager = accountManager
+    func setSecp256k1KeyPair(keyPair: KeyPairData) {
+        self.secp256k1KeyPair = keyPair
     }
 
     func setKeyBinding(keyBinding: KeyBinding) {
@@ -335,16 +331,10 @@ class OpenIdProvider {
             return .failure(OpenIdProviderIllegalStateException.illegalNonceState)
         }
 
-        guard let account = account,
-            let accountManager = accountManager
-        else {
-            return .failure(OpenIdProviderIllegalStateException.illegalAccountState)
-        }
-
         // TODO: ProviderOptionのアルゴリズムで分岐可能にする
-        let publicKey = accountManager.getPublicKey(index: account.index)
-        let privateKey = accountManager.getPrivateKey(index: account.index)
-        let keyPair = KeyPairData(publicKey: publicKey, privateKey: privateKey)
+        guard let keyPair = secp256k1KeyPair else {
+            return .failure(OpenIdProviderIllegalStateException.illegalKeypairState)
+        }
         let x = keyPair.publicKey.0.base64URLEncodedString()
         let y = keyPair.publicKey.1.base64URLEncodedString()
         let jwk = ECPublicJwk(kty: "EC", crv: "secp256k1", x: x, y: y)
