@@ -21,8 +21,7 @@ class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
 
 class OpenIdProvider {
     private var option: ProviderOption
-    private var keyPair: KeyPair?  // for proof of posession for jwt_vc_json presentation
-    private var secp256k1KeyPair: KeyPairData?
+    private var secp256k1KeyPair: KeyPairData?  // for sub of id_token
     private var keyBinding: KeyBinding?
     private var jwtVpJsonGenerator: JwtVpJsonGenerator?
     var authRequestProcessedData: ProcessedRequestData?
@@ -37,10 +36,6 @@ class OpenIdProvider {
 
     init(_ option: ProviderOption) {
         self.option = option
-    }
-
-    func setKeyPair(keyPair: KeyPair) {
-        self.keyPair = keyPair
     }
 
     func setSecp256k1KeyPair(keyPair: KeyPairData) {
