@@ -12,10 +12,6 @@ enum KeyError: Error {
     case KeyNotFound
 }
 
-enum JwtError: Error {
-    case JsonStringConversionError
-    case Base64ConversionError
-}
 
 enum JwkError: Error {
     case UnableToConversionError

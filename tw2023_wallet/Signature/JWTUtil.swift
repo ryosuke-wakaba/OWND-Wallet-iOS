@@ -64,13 +64,6 @@ func convertRstoDer(r: Data, s: Data) -> Data? {
 }
 
 enum JWTUtil {
-    static func jsonString(from dictionary: [String: Any]) throws -> String {
-        let jsonData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-        guard let jsonString = String(data: jsonData, encoding: .utf8) else {
-            throw JwtError.JsonStringConversionError
-        }
-        return jsonString
-    }
 
     static func sign(keyAlias: String, header: [String: Any], payload: [String: Any]) throws
         -> String
@@ -80,10 +73,8 @@ enum JWTUtil {
         }
 
         guard
-            let h = try? JWTUtil.jsonString(from: header).data(using: .utf8)?
-                .base64URLEncodedString(),
-            let p = try? JWTUtil.jsonString(from: payload).data(using: .utf8)?
-                .base64URLEncodedString()
+            let h = try? header.toBase64UrlString(),
+            let p = try? payload.toBase64UrlString()
         else {
             throw SignatureError.VoidContentError
         }

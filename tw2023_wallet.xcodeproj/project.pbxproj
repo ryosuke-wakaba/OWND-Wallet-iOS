@@ -158,7 +158,6 @@
 		A83039BF2B4E4229004139A7 /* ZipUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039B92B4E4229004139A7 /* ZipUtilTest.swift */; };
 		A83039C02B4E4229004139A7 /* SDJwtUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */; };
 		A83039C12B4E4229004139A7 /* KeyPairUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039BB2B4E4229004139A7 /* KeyPairUtilTest.swift */; };
-		A83039C22B4E4229004139A7 /* SerializeUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039BC2B4E4229004139A7 /* SerializeUtilTest.swift */; };
 		A83039C42B4E4829004139A7 /* SwiftASN1 in Frameworks */ = {isa = PBXBuildFile; productRef = A83039C32B4E4829004139A7 /* SwiftASN1 */; };
 		A83039C72B4E6E5D004139A7 /* id_token_sharing_history.proto in Sources */ = {isa = PBXBuildFile; fileRef = A83039C62B4E6E5D004139A7 /* id_token_sharing_history.proto */; };
 		A83039C92B4E6E7E004139A7 /* credential_data.proto in Sources */ = {isa = PBXBuildFile; fileRef = A83039C82B4E6E7E004139A7 /* credential_data.proto */; };
@@ -412,7 +411,6 @@
 		A83039B92B4E4229004139A7 /* ZipUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZipUtilTest.swift; sourceTree = "<group>"; };
 		A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SDJwtUtilTest.swift; sourceTree = "<group>"; };
 		A83039BB2B4E4229004139A7 /* KeyPairUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyPairUtilTest.swift; sourceTree = "<group>"; };
-		A83039BC2B4E4229004139A7 /* SerializeUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeUtilTest.swift; sourceTree = "<group>"; };
 		A83039C62B4E6E5D004139A7 /* id_token_sharing_history.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = id_token_sharing_history.proto; sourceTree = "<group>"; };
 		A83039C82B4E6E7E004139A7 /* credential_data.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = credential_data.proto; sourceTree = "<group>"; };
 		A83039CA2B4E6E92004139A7 /* credential_sharing_history.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = credential_sharing_history.proto; sourceTree = "<group>"; };
@@ -1038,7 +1036,6 @@
 				A83039B92B4E4229004139A7 /* ZipUtilTest.swift */,
 				A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */,
 				A83039BB2B4E4229004139A7 /* KeyPairUtilTest.swift */,
-				A83039BC2B4E4229004139A7 /* SerializeUtilTest.swift */,
 				F6CC769D2B580EF600FA26A8 /* QRCodeGeneratorTest.swift */,
 				A82ECC812C23A81C00B9784B /* UrlEncoderTest.swift */,
 			);
@@ -1772,7 +1769,6 @@
 				A88D323A2C26997700429E75 /* Metadata.swift in Sources */,
 				8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */,
 				8B43AE382B3A93C60016CF83 /* AuthServerMetadata.swift in Sources */,
-				A83039C22B4E4229004139A7 /* SerializeUtilTest.swift in Sources */,
 				8B0E0AB02B403D510080F6A3 /* PresentationExchange.swift in Sources */,
 				A88779BD2C33DC08002EE9C2 /* WebViewTests.swift in Sources */,
 				8B297C372B39538500D2998D /* VCIMetadataTests.swift in Sources */,

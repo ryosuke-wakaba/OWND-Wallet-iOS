@@ -440,7 +440,7 @@ func generateTestJWKSetString(rsaKeyId: String, ecKeyId: String) -> (String, Key
         return nil
     }
     rsaJWKDict["kid"] = rsaKeyId
-    let rsaJWKString = dictionaryToJSONString(rsaJWKDict)
+    let rsaJWKString = (try? rsaJWKDict.toString()) ?? "{}"
 
     // EC鍵ペアの生成
     guard let ecKeyPair = createRandomECKeyPair() else {
@@ -455,7 +455,7 @@ func generateTestJWKSetString(rsaKeyId: String, ecKeyId: String) -> (String, Key
         return nil
     }
     ecJWKDict["kid"] = ecKeyId
-    let ecJWKString = dictionaryToJSONString(ecJWKDict)
+    let ecJWKString = (try? ecJWKDict.toString()) ?? "{}"
 
     // JWKセット文字列の生成
     let jwkSetString = """
@@ -470,14 +470,6 @@ func generateTestJWKSetString(rsaKeyId: String, ecKeyId: String) -> (String, Key
     return (jwkSetString, rsaKeyPair, ecKeyPair)
 }
 
-func dictionaryToJSONString(_ dict: [String: Any]) -> String {
-    if let jsonData = try? JSONSerialization.data(withJSONObject: dict, options: []),
-        let jsonString = String(data: jsonData, encoding: .utf8)
-    {
-        return jsonString
-    }
-    return "{}"
-}
 
 func generateTestJWT(kid: String, privateKey: SecKey) -> String? {
     // ヘッダーとペイロードの設定
