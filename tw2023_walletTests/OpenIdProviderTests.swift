@@ -759,7 +759,13 @@ final class OpenIdProviderTests: XCTestCase {
         let vc: [String: Any] = ["credentialSubject": credentialSubject]
         let payload: [String: Any] = ["vc": vc]
 
-        let vcJwt = try! JWTUtil.sign(keyAlias: tag, header: header, payload: payload)
+        let tmp = JWTUtil.sign(keyAlias: tag, header: header, payload: payload)
+
+        guard let vcJwt = try? tmp.get() else {
+            XCTFail()
+            return
+        }
+
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
@@ -788,7 +794,7 @@ final class OpenIdProviderTests: XCTestCase {
             let jwk = decodedJwt.0["jwk"]
             //            let payload = decodedJwt.1
             let publicKey = try! KeyPairUtil.createPublicKey(jwk: jwk as! [String: String])
-            let result = JWTUtil.verifyJwt(jwt: preparedData.vpToken, publicKey: publicKey)
+            let result = JWTUtil.verifyJwtSignature(jwt: preparedData.vpToken, publicKey: publicKey)
             switch result {
                 case .success(let verifiedJwt):
                     let decodedPayload = verifiedJwt.body

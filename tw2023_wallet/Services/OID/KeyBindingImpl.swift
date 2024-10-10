@@ -44,7 +44,13 @@ class KeyBindingImpl: KeyBinding {
             "_sd_hash": sdHash,
             "nonce": nonce,
         ]
-        return try JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
+        let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
+        switch result {
+            case let .success(jwt):
+                return jwt
+            case let .failure(error):
+                throw error
+        }
     }
 }
 

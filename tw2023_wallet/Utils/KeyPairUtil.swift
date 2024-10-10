@@ -12,7 +12,6 @@ enum KeyError: Error {
     case KeyNotFound
 }
 
-
 enum JwkError: Error {
     case UnableToConversionError
 }
@@ -123,12 +122,13 @@ class KeyPairUtil {
             "nonce": nonce,
         ]
 
-        let proofJwt = try JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
-        return proofJwt
-    }
-
-    static func decodeJwt(jwt: String) throws -> ([String: Any], [String: Any], String) {
-        return try JWTUtil.decodeJwt(jwt: jwt)
+        let proofJwt = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
+        switch proofJwt {
+            case let .success(jwt):
+                return jwt
+            case let .failure(error):
+                throw error
+        }
     }
 
     static func createPublicKey(jwk: [String: String]) throws -> SecKey {

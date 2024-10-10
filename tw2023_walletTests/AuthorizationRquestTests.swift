@@ -470,7 +470,6 @@ func generateTestJWKSetString(rsaKeyId: String, ecKeyId: String) -> (String, Key
     return (jwkSetString, rsaKeyPair, ecKeyPair)
 }
 
-
 func generateTestJWT(kid: String, privateKey: SecKey) -> String? {
     // ヘッダーとペイロードの設定
     var header = JWSHeader(algorithm: .RS512)

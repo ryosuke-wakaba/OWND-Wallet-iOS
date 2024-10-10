@@ -66,7 +66,7 @@ class DisplayQRCodeViewModel: ObservableObject {
             "credential": credential.payload,
             "display": credential.qrDisplay,
         ]
-        
+
         guard let jsonString = try? jsonDict.toString() else {
             return nil
         }

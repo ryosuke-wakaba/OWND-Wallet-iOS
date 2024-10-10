@@ -7,18 +7,17 @@
 
 import Foundation
 
-
 enum JsonSerializationError: Error {
     case UnableToEncodeString
 }
 
 extension Dictionary where Key == String, Value == Any {
-    
+
     public func toBase64UrlString() throws -> String {
         let jsonData = try JSONSerialization.data(withJSONObject: self, options: [])
         return jsonData.base64URLEncodedString()
     }
-    
+
     public func toString() throws -> String {
         let jsonData = try JSONSerialization.data(withJSONObject: self, options: [])
         guard let jsonString = String(data: jsonData, encoding: .utf8) else {

@@ -11,11 +11,11 @@ import XCTest
 
 final class SerializeUtilTest: XCTestCase {
     func testToString() {
-        let data: [String: Any] = ["foo": 123, "bar": 456]
-        XCTAssertTrue((try! data.toString()) == "{\"foo\":123,\"bar\":456}")
+        let data: [String: Any] = ["foo": 123]
+        XCTAssertTrue((try! data.toString()) == "{\"foo\":123}")
     }
     func testToBase64UrlString() {
-        let data: [String: Any] = ["foo": 123, "bar": 456]
-        XCTAssertTrue((try! data.toBase64UrlString()) == "eyJmb28iOjEyMywiYmFyIjo0NTZ9")
+        let data: [String: Any] = ["foo": 123]
+        XCTAssertTrue((try! data.toBase64UrlString()) == "eyJmb28iOjEyM30")
     }
 }
