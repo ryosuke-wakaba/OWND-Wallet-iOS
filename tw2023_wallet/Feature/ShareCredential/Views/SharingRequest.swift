@@ -155,47 +155,23 @@ struct SharingRequest: View {
                                             title: "provide_information",
                                             action: {
                                                 Task {
-                                                    if viewModel.presentationDefinition != nil,
-                                                        viewModel.selectedCredential
-                                                    {
-                                                        let result = await viewModel.shareVpToken(
-                                                            credentials: sharingRequestModel.data!
-                                                        )
-                                                        switch result {
-                                                            case .success(let postResult):
-                                                                print("VP Token sharing succeeded.")
-                                                                if postResult.location != nil {
-                                                                    sharingRequestModel.postResult =
-                                                                        postResult
-                                                                }
-                                                                showAlert = true
-                                                                alertTitle =
-                                                                    "VP Token sharing succeeded."
-                                                            case .failure(let error):
-                                                                print(
-                                                                    "VP Token sharing failed with error: \(error)"
-                                                                )
-                                                                showAlert = true
-                                                        }
-                                                    }
-                                                    else {
-                                                        let result = await viewModel.shareIdToken()
-                                                        switch result {
-                                                            case .success(let postResult):
-                                                                print("ID Token sharing succeeded.")
-                                                                if postResult.location != nil {
-                                                                    sharingRequestModel.postResult =
-                                                                        postResult
-                                                                }
-                                                                showAlert = true
-                                                                alertTitle =
-                                                                    "ID Token sharing succeeded."
-                                                            case .failure(let error):
-                                                                print(
-                                                                    "ID Token sharing failed with error: \(error)"
-                                                                )
-                                                                showAlert = true
-                                                        }
+                                                    let result = await viewModel.shareToken(
+                                                        credentials: sharingRequestModel.data)
+                                                    switch result {
+                                                        case .success(let postResult):
+                                                            print("Token sharing succeeded.")
+                                                            if postResult.location != nil {
+                                                                sharingRequestModel.postResult =
+                                                                    postResult
+                                                            }
+                                                            showAlert = true
+                                                            alertTitle =
+                                                                "Token sharing succeeded."
+                                                        case .failure(let error):
+                                                            print(
+                                                                "Token sharing failed with error: \(error)"
+                                                            )
+                                                            showAlert = true
                                                     }
                                                 }
                                             }

@@ -10,7 +10,7 @@ import Foundation
 @Observable
 class SharingRequestModel {
     var redirectTo: String? = nil
-    var postResult: PostResult? = nil
+    var postResult: TokenSendResult? = nil
     var presentationDefinition: PresentationDefinition? = nil
     init(presentationDefinition: PresentationDefinition? = nil) {
         self.presentationDefinition = presentationDefinition

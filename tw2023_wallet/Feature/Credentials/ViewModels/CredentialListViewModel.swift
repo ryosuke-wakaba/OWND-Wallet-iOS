@@ -51,8 +51,8 @@ class CredentialListViewModel {
         print("format: \(format)")
         do {
             if format == "vc+sd-jwt" {
-                let ret = matchVcToRequirement(
-                    sdJwt: credential.payload, presentationDefinition: presentationDefinition)
+                let ret = presentationDefinition.matchSdJwtVcToRequirement(
+                    sdJwt: credential.payload)
                 if let (_, disclosures) = ret {
                     return 0
                         < disclosures.filter { it in (it.isUserSelectable || it.isSubmit) }.count
@@ -62,8 +62,8 @@ class CredentialListViewModel {
             else if format == "jwt_vc_json" {
                 let (_, payload, _) = try JWTUtil.decodeJwt(jwt: credential.payload)
                 print("satisfyConstrains?")
-                return satisfyConstrains(
-                    credential: payload, presentationDefinition: presentationDefinition)
+                return presentationDefinition.satisfyConstrains(
+                    credential: payload)
             }
             else {
                 // その他のフォーマットに対する処理が必要な場合、ここに追加

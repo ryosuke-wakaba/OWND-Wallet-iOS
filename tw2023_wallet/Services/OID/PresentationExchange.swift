@@ -7,6 +7,8 @@
 
 import Foundation
 
+var decodeDisclosureFunction: ([String]) -> [Disclosure] = SDJwtUtil.decodeDisclosure
+
 enum LimitDisclosure: String, Codable {
     case required = "required"
     case preferred = "preferred"
@@ -66,6 +68,106 @@ struct PresentationDefinition: Codable {
 
     // extension
     let submissionRequirements: [SubmissionRequirement]?
+
+    func matchSdJwtVcToRequirement(sdJwt: String) -> (
+        InputDescriptor, [DisclosureWithOptionality]
+    )? {
+        let parts = sdJwt.split(separator: "~").map(String.init)
+        let newList = parts.count > 2 ? Array(parts.dropFirst().dropLast()) : []
+
+        // [Disclosure]
+        let allDisclosures = decodeDisclosureFunction(newList)
+        let sourcePayload = Dictionary(
+            uniqueKeysWithValues: allDisclosures.compactMap { disclosure in
+                if let key = disclosure.key, let value = disclosure.value {
+                    return (key, value)
+                }
+                else {
+                    return nil
+                }
+            })
+
+        // 各InputDescriptorをループ
+        for inputDescriptor in inputDescriptors {
+            // fieldKeysを取得
+            let requiredOrOptionalKeys = inputDescriptor.filterKeysWithOptionality(
+                from: sourcePayload)
+
+            let matchingDisclosures = createDisclosureWithOptionality(
+                from: allDisclosures,
+                with: requiredOrOptionalKeys
+            )
+
+            if !matchingDisclosures.isEmpty {
+                return (inputDescriptor, matchingDisclosures)
+            }
+        }
+        return nil
+    }
+    private func createDisclosureWithOptionality(
+        from allDisclosures: [Disclosure], with requiredOrOptionalKeys: [(String, Bool)]
+    ) -> [DisclosureWithOptionality] {
+        return allDisclosures.map { disclosure in
+            guard let dkey = disclosure.key else {
+                return DisclosureWithOptionality(
+                    disclosure: disclosure, isSubmit: false, isUserSelectable: false)
+            }
+            for (keyName, optionality) in requiredOrOptionalKeys {
+                if keyName.contains(dkey) {
+                    return DisclosureWithOptionality(
+                        disclosure: disclosure, isSubmit: !optionality,
+                        isUserSelectable: optionality)
+                }
+            }
+            return DisclosureWithOptionality(
+                disclosure: disclosure, isSubmit: false, isUserSelectable: false)
+        }
+    }
+
+    func satisfyConstrains(credential: [String: Any])
+        -> Bool
+    {
+        // TODO: 暫定で固定パス(vc.credentialSubject)のクレデンシャルをサポートする
+        guard let vc = credential["vc"] as? [String: Any] else {
+            print("unsupported format")
+            print(credential)
+            return false
+        }
+        guard let credentialSubject: [String: Any] = vc["credentialSubject"] as? [String: Any]
+        else {
+            print("unsupported format")
+            print(credential)
+            return false
+        }
+        let inputDescriptors = inputDescriptors
+
+        var matchingFieldsCount = 0
+
+        for inputDescriptor in inputDescriptors {
+            guard let fields = inputDescriptor.constraints.fields else { continue }
+
+            for field in fields {
+                let isFieldMatched = field.path.contains { jsonPath -> Bool in
+                    let pathComponents = jsonPath.components(separatedBy: ".")
+                    if let lastComponent = pathComponents.last, lastComponent != "$" {
+                        let key = lastComponent.replacingOccurrences(of: "vc.", with: "")
+                        // credentialのキーとして含まれているか判定
+                        return credentialSubject.keys.contains(key)
+                    }
+                    return false
+                }
+
+                if isFieldMatched {
+                    matchingFieldsCount += 1
+                    break  // pathのいずれかがマッチしたら、そのfieldは条件を満たしていると見なす
+                }
+            }
+        }
+
+        print("match count: \(matchingFieldsCount)")
+        // 元のfieldsの件数と該当したfieldの件数が一致するか判定
+        return matchingFieldsCount == inputDescriptors.compactMap({ $0.constraints.fields }).count
+    }
 }
 
 struct ClaimFormat: Codable {
@@ -82,6 +184,37 @@ struct InputDescriptor: Codable {
 
     // extension
     let group: [String]?  // value MUST match one of the grouping strings listed in the from values of a Submission Requirement Rule object
+
+    func filterKeysWithOptionality(
+        from sourcePayload: [String: String]
+    ) -> [(String, Bool)] {
+        /*
+     array of (String, Bool) values filtered by `inputDescriptor.constraints.fields.path`
+     A Bool value represents whether the field is required.
+
+     example of input_descriptors
+         "input_descriptors": [
+           {
+             "constraints": {
+               "fields": [
+                 {
+                   "path": ["$.claim1"], ここが配列になっている理由はformat毎に異なるpathを指定するため
+                   "optional": true
+                 }
+               ]
+             }
+           }
+         ]
+     */
+        guard let fields = constraints.fields else { return [] }
+        return fields.flatMap { field in
+            let optional = field.optional ?? false
+            return field.path.compactMap { jsonPath in
+                let key = String(jsonPath.dropFirst(2))  // "$."を削除
+                return sourcePayload.keys.contains(key) ? (key, optional) : nil
+            }
+        }
+    }
 }
 
 struct InputDescriptorConstraints: Codable {

@@ -135,6 +135,8 @@
 		8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB513962B3BB88900D4EFB3 /* VCIMetadataUtil.swift */; };
 		8BEE638F2C19A48D00821543 /* CertificateUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A892975A2B3AA81C007315BE /* CertificateUtil.swift */; };
 		8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF745982B4FF85F000F74A9 /* JOSESwift */; };
+		A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
+		A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A81087142B3B0AB3004425DE /* SDJwtUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087132B3B0AB3004425DE /* SDJwtUtil.swift */; };
 		A81087182B3BBA0C004425DE /* ES256K.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087172B3BBA0C004425DE /* ES256K.swift */; };
 		A810871E2B3BC9DF004425DE /* ES256KTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871D2B3BC9DF004425DE /* ES256KTest.swift */; };
@@ -174,6 +176,8 @@
 		A84AB70D2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84AB70C2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift */; };
 		A8509C292B82315D00B28C35 /* RecipientClaims.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8509C282B82315D00B28C35 /* RecipientClaims.swift */; };
 		A857C25A2C0DD3200059A82F /* swift-format in Frameworks */ = {isa = PBXBuildFile; productRef = A857C2592C0DD3200059A82F /* swift-format */; };
+		A87A957D2CACCDD500001D8F /* ProviderTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87A957C2CACCDD000001D8F /* ProviderTypes.swift */; };
+		A87A957E2CACCDD500001D8F /* ProviderTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87A957C2CACCDD000001D8F /* ProviderTypes.swift */; };
 		A88779BD2C33DC08002EE9C2 /* WebViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88779BC2C33DC08002EE9C2 /* WebViewTests.swift */; };
 		A88D323A2C26997700429E75 /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC782C22738900B9784B /* Metadata.swift */; };
 		A88D323C2C26B0DF00429E75 /* UrlEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC7F2C23A6AB00B9784B /* UrlEncoder.swift */; };
@@ -212,6 +216,8 @@
 		A8ADC69B2BCEAD090077A0C4 /* idTokenSharingHistories.json in Resources */ = {isa = PBXBuildFile; fileRef = A8ADC69A2BCEAD090077A0C4 /* idTokenSharingHistories.json */; };
 		A8AF22882C12A59B00D6EDA5 /* RestoreHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AF22872C12A59B00D6EDA5 /* RestoreHelper.swift */; };
 		A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AF228C2C12A6C100D6EDA5 /* RestoreHelperTests.swift */; };
+		A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C0A3D22CABD088008998C5 /* Errors.swift */; };
+		A8C0A3D42CABD089008998C5 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C0A3D22CABD088008998C5 /* Errors.swift */; };
 		A8C810422B82042300CF8CD6 /* SharingToViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C8103C2B82042200CF8CD6 /* SharingToViewModel.swift */; };
 		A8C810432B82042300CF8CD6 /* SharingToModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C8103E2B82042200CF8CD6 /* SharingToModel.swift */; };
 		A8C810442B82042300CF8CD6 /* SharingToRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C810402B82042200CF8CD6 /* SharingToRow.swift */; };
@@ -384,6 +390,7 @@
 		8BB513912B3BB4B900D4EFB3 /* VCIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VCIClientTests.swift; sourceTree = "<group>"; };
 		8BB513932B3BB69A00D4EFB3 /* AsynTestRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsynTestRunner.swift; sourceTree = "<group>"; };
 		8BB513962B3BB88900D4EFB3 /* VCIMetadataUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VCIMetadataUtil.swift; sourceTree = "<group>"; };
+		A80BFE752CAD070A00E30249 /* ProviderUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUtils.swift; sourceTree = "<group>"; };
 		A80FFF322B7F3D300076718E /* SharingToViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A80FFF342B7F3D990076718E /* SharingToModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
 		A81087132B3B0AB3004425DE /* SDJwtUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDJwtUtil.swift; sourceTree = "<group>"; };
@@ -420,6 +427,7 @@
 		A84AB70A2B50B98C00E8C88B /* CredentialSharingHistoryManagerTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialSharingHistoryManagerTest.swift; sourceTree = "<group>"; };
 		A84AB70C2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdTokenSharingHistoryManagerTest.swift; sourceTree = "<group>"; };
 		A8509C282B82315D00B28C35 /* RecipientClaims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientClaims.swift; sourceTree = "<group>"; };
+		A87A957C2CACCDD000001D8F /* ProviderTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTypes.swift; sourceTree = "<group>"; };
 		A88779BC2C33DC08002EE9C2 /* WebViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewTests.swift; sourceTree = "<group>"; };
 		A89108012B82D1650060DD71 /* RecipientClaimsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientClaimsViewModel.swift; sourceTree = "<group>"; };
 		A89108032B82D2880060DD71 /* RecipientClaimsPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientClaimsPreviewModel.swift; sourceTree = "<group>"; };
@@ -441,6 +449,7 @@
 		A8ADC69A2BCEAD090077A0C4 /* idTokenSharingHistories.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = idTokenSharingHistories.json; sourceTree = "<group>"; };
 		A8AF22872C12A59B00D6EDA5 /* RestoreHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreHelper.swift; sourceTree = "<group>"; };
 		A8AF228C2C12A6C100D6EDA5 /* RestoreHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreHelperTests.swift; sourceTree = "<group>"; };
+		A8C0A3D22CABD088008998C5 /* Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errors.swift; sourceTree = "<group>"; };
 		A8C810382B80951800CF8CD6 /* SharingToRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToRow.swift; sourceTree = "<group>"; };
 		A8C8103C2B82042200CF8CD6 /* SharingToViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A8C8103E2B82042200CF8CD6 /* SharingToModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
@@ -583,12 +592,12 @@
 		8B297C322B393B6700D2998D /* OID */ = {
 			isa = PBXGroup;
 			children = (
+				A8C0A3C82CABCEA0008998C5 /* Provider */,
 				8B297C352B393BC800D2998D /* VCI */,
 				8B43AE332B3A81960016CF83 /* Enums.swift */,
 				8B43AE362B3A93C60016CF83 /* AuthServerMetadata.swift */,
 				8B0E0AA52B3ED4860080F6A3 /* AuthorizationRequest.swift */,
 				8B0E0AAE2B403D510080F6A3 /* PresentationExchange.swift */,
-				8B6C3B832B45082A00B5D784 /* OpenIdProvider.swift */,
 				8B5C65942B5237C200D72289 /* Types.swift */,
 				8B5C65972B5251C000D72289 /* KeyBindingImpl.swift */,
 				8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */,
@@ -1128,6 +1137,17 @@
 			path = Helper;
 			sourceTree = "<group>";
 		};
+		A8C0A3C82CABCEA0008998C5 /* Provider */ = {
+			isa = PBXGroup;
+			children = (
+				A80BFE752CAD070A00E30249 /* ProviderUtils.swift */,
+				A87A957C2CACCDD000001D8F /* ProviderTypes.swift */,
+				A8C0A3D22CABD088008998C5 /* Errors.swift */,
+				8B6C3B832B45082A00B5D784 /* OpenIdProvider.swift */,
+			);
+			path = Provider;
+			sourceTree = "<group>";
+		};
 		A8C8103A2B82042200CF8CD6 /* SharingTo */ = {
 			isa = PBXGroup;
 			children = (
@@ -1593,6 +1613,7 @@
 				8B4CAB672B7F4D440006FF4D /* Restore.swift in Sources */,
 				8B81E2F02B3546BC00ED3B4E /* SharingRequest.swift in Sources */,
 				8B43AE2F2B3A5B2C0016CF83 /* MockURLProtocol.swift in Sources */,
+				A87A957D2CACCDD500001D8F /* ProviderTypes.swift in Sources */,
 				8B81E2C82B33D6C500ED3B4E /* Home.swift in Sources */,
 				A8ADC6992BCE3CDA0077A0C4 /* IdTokenSharingHistory.swift in Sources */,
 				8B0E0AAF2B403D510080F6A3 /* PresentationExchange.swift in Sources */,
@@ -1630,6 +1651,7 @@
 				F6CC76932B567BDF00FA26A8 /* QRReaderViewModel.swift in Sources */,
 				8BB2BA742B4BC46400C668BA /* BiometricAuth.swift in Sources */,
 				F6CB1FAE2B68FB180078C857 /* DateFormatterUtil.swift in Sources */,
+				A8C0A3D42CABD089008998C5 /* Errors.swift in Sources */,
 				8B81E29D2B33CC4000ED3B4E /* tw2023_walletApp.swift in Sources */,
 				8B81E2E92B3451DC00ED3B4E /* FloatingActionButton.swift in Sources */,
 				A8AF22882C12A59B00D6EDA5 /* RestoreHelper.swift in Sources */,
@@ -1669,6 +1691,7 @@
 				F657D5CF2B3C469500901A6A /* CredentialDetailModel.swift in Sources */,
 				8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */,
 				A84AB6F42B50111500E8C88B /* id_token_sharing_history.pb.swift in Sources */,
+				A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */,
 				8B6C3B842B45082A00B5D784 /* OpenIdProvider.swift in Sources */,
 				8B56254B2B7073CB00D6D28B /* RedirectView.swift in Sources */,
 				8B81E2DC2B3420A400ED3B4E /* CredentialRow.swift in Sources */,
@@ -1705,9 +1728,11 @@
 				8B81E2AE2B33CC4300ED3B4E /* tw2023_walletTests.swift in Sources */,
 				A810871E2B3BC9DF004425DE /* ES256KTest.swift in Sources */,
 				8B297C382B3953D700D2998D /* VCIMetadata.swift in Sources */,
+				A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */,
 				8BAB8D8B2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */,
 				8B297C372B39538500D2998D /* VCIMetadataTests.swift in Sources */,
 				8BAB8D8C2C10045300B579A4 /* Constants.swift in Sources */,
+				A87A957E2CACCDD500001D8F /* ProviderTypes.swift in Sources */,
 				8B6C3B872B47BED600B5D784 /* OpenIdProviderTests.swift in Sources */,
 				8B0E0A982B3BC39C0080F6A3 /* KeyRing.swift in Sources */,
 				8BB2BA7D2B4C08D900C668BA /* EncryptionHelper.swift in Sources */,
@@ -1743,6 +1768,7 @@
 				A83039BD2B4E4229004139A7 /* JWTTest.swift in Sources */,
 				8B6C3B892B481BEC00B5D784 /* VCIMetadataUtilTests.swift in Sources */,
 				8B0E0AA02B3D69240080F6A3 /* PairwiseAccount.swift in Sources */,
+				A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */,
 				A88D323A2C26997700429E75 /* Metadata.swift in Sources */,
 				8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */,
 				8B43AE382B3A93C60016CF83 /* AuthServerMetadata.swift in Sources */,

@@ -33,13 +33,13 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // When
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVerifierResponse(
             data: json, response: response, requestURL: requestURL)
 
         // Then
-        XCTAssertEqual(result.statusCode, 200)
-        XCTAssertEqual(result.location, "https://example.com")
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 200)
+        XCTAssertEqual(location, "https://example.com")
+        XCTAssertNil(cookies)
     }
 
     func testConvertVpTokenResponseResponse_withInvalid200JSONResponse() throws {
@@ -58,11 +58,11 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // Then
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVerifierResponse(
             data: json, response: response, requestURL: requestURL)
-        XCTAssertEqual(result.statusCode, 200)
-        XCTAssertNil(result.location)
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 200)
+        XCTAssertNil(location)
+        XCTAssertNil(cookies)
 
     }
 
@@ -77,13 +77,13 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // When
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVerifierResponse(
             data: Data(), response: response, requestURL: requestURL)
 
         // Then
-        XCTAssertEqual(result.statusCode, 302)
-        XCTAssertEqual(result.location, "https://example.com")
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 302)
+        XCTAssertNil(location)
+        XCTAssertNil(cookies)
     }
 
     func testConvertVpTokenResponseResponse_with302RedirectRelativeURL() throws {
@@ -97,13 +97,13 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // When
-        let result = try idProvider.convertVpTokenResponseResponse(
+        let (statusCode, location, cookies) = try idProvider.convertVerifierResponse(
             data: Data(), response: response, requestURL: requestURL)
 
         // Then
-        XCTAssertEqual(result.statusCode, 302)
-        XCTAssertEqual(result.location, "https://example.com/path/to/resource")
-        XCTAssertNil(result.cookies)
+        XCTAssertEqual(statusCode, 302)
+        XCTAssertNil(location)
+        XCTAssertNil(cookies)
     }
 
     func testConvertVpTokenResponseResponse_with302RedirectMissingLocationHeader() throws {
@@ -117,9 +117,13 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
         let requestURL = URL(string: "https://example.com")!
 
         // Then
-        XCTAssertThrowsError(
-            try idProvider.convertVpTokenResponseResponse(
-                data: Data(), response: response, requestURL: requestURL))
+        let (statusCode, location, cookies) =
+            try idProvider.convertVerifierResponse(
+                data: Data(), response: response, requestURL: requestURL)
+        XCTAssertEqual(statusCode, 302)
+        XCTAssertNil(location)
+        XCTAssertNil(cookies)
+
     }
 }
 
@@ -412,8 +416,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition1.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         XCTAssertNil(selected)
     }
 
@@ -426,8 +430,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition1.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 2)
@@ -460,8 +464,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition2.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 2)
@@ -494,8 +498,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition3.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 2)
@@ -528,8 +532,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition4.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 2)
@@ -562,8 +566,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition4.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 1)
@@ -590,8 +594,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition5.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 2)
@@ -624,8 +628,8 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition6.data(using: .utf8)!)
-        let selected = matchVcToRequirement(
-            sdJwt: sdJwt, presentationDefinition: presentationDefinition)
+        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+            sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
             XCTAssertEqual(disclosures.count, 2)
@@ -675,11 +679,10 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let preparedData = try idProvider.createVpTokenForSdJwtVc(
-            credential: credential,
-            presentationDefinition: presentationDefinition,
+        let preparedData = try credential.createVpTokenForSdJwtVc(
             clientId: "https://rp.example.com",
-            nonce: "dummy-nonce"
+            nonce: "dummy-nonce",
+            keyBinding: keyBinding
         )
         let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 3)
@@ -723,11 +726,10 @@ final class OpenIdProviderTests: XCTestCase {
         let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
         idProvider.setKeyBinding(keyBinding: keyBinding)
 
-        let preparedData = try idProvider.createVpTokenForSdJwtVc(
-            credential: credential,
-            presentationDefinition: presentationDefinition,
+        let preparedData = try credential.createVpTokenForSdJwtVc(
             clientId: "https://rp.example.com",
-            nonce: "dummy-nonce"
+            nonce: "dummy-nonce",
+            keyBinding: keyBinding
         )
         let parts = preparedData.vpToken.split(separator: "~").map(String.init)
         XCTAssertEqual(parts.count, 4)
@@ -776,11 +778,10 @@ final class OpenIdProviderTests: XCTestCase {
             keyAlias: Constants.Cryptography.KEY_PAIR_ALIAS_FOR_KEY_JWT_VP_JSON)
         idProvider.setJwtVpJsonGenerator(jwtVpJsonGenerator: jwtVpJsonGenerator)
 
-        let preparedData = try idProvider.createVpTokenForJwtVc(
-            credential: credential,
-            presentationDefinition: presentationDefinition,
+        let preparedData = try credential.createVpTokenForJwtVc(
             clientId: "https://rp.example.com",
-            nonce: "dummy-nonce"
+            nonce: "dummy-nonce",
+            jwtVpJsonGenerator: jwtVpJsonGenerator
         )
         do {
             let decodedJwt = try JWTUtil.decodeJwt(jwt: preparedData.vpToken)
@@ -836,6 +837,7 @@ final class OpenIdProviderTests: XCTestCase {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure2Records
         let requestObject = RequestObjectPayloadImpl(
+            responseType: "vp_token",
             clientId: "https://rp.example.com",
             redirectUri: "https://rp.example.com/cb",
             nonce: "dummy-nonce",
@@ -888,31 +890,47 @@ final class OpenIdProviderTests: XCTestCase {
             let authRequest = authRequestProcessedData.authorizationRequest
             idProvider.clientId = requestObj?.clientId ?? authRequest.clientId
             idProvider.responseMode = requestObj?.responseMode ?? authRequest.responseMode
+            idProvider.responseType = requestObj?.responseType ?? authRequest.responseType
+            idProvider.responseUri = requestObj?.responseUri ?? authRequest.responseUri
             idProvider.nonce = requestObj?.nonce ?? authRequest.nonce
             idProvider.presentationDefinition = authRequestProcessedData.presentationDefinition
 
             try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
             let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
             idProvider.setKeyBinding(keyBinding: keyBinding)
-            let result = await idProvider.respondVPResponse(
+
+            let result = await idProvider.respondToken(
                 credentials: [credential], using: mockSession)
+
             switch result {
                 case .success(let data):
-                    let (_, arrayOfSharedContent, _) = data
-                    let sharedContents = arrayOfSharedContent
-                    XCTAssertEqual(sharedContents.count, 1)
-                    XCTAssertEqual(sharedContents[0].id, "internal-id-1")
-                    XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
-                    XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+                    if let lastRequestData = MockURLProtocol.lastRequestBody,
+                        let postBodyString = String(data: lastRequestData, encoding: .utf8)
+                    {
+                        XCTAssertFalse(postBodyString.contains("id_token="))
+                        XCTAssertTrue(postBodyString.contains("vp_token="))
+                    }
+                    if let sharedContents = data.sharedCredentials {
+                        XCTAssertEqual(sharedContents.count, 1)
+                        XCTAssertEqual(sharedContents[0].id, "internal-id-1")
+                        XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
+                        XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
 
-                    if let lastRequest = MockURLProtocol.lastRequest {
-                        XCTAssertEqual(lastRequest.httpMethod, "POST")
-                        XCTAssertEqual(lastRequest.url, testURL)
+                        if let lastRequest = MockURLProtocol.lastRequest {
+                            XCTAssertEqual(lastRequest.httpMethod, "POST")
+                            XCTAssertEqual(lastRequest.url, testURL)
+                        }
+                        else {
+                            XCTFail("No request was made")
+                        }
+
                     }
                     else {
-                        XCTFail("No request was made")
+                        XCTFail("sharedContents must be exist")
                     }
+                    XCTAssertNil(data.sharedIdToken)
                 case .failure(let error):
+                    print(error)
                     XCTFail()
             }
         }
@@ -922,6 +940,7 @@ final class OpenIdProviderTests: XCTestCase {
         // mock up
         decodeDisclosureFunction = mockDecodeDisclosure2Records
         let requestObject = RequestObjectPayloadImpl(
+            responseType: "vp_token",
             clientId: "https://rp.example.com",
             redirectUri: "https://rp.example.com/cb",
             nonce: "dummy-nonce",
@@ -993,6 +1012,8 @@ final class OpenIdProviderTests: XCTestCase {
             let requestObj = authRequestProcessedData.requestObject
             let authRequest = authRequestProcessedData.authorizationRequest
             idProvider.clientId = requestObj?.clientId ?? authRequest.clientId
+            idProvider.responseType = requestObj?.responseType ?? authRequest.responseType
+            idProvider.responseUri = requestObj?.responseUri ?? authRequest.responseUri
             idProvider.responseMode = requestObj?.responseMode ?? authRequest.responseMode
             idProvider.nonce = requestObj?.nonce ?? authRequest.nonce
             idProvider.presentationDefinition = authRequestProcessedData.presentationDefinition
@@ -1000,30 +1021,161 @@ final class OpenIdProviderTests: XCTestCase {
             try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
             let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
             idProvider.setKeyBinding(keyBinding: keyBinding)
-            let result = await idProvider.respondVPResponse(
+            let result = await idProvider.respondToken(
                 credentials: [credential1, credential2], using: mockSession)
             switch result {
                 case .success(let data):
-                    let (_, arrayOfSharedContent, _) = data
-                    let sharedContents = arrayOfSharedContent
-                    XCTAssertEqual(sharedContents.count, 2)
-                    XCTAssertEqual(sharedContents[0].id, "internal-id-1")
-                    XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
-                    XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+                    if let lastRequestData = MockURLProtocol.lastRequestBody,
+                        let postBodyString = String(data: lastRequestData, encoding: .utf8)
+                    {
+                        XCTAssertFalse(postBodyString.contains("id_token="))
+                        XCTAssertTrue(postBodyString.contains("vp_token="))
+                    }
+                    if let sharedContents = data.sharedCredentials {
+                        XCTAssertEqual(sharedContents.count, 2)
+                        XCTAssertEqual(sharedContents[0].id, "internal-id-1")
+                        XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
+                        XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
 
-                    XCTAssertEqual(sharedContents[1].id, "internal-id-2")
-                    XCTAssertEqual(sharedContents[1].sharedClaims.count, 2)
-                    XCTAssertEqual(sharedContents[1].sharedClaims[0].name, "claim3")
-                    XCTAssertEqual(sharedContents[1].sharedClaims[1].name, "claim4")
+                        XCTAssertEqual(sharedContents[1].id, "internal-id-2")
+                        XCTAssertEqual(sharedContents[1].sharedClaims.count, 2)
+                        XCTAssertEqual(sharedContents[1].sharedClaims[0].name, "claim3")
+                        XCTAssertEqual(sharedContents[1].sharedClaims[1].name, "claim4")
 
-                    if let lastRequest = MockURLProtocol.lastRequest {
-                        XCTAssertEqual(lastRequest.httpMethod, "POST")
-                        XCTAssertEqual(lastRequest.url, testURL)
+                        if let lastRequest = MockURLProtocol.lastRequest {
+                            XCTAssertEqual(lastRequest.httpMethod, "POST")
+                            XCTAssertEqual(lastRequest.url, testURL)
+                        }
+                        else {
+                            XCTFail("No request was made")
+                        }
+
                     }
                     else {
-                        XCTFail("No request was made")
+                        XCTFail("sharedContents must be exist")
+                    }
+                    XCTAssertNil(data.sharedIdToken)
+                case .failure(let error):
+                    XCTFail()
+            }
+        }
+    }
+
+    func testDirectPostIdTokenAndVpToken() throws {
+        // mock up
+        decodeDisclosureFunction = mockDecodeDisclosure2Records
+        let requestObject = RequestObjectPayloadImpl(
+            responseType: "vp_token id_token",
+            clientId: "https://rp.example.com",
+            redirectUri: "https://rp.example.com/cb",
+            nonce: "dummy-nonce",
+            responseMode: ResponseMode.directPost,
+            responseUri: "https://rp.example.com/cb"
+        )
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let mockSession = URLSession(configuration: configuration)
+
+        let urlString = "https://rp.example.com/cb"
+        let testURL = URL(string: urlString)!
+        let mockData = "dummy response".data(using: .utf8)
+        let response = HTTPURLResponse(
+            url: testURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+        MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
+
+        let sdJwt = "issuer-jwt~dummy-claim1~dummy-claim2~"
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let presentationDefinition = try decoder.decode(
+            PresentationDefinition.self, from: presentationDefinition1.data(using: .utf8)!)
+
+        let credential = SubmissionCredential(
+            id: "internal-id-1", format: "vc+sd-jwt", types: [], credential: sdJwt,
+            inputDescriptor: presentationDefinition.inputDescriptors[0],
+            discloseClaims: [
+                DisclosureWithOptionality(
+                    disclosure:
+                        Disclosure(disclosure: "claim1-digest", key: "claim1", value: "foo"),
+                    isSubmit: true, isUserSelectable: false)
+            ]
+        )
+
+        let authRequestProcessedData = ProcessedRequestData(
+            authorizationRequest: AuthorizationRequestPayloadImpl(),
+            requestObjectJwt: "dummy-jwt",
+            requestObject: requestObject,
+            clientMetadata: RPRegistrationMetadataPayload(),
+            presentationDefinition: presentationDefinition,
+            requestIsSigned: false
+        )
+
+        runAsyncTest {
+            let idProvider = OpenIdProvider(ProviderOption())
+            idProvider.authRequestProcessedData = authRequestProcessedData
+
+            let requestObj = authRequestProcessedData.requestObject
+            let authRequest = authRequestProcessedData.authorizationRequest
+            idProvider.clientId = requestObj?.clientId ?? authRequest.clientId
+            idProvider.responseMode = requestObj?.responseMode ?? authRequest.responseMode
+            idProvider.responseType = requestObj?.responseType ?? authRequest.responseType
+            idProvider.responseUri = requestObj?.responseUri ?? authRequest.responseUri
+            idProvider.nonce = requestObj?.nonce ?? authRequest.nonce
+            idProvider.presentationDefinition = authRequestProcessedData.presentationDefinition
+
+            try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
+            let keyBinding = KeyBindingImpl(keyAlias: Constants.Cryptography.KEY_BINDING)
+            idProvider.setKeyBinding(keyBinding: keyBinding)
+
+            guard let accountManager = PairwiseAccount(mnemonicWords: nil) else {
+                XCTFail("unable to create account manager")
+                return
+            }
+            let newAccount = accountManager.nextAccount()
+
+            let publicKey = accountManager.getPublicKey(index: newAccount.index)
+            let privateKey = accountManager.getPrivateKey(index: newAccount.index)
+            let keyPair = KeyPairData(publicKey: publicKey, privateKey: privateKey)
+            idProvider.setSecp256k1KeyPair(keyPair: keyPair)
+
+            let result = await idProvider.respondToken(
+                credentials: [credential], using: mockSession)
+
+            switch result {
+                case .success(let data):
+                    if let lastRequestData = MockURLProtocol.lastRequestBody,
+                        let postBodyString = String(data: lastRequestData, encoding: .utf8)
+                    {
+                        XCTAssertTrue(postBodyString.contains("id_token="))
+                        XCTAssertTrue(postBodyString.contains("vp_token="))
+                    }
+
+                    if let sharedContents = data.sharedCredentials {
+                        XCTAssertEqual(sharedContents.count, 1)
+                        XCTAssertEqual(sharedContents[0].id, "internal-id-1")
+                        XCTAssertEqual(sharedContents[0].sharedClaims.count, 1)
+                        XCTAssertEqual(sharedContents[0].sharedClaims[0].name, "claim1")
+
+                        if let lastRequest = MockURLProtocol.lastRequest {
+                            XCTAssertEqual(lastRequest.httpMethod, "POST")
+                            XCTAssertEqual(lastRequest.url, testURL)
+                        }
+                        else {
+                            XCTFail("No request was made")
+                        }
+
+                    }
+                    else {
+                        XCTFail("sharedContents must be exist")
+                    }
+                    if let rawIdToken = data.sharedIdToken {
+                        XCTAssertTrue(rawIdToken.hasPrefix("eyJ"))
+                    }
+                    else {
+                        XCTFail("id token must be transmitted")
                     }
                 case .failure(let error):
+                    print(error)
                     XCTFail()
             }
         }
