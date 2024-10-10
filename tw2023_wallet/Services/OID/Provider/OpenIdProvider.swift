@@ -71,7 +71,7 @@ class OpenIdProvider {
                     let clientScheme = requestObj!.clientIdScheme
                     let jwt = processedRequestData.requestObjectJwt
                     if clientScheme == "x509_san_dns" {
-                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt)
+                        let result = JWTUtil.verifyJwtSignatureByX5C(jwt: jwt)
                         switch result {
                             case .success(let verifedX5CJwt):
                                 print("verify request jwt success")

@@ -49,7 +49,7 @@ class VerificationViewModel {
     }
 
     func verifyCredential() async {
-        let verificationResult = JWTUtil.verifyJwtByX5U(jwt: credential)
+        let verificationResult = JWTUtil.verifyJwtSignatureByX5U(jwt: credential)
 
         switch verificationResult {
             case .failure(let error):

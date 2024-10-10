@@ -216,7 +216,7 @@ class KeyPairUtil {
 
     static func verifyJwt(jwkJson: [String: String], jwt: String) -> Bool {
         let publicKey = try! KeyPairUtil.createPublicKey(jwk: jwkJson)
-        let result = JWTUtil.verifyJwt(jwt: jwt, publicKey: publicKey)
+        let result = JWTUtil.verifyJwtSignature(jwt: jwt, publicKey: publicKey)
         switch result {
             case .success:
                 return true

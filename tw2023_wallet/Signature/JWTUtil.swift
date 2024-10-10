@@ -113,7 +113,7 @@ enum JWTUtil {
         return String(data: tbsContent!, encoding: .utf8)! + "." + combined.base64URLEncodedString()
     }
 
-    static func verifyJwt(jwt: String, publicKey: SecKey) -> Result<JWT, JWTVerificationError> {
+    static func verifyJwtSignature(jwt: String, publicKey: SecKey) -> Result<JWT, JWTVerificationError> {
         let parts = jwt.components(separatedBy: ".")
         if parts.count != 3 {
             return .failure(.verificationFailed("Malformed jwt"))
@@ -152,7 +152,7 @@ enum JWTUtil {
     }
 
     typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
-    static func verifyJwtByX5C(jwt: String, verifyCertChain: Bool = true) -> Result<
+    static func verifyJwtSignatureByX5C(jwt: String, verifyCertChain: Bool = true) -> Result<
         VerifiedX5CJwt, JWTVerificationError
     > {
         guard let decodedJwt = try? decode(jwt: jwt) else {
@@ -185,7 +185,7 @@ enum JWTUtil {
             return .failure(.verificationFailed("Unable to Convert Public Key"))
         }
 
-        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
+        let jwtValidation = JWTUtil.verifyJwtSignature(jwt: jwt, publicKey: secKey)
         if case .success = jwtValidation {
             if verifyCertChain {
                 let chainValidaton = try! SignatureUtil.validateCertificateChain(
@@ -204,7 +204,7 @@ enum JWTUtil {
         return .failure(.verificationFailed("Unable to verify jwt"))
     }
 
-    static func verifyJwtByX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
+    static func verifyJwtSignatureByX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
         guard let decodedJwt = try? decode(jwt: jwt) else {
             return .failure(.verificationFailed("Unable to decode jwt"))
         }
@@ -240,7 +240,7 @@ enum JWTUtil {
             return .failure(.verificationFailed("Unable to verify chain of trust"))
         }
 
-        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
+        let jwtValidation = JWTUtil.verifyJwtSignature(jwt: jwt, publicKey: secKey)
         if case .success = jwtValidation {
             return .success(decodedJwt)
         }
