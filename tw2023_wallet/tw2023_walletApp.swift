@@ -29,7 +29,6 @@ extension String: Identifiable {
 struct tw2023_walletApp: App {
     @State private var credentialOffer: String? = nil
     @State private var openID4VP: String? = nil
-    @State private var navigateToRedirectView = false
 
     @State private var sharingRequestModel = SharingRequestModel()
 
@@ -59,35 +58,12 @@ struct tw2023_walletApp: App {
                             if let postResult = sharingRequestModel.postResult,
                                 let location = postResult.location
                             {
-                                navigateToRedirectView.toggle()
+                                openURLInExternalApp(urlString: location)
                             }
                         }
                     ) { value in
                         SharingRequest(args: createOpenID4VPArgs(value: value)).environment(
                             sharingRequestModel)
-                    }
-                    .fullScreenCover(
-                        isPresented: $navigateToRedirectView,
-                        onDismiss: {
-                            navigateToRedirectView = false
-                        }
-                    ) {
-                        // let (urlString, cookies) = getRedirectParameters()
-                        if let postResult = sharingRequestModel.postResult,
-                            let urlString = postResult.location
-                        {
-                            NavigationView {
-                                RedirectView(urlString: urlString, cookieStrings: [])
-                                    .navigationBarItems(
-                                        trailing: Button("close") {
-                                            navigateToRedirectView = false
-                                        }
-                                    )
-                            }
-                        }
-                        else {
-                            EmptyView()
-                        }
                     }
             }
             else {
@@ -100,6 +76,15 @@ struct tw2023_walletApp: App {
         .environment(authenticationManager)
         .onChange(of: scenePhase) {
             handleScenePhaseChange(scenePhase)
+        }
+    }
+
+    private func openURLInExternalApp(urlString: String) {
+        if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+        else {
+            print("invalid url is specified.")
         }
     }
 
