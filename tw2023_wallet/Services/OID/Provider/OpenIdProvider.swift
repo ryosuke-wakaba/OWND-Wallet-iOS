@@ -383,14 +383,17 @@ class OpenIdProvider {
             return .failure(OpenIdProviderIllegalStateException.illegalState)
         }
 
-        let preparedSubmissionData = try! credentials.compactMap {
-            credential -> PreparedSubmissionData? in
+        let isMultipleVpTokens = credentials.count > 1
+        let preparedSubmissionData = try! credentials.enumerated().compactMap {
+            (index, credential) -> PreparedSubmissionData? in
+            let tokenIndex = isMultipleVpTokens ? index : index - 1
             switch credential.format {
                 case "vc+sd-jwt":
                     return
                         try credential.createVpTokenForSdJwtVc(
                             clientId: clientId,
                             nonce: nonce,
+                            tokenIndex: index,
                             keyBinding: keyBinding)
 
                 case "jwt_vc_json":
@@ -398,6 +401,7 @@ class OpenIdProvider {
                         try credential.createVpTokenForJwtVc(
                             clientId: clientId,
                             nonce: nonce,
+                            tokenIndex: index,
                             jwtVpJsonGenerator: jwtVpJsonGenerator
 
                         )

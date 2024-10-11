@@ -57,6 +57,7 @@ struct SubmissionCredential: Codable, Equatable {
     func createVpTokenForSdJwtVc(
         clientId: String,
         nonce: String,
+        tokenIndex: Int,
         keyBinding: KeyBinding?
     ) throws -> PreparedSubmissionData {
         guard let kb = keyBinding else {
@@ -94,7 +95,7 @@ struct SubmissionCredential: Codable, Equatable {
         let dm = DescriptorMap(
             id: inputDescriptor.id,
             format: format,
-            path: "$",
+            path: tokenIndex > -1 ? "$[\(tokenIndex)]" : "$",
             pathNested: nil
         )
 
@@ -113,6 +114,7 @@ struct SubmissionCredential: Codable, Equatable {
     func createVpTokenForJwtVc(
         clientId: String,
         nonce: String,
+        tokenIndex: Int,
         jwtVpJsonGenerator: JwtVpJsonGenerator?
     ) throws -> PreparedSubmissionData {
         guard let generator = jwtVpJsonGenerator else {
@@ -133,7 +135,9 @@ struct SubmissionCredential: Codable, Equatable {
                     payloadOptions: JwtVpJsonPayloadOptions(aud: clientId, nonce: nonce))
 
                 let descriptorMap = JwtVpJsonPresentation.genDescriptorMap(
-                    inputDescriptorId: inputDescriptor.id)
+                    inputDescriptorId: inputDescriptor.id,
+                    pathIndex: tokenIndex
+                )
                 return PreparedSubmissionData(
                     credentialId: id,
                     vpToken: vpToken,

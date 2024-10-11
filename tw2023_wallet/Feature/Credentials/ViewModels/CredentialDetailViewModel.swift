@@ -7,6 +7,20 @@
 
 import Foundation
 
+func jwtVcJsonClaimsTobeDisclosed(jwt: String) -> [Disclosure] {
+    if let (_, body, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+        let vc = body["vc"] as? [String: Any],
+        let credentialSubject = vc["credentialSubject"] as? [String: Any]
+    {
+        let disclosures = credentialSubject.map { key, value in
+            // valueがネストしていることは想定していない。
+            return Disclosure(disclosure: nil, key: key, value: value as? String)
+        }
+        return disclosures
+    }
+    return []
+}
+
 @Observable
 class CredentialDetailViewModel {
     var requiredClaims: [DisclosureWithOptionality] = []
@@ -64,20 +78,6 @@ class CredentialDetailViewModel {
         }
         dataModel.hasLoadedData = true
         print("done")
-    }
-
-    func jwtVcJsonClaimsTobeDisclosed(jwt: String) -> [Disclosure] {
-        if let (_, body, _) = try? JWTUtil.decodeJwt(jwt: jwt),
-            let vc = body["vc"] as? [String: Any],
-            let credentialSubject = vc["credentialSubject"] as? [String: Any]
-        {
-            let disclosures = credentialSubject.map { key, value in
-                // valueがネストしていることは想定していない。
-                return Disclosure(disclosure: nil, key: key, value: value as? String)
-            }
-            return disclosures
-        }
-        return []
     }
 
     func createSubmissionCredential(
