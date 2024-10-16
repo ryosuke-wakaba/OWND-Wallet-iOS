@@ -7,6 +7,20 @@
 
 import Foundation
 
+func jwtVcJsonClaimsTobeDisclosed(jwt: String) -> [Disclosure] {
+    if let (_, body, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+        let vc = body["vc"] as? [String: Any],
+        let credentialSubject = vc["credentialSubject"] as? [String: Any]
+    {
+        let disclosures = credentialSubject.map { key, value in
+            // valueがネストしていることは想定していない。
+            return Disclosure(disclosure: nil, key: key, value: value as? String)
+        }
+        return disclosures
+    }
+    return []
+}
+
 @Observable
 class CredentialDetailViewModel {
     var requiredClaims: [DisclosureWithOptionality] = []
@@ -53,9 +67,8 @@ class CredentialDetailViewModel {
                 case "jwt_vc_json":
                     inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定
                     self.undisclosedClaims = []
-
-                    let jwt = credential.payload
-                    self.requiredClaims = JWTUtil.convertJWTClaimsAsDisclosure(jwt: jwt).map { it in
+                    self.requiredClaims = jwtVcJsonClaimsTobeDisclosed(jwt: credential.payload).map
+                    { it in
                         return DisclosureWithOptionality(
                             disclosure: it, isSubmit: true, isUserSelectable: false)
                     }

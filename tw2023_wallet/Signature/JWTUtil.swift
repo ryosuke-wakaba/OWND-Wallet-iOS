@@ -16,6 +16,13 @@ enum SignatureError: Error {
     case UnsupportedAlgorithmError
     case UnableToCreateSignatureError
     case VoidContentError
+    case SigningKeyNotFound
+}
+
+enum JWTVerificationError: Error {
+    case unsupportedAlgorithm
+    case invalidPublicKeyType
+    case verificationFailed(String)
 }
 
 // See https://swiftpackageindex.com/apple/swift-asn1/main/documentation/swiftasn1/decodingasn1#Final-Result
@@ -64,35 +71,32 @@ func convertRstoDer(r: Data, s: Data) -> Data? {
 }
 
 enum JWTUtil {
-    static func jsonString(from dictionary: [String: Any]) throws -> String {
-        let jsonData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-        guard let jsonString = String(data: jsonData, encoding: .utf8) else {
-            throw JwtError.JsonStringConversionError
-        }
-        return jsonString
-    }
+    
+    /*
+     For verification-related methods, we plan to enhance the checking process
+     and implement a mechanism to control the level of checking in the future.
+     In addition, appropriate libraries may be introduced as a means to achieve this.
+     */
 
-    static func sign(keyAlias: String, header: [String: Any], payload: [String: Any]) throws
-        -> String
+    static func sign(keyAlias: String, header: [String: Any], payload: [String: Any])
+        -> Result<String, SignatureError>
     {
         guard let privateKey = KeyPairUtil.getPrivateKey(alias: keyAlias) else {
-            throw KeyError.KeyNotFound
+            return .failure(SignatureError.SigningKeyNotFound)
         }
 
         guard
-            let h = try? JWTUtil.jsonString(from: header).data(using: .utf8)?
-                .base64URLEncodedString(),
-            let p = try? JWTUtil.jsonString(from: payload).data(using: .utf8)?
-                .base64URLEncodedString()
+            let h = try? header.toBase64UrlString(),
+            let p = try? payload.toBase64UrlString()
         else {
-            throw SignatureError.VoidContentError
+            return .failure(SignatureError.VoidContentError)
         }
 
         let tbsContent = (h + "." + p).data(using: .utf8)
         let algorithm: SecKeyAlgorithm = .ecdsaSignatureMessageX962SHA256
 
         guard SecKeyIsAlgorithmSupported(privateKey, .sign, algorithm) else {
-            throw SignatureError.UnsupportedAlgorithmError
+            return .failure(SignatureError.UnsupportedAlgorithmError)
         }
 
         var error: Unmanaged<CFError>?
@@ -103,26 +107,36 @@ enum JWTUtil {
                 tbsContent! as CFData,
                 &error) as Data?
         else {
-            throw error!.takeRetainedValue() as Error
+            return .failure(SignatureError.UnableToCreateSignatureError)
         }
 
-        let asn1Object = try ASN1DERDecoder.decode(data: signature)
-        assert(asn1Object.count == 1)
-        let sequence = asn1Object[0]
-        assert(sequence.subCount() == 2)
+        do {
+            let asn1Object = try ASN1DERDecoder.decode(data: signature)
+            assert(asn1Object.count == 1)
+            let sequence = asn1Object[0]
+            assert(sequence.subCount() == 2)
 
-        guard let firstElm = sequence.sub(0)?.value as? Data,
-            let secondElm = sequence.sub(1)?.value as? Data
-        else {
-            throw SignatureError.UnableToCreateSignatureError
+            guard let firstElm = sequence.sub(0)?.value as? Data,
+                let secondElm = sequence.sub(1)?.value as? Data
+            else {
+                return .failure(SignatureError.UnableToCreateSignatureError)
+            }
+
+            let combined = firstElm + secondElm
+            let jwt =
+                String(data: tbsContent!, encoding: .utf8)! + "."
+                + combined.base64URLEncodedString()
+
+            return .success(jwt)
         }
-
-        let combined = firstElm + secondElm
-
-        return String(data: tbsContent!, encoding: .utf8)! + "." + combined.base64URLEncodedString()
+        catch {
+            return .failure(SignatureError.UnableToCreateSignatureError)
+        }
     }
 
-    static func verifyJwt(jwt: String, publicKey: SecKey) -> Result<JWT, JWTVerificationError> {
+    static func verifyJwt(jwt: String, publicKey: SecKey) -> Result<
+        JWT, JWTVerificationError
+    > {
         let parts = jwt.components(separatedBy: ".")
         if parts.count != 3 {
             return .failure(.verificationFailed("Malformed jwt"))
@@ -257,74 +271,10 @@ enum JWTUtil {
         return .failure(.verificationFailed("Unable to verify jwt"))
     }
 
-    static func convertJWTClaimsAsDisclosure(jwt: String) -> [Disclosure] {
-        var payload: [String: Any]?
-        do {
-            let (_, second, _) = try decodeJwt(jwt: jwt)
-            payload = second
-        }
-        catch {
-            print("Unable to decode Jwt: \(jwt)")
-            return []
-        }
-
-        if let check = payload,
-            let vcDict = check["vc"] as? [String: Any],
-            let credentialSubject = vcDict["credentialSubject"] as? [String: Any]
-        {
-            let disclosures = credentialSubject.map { key, value in
-                // valueがネストしていることは想定していない。
-                return Disclosure(disclosure: nil, key: key, value: value as? String)
-            }
-            return disclosures
-        }
-
-        print("Unable to get credential payload : \(jwt)")
-        return []
+    static func decodeJwt(jwt: String) throws -> ([String: Any], [String: Any], String?) {
+        let decodedJwt = try decode(jwt: jwt)
+        return (decodedJwt.header, decodedJwt.body, decodedJwt.signature)
     }
-
-    static func decodeJwt(jwt: String) throws -> ([String: Any], [String: Any], String) {
-        let parts = jwt.split(separator: ".")
-        if parts.count != 3 {
-            throw NSError(
-                domain: "InvalidJWTFormatError", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid JWT format"])
-        }
-
-        let signature = String(parts[2])
-        guard let headerJsonData = String(parts[0]).base64UrlDecoded(),
-            let payloadJsonData = String(parts[1]).base64UrlDecoded(),
-            let headerJson = String(data: headerJsonData, encoding: .utf8),
-            let payloadJson = String(data: payloadJsonData, encoding: .utf8)
-        else {
-            throw NSError(
-                domain: "InvalidJWTFormatError", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid JWT format"])
-        }
-
-        let headerMap = try jsonToMap(json: headerJson)
-        let payloadMap = try jsonToMap(json: payloadJson)
-        return (headerMap, payloadMap, signature)
-    }
-
-    static func jsonToMap(json: String) throws -> [String: Any] {
-        let jsonData = json.data(using: .utf8)!
-        let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
-
-        guard let dictionary = jsonObject as? [String: Any] else {
-            throw NSError(
-                domain: "ParsingError", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON"])
-        }
-
-        return dictionary
-    }
-}
-
-enum JWTVerificationError: Error {
-    case unsupportedAlgorithm
-    case invalidPublicKeyType
-    case verificationFailed(String)
 }
 
 func getAlgorithm(publicKey: SecKey, algorithm: String) -> SecKeyAlgorithm? {

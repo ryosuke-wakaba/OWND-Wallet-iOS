@@ -351,6 +351,13 @@ class JwtVpJsonPresentation {
             path = "$[\(pathIndex)]"
         }
 
+        /*
+         Add a comment regarding the leading `$`.
+         In VP draft 18 (ID 2), when sending `vp_token` as an array, the correct notation is `$[N].`.
+         However, in draft 21, the correct notation is `$.`. (In other words, it is a relative path)
+
+         For now, we will keep the current implementation, but it should be adjusted accordingly based on the specification we adopt.
+         */
         let pathNested = Path(
             format: "jwt_vc_json",
             path: "$.vp.verifiableCredential[\(pathNestedIndex)]"

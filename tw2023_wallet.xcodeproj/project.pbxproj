@@ -158,7 +158,6 @@
 		A83039BF2B4E4229004139A7 /* ZipUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039B92B4E4229004139A7 /* ZipUtilTest.swift */; };
 		A83039C02B4E4229004139A7 /* SDJwtUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */; };
 		A83039C12B4E4229004139A7 /* KeyPairUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039BB2B4E4229004139A7 /* KeyPairUtilTest.swift */; };
-		A83039C22B4E4229004139A7 /* SerializeUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039BC2B4E4229004139A7 /* SerializeUtilTest.swift */; };
 		A83039C42B4E4829004139A7 /* SwiftASN1 in Frameworks */ = {isa = PBXBuildFile; productRef = A83039C32B4E4829004139A7 /* SwiftASN1 */; };
 		A83039C72B4E6E5D004139A7 /* id_token_sharing_history.proto in Sources */ = {isa = PBXBuildFile; fileRef = A83039C62B4E6E5D004139A7 /* id_token_sharing_history.proto */; };
 		A83039C92B4E6E7E004139A7 /* credential_data.proto in Sources */ = {isa = PBXBuildFile; fileRef = A83039C82B4E6E7E004139A7 /* credential_data.proto */; };
@@ -179,6 +178,7 @@
 		A87A957D2CACCDD500001D8F /* ProviderTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87A957C2CACCDD000001D8F /* ProviderTypes.swift */; };
 		A87A957E2CACCDD500001D8F /* ProviderTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87A957C2CACCDD000001D8F /* ProviderTypes.swift */; };
 		A88779BD2C33DC08002EE9C2 /* WebViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88779BC2C33DC08002EE9C2 /* WebViewTests.swift */; };
+		A88BF3532CB7807600401ACC /* SerializeUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88BF3522CB7806B00401ACC /* SerializeUtilTest.swift */; };
 		A88D323A2C26997700429E75 /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC782C22738900B9784B /* Metadata.swift */; };
 		A88D323C2C26B0DF00429E75 /* UrlEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC7F2C23A6AB00B9784B /* UrlEncoder.swift */; };
 		A88D32442C27001B00429E75 /* credential_display_filled.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601A82C267A2A00BF8139 /* credential_display_filled.json */; };
@@ -412,7 +412,6 @@
 		A83039B92B4E4229004139A7 /* ZipUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZipUtilTest.swift; sourceTree = "<group>"; };
 		A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SDJwtUtilTest.swift; sourceTree = "<group>"; };
 		A83039BB2B4E4229004139A7 /* KeyPairUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = KeyPairUtilTest.swift; sourceTree = "<group>"; };
-		A83039BC2B4E4229004139A7 /* SerializeUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeUtilTest.swift; sourceTree = "<group>"; };
 		A83039C62B4E6E5D004139A7 /* id_token_sharing_history.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = id_token_sharing_history.proto; sourceTree = "<group>"; };
 		A83039C82B4E6E7E004139A7 /* credential_data.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = credential_data.proto; sourceTree = "<group>"; };
 		A83039CA2B4E6E92004139A7 /* credential_sharing_history.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = credential_sharing_history.proto; sourceTree = "<group>"; };
@@ -429,6 +428,7 @@
 		A8509C282B82315D00B28C35 /* RecipientClaims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientClaims.swift; sourceTree = "<group>"; };
 		A87A957C2CACCDD000001D8F /* ProviderTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTypes.swift; sourceTree = "<group>"; };
 		A88779BC2C33DC08002EE9C2 /* WebViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewTests.swift; sourceTree = "<group>"; };
+		A88BF3522CB7806B00401ACC /* SerializeUtilTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerializeUtilTest.swift; sourceTree = "<group>"; };
 		A89108012B82D1650060DD71 /* RecipientClaimsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientClaimsViewModel.swift; sourceTree = "<group>"; };
 		A89108032B82D2880060DD71 /* RecipientClaimsPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipientClaimsPreviewModel.swift; sourceTree = "<group>"; };
 		A891080B2B84785F0060DD71 /* credential_sharing_history.pb.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = credential_sharing_history.pb.swift; sourceTree = "<group>"; };
@@ -1033,12 +1033,12 @@
 		A83039B62B4E4229004139A7 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				A88BF3522CB7806B00401ACC /* SerializeUtilTest.swift */,
 				A83039B72B4E4229004139A7 /* JWTTest.swift */,
 				A83039B82B4E4229004139A7 /* CertificateUtilTest.swift */,
 				A83039B92B4E4229004139A7 /* ZipUtilTest.swift */,
 				A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */,
 				A83039BB2B4E4229004139A7 /* KeyPairUtilTest.swift */,
-				A83039BC2B4E4229004139A7 /* SerializeUtilTest.swift */,
 				F6CC769D2B580EF600FA26A8 /* QRCodeGeneratorTest.swift */,
 				A82ECC812C23A81C00B9784B /* UrlEncoderTest.swift */,
 			);
@@ -1741,6 +1741,7 @@
 				8B5C65992B5251C000D72289 /* KeyBindingImpl.swift in Sources */,
 				8B5C659C2B54D97400D72289 /* ES256K.swift in Sources */,
 				8B0E0AA92B3ED7D20080F6A3 /* AuthorizationRquestTests.swift in Sources */,
+				A88BF3532CB7807600401ACC /* SerializeUtilTest.swift in Sources */,
 				8BB2BA7F2B4C188E00C668BA /* EncryptionHelperTests.swift in Sources */,
 				8B43AE322B3A5B880016CF83 /* VCIMetadataClientTests.swift in Sources */,
 				8B5C65912B515BC300D72289 /* JWTUtil.swift in Sources */,
@@ -1772,7 +1773,6 @@
 				A88D323A2C26997700429E75 /* Metadata.swift in Sources */,
 				8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */,
 				8B43AE382B3A93C60016CF83 /* AuthServerMetadata.swift in Sources */,
-				A83039C22B4E4229004139A7 /* SerializeUtilTest.swift in Sources */,
 				8B0E0AB02B403D510080F6A3 /* PresentationExchange.swift in Sources */,
 				A88779BD2C33DC08002EE9C2 /* WebViewTests.swift in Sources */,
 				8B297C372B39538500D2998D /* VCIMetadataTests.swift in Sources */,
