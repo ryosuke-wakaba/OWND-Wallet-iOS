@@ -459,7 +459,7 @@ func verifyRequestObject(
         print(jwt)
         print(key)
         print("")
-        let result = JWTUtil.verifyJwtSignature(jwt: jwt, publicKey: key)
+        let result = JWTUtil.verifyJwt(jwt: jwt, publicKey: key)
         switch result {
             case .success(let jwt):
                 return .success(jwt)

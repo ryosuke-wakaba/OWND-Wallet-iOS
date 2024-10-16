@@ -71,6 +71,12 @@ func convertRstoDer(r: Data, s: Data) -> Data? {
 }
 
 enum JWTUtil {
+    
+    /*
+     For verification-related methods, we plan to enhance the checking process
+     and implement a mechanism to control the level of checking in the future.
+     In addition, appropriate libraries may be introduced as a means to achieve this.
+     */
 
     static func sign(keyAlias: String, header: [String: Any], payload: [String: Any])
         -> Result<String, SignatureError>
@@ -128,7 +134,7 @@ enum JWTUtil {
         }
     }
 
-    static func verifyJwtSignature(jwt: String, publicKey: SecKey) -> Result<
+    static func verifyJwt(jwt: String, publicKey: SecKey) -> Result<
         JWT, JWTVerificationError
     > {
         let parts = jwt.components(separatedBy: ".")
@@ -169,7 +175,7 @@ enum JWTUtil {
     }
 
     typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
-    static func verifyJwtSignatureByX5C(jwt: String, verifyCertChain: Bool = true) -> Result<
+    static func verifyJwtByX5C(jwt: String, verifyCertChain: Bool = true) -> Result<
         VerifiedX5CJwt, JWTVerificationError
     > {
         guard let decodedJwt = try? decode(jwt: jwt) else {
@@ -202,7 +208,7 @@ enum JWTUtil {
             return .failure(.verificationFailed("Unable to Convert Public Key"))
         }
 
-        let jwtValidation = JWTUtil.verifyJwtSignature(jwt: jwt, publicKey: secKey)
+        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
         if case .success = jwtValidation {
             if verifyCertChain {
                 let chainValidaton = try! SignatureUtil.validateCertificateChain(
@@ -221,7 +227,7 @@ enum JWTUtil {
         return .failure(.verificationFailed("Unable to verify jwt"))
     }
 
-    static func verifyJwtSignatureByX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
+    static func verifyJwtByX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
         guard let decodedJwt = try? decode(jwt: jwt) else {
             return .failure(.verificationFailed("Unable to decode jwt"))
         }
@@ -257,7 +263,7 @@ enum JWTUtil {
             return .failure(.verificationFailed("Unable to verify chain of trust"))
         }
 
-        let jwtValidation = JWTUtil.verifyJwtSignature(jwt: jwt, publicKey: secKey)
+        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
         if case .success = jwtValidation {
             return .success(decodedJwt)
         }

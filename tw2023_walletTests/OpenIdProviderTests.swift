@@ -912,7 +912,7 @@ final class OpenIdProviderTests: XCTestCase {
             let jwk = decodedJwt.0["jwk"]
             //            let payload = decodedJwt.1
             let publicKey = try! KeyPairUtil.createPublicKey(jwk: jwk as! [String: String])
-            let result = JWTUtil.verifyJwtSignature(jwt: preparedData.vpToken, publicKey: publicKey)
+            let result = JWTUtil.verifyJwt(jwt: preparedData.vpToken, publicKey: publicKey)
             switch result {
                 case .success(let verifiedJwt):
                     let decodedPayload = verifiedJwt.body
