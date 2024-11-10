@@ -72,11 +72,12 @@ struct PresentationDefinition: Codable {
     func matchSdJwtVcToRequirement(sdJwt: String) -> (
         InputDescriptor, [DisclosureWithOptionality]
     )? {
-        let parts = sdJwt.split(separator: "~").map(String.init)
-        let newList = parts.count > 2 ? Array(parts.dropFirst().dropLast()) : []
+        guard let sdJwtParts = try? SDJwtUtil.divideSDJwt(sdJwt: sdJwt) else {
+            return nil
+        }
 
         // [Disclosure]
-        let allDisclosures = decodeDisclosureFunction(newList)
+        let allDisclosures = decodeDisclosureFunction(sdJwtParts.disclosures)
         let sourcePayload = Dictionary(
             uniqueKeysWithValues: allDisclosures.compactMap { disclosure in
                 if let key = disclosure.key, let value = disclosure.value {

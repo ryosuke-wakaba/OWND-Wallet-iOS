@@ -235,6 +235,46 @@ final class AuthorizationRquestTests: XCTestCase {
             }
         }
     }
+    
+    func testPresentationDefinitionMatchSdJwt() {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let mockSession = URLSession(configuration: configuration)
+
+        let testURL = URL(string: "https://example.com/presentation_definition.json")!
+        guard
+            let url = Bundle.main.url(
+                forResource: "presentation_definition", withExtension: "json"),
+            let mockData = try? Data(contentsOf: url)
+        else {
+            XCTFail("Cannot read presentation_definition.json")
+            return
+        }
+        let response = HTTPURLResponse(
+            url: url, statusCode: 200, httpVersion: nil, headerFields: nil)
+        MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
+
+        let authorizationRequest = AuthorizationRequestPayloadImpl(
+            presentationDefinition: nil
+        )
+        let requestObject = RequestObjectPayloadImpl(
+            presentationDefinitionUri: testURL.absoluteString
+        )
+
+        runAsyncTest {
+            do {
+                let pdOptional = try await processPresentationDefinition(
+                    authorizationRequest, requestObject, using: mockSession)
+                let pd = try XCTUnwrap(pdOptional, "PresentationDefinition should not be nil.")
+                let sdJwt = "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiOWhnWm5VbGEyT1JhTHB3Wkp6T0pBTUZfVUd2dzVOekIwTEdmU1VaNTN6cyJdLCJfc2RfYWxnIjoiU0hBLTI1NiJ9.nzsiKRK39ijCaw0oD9nmhrB41HnZj_CiShckWZAVRW3tCDTm3vrJHyoVj4F7_2mx2aMvbT4iAekDGGtsXyhdvw~WyJmZWE3MTcwYTc3OGRiNzk1IiwiaXNfb2xkZXJfdGhhbl8xMyIsdHJ1ZV0~"
+                XCTAssertNotNil(pd.matchSdJwtVcToRequirement(sdJwt: sdJwt))
+                XCTAssertEqual(pd.id, "12345")
+            }
+            catch {
+                XCTFail("Request should not fail. \(error)")
+            }
+        }
+    }
 
     func testPresentationDefinitionFromQueryParameter() {
         let configuration = URLSessionConfiguration.ephemeral
