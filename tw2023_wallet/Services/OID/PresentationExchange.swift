@@ -99,7 +99,9 @@ struct PresentationDefinition: Codable {
                 with: requiredOrOptionalKeys
             )
 
-            if !matchingDisclosures.isEmpty {
+            if !matchingDisclosures.isEmpty
+                && !matchingDisclosures.allSatisfy({ !$0.isSubmit && !$0.isUserSelectable })
+            {
                 return (inputDescriptor, matchingDisclosures)
             }
         }

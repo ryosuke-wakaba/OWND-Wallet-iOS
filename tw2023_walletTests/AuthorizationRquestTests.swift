@@ -235,7 +235,7 @@ final class AuthorizationRquestTests: XCTestCase {
             }
         }
     }
-    
+
     func testPresentationDefinitionMatchSdJwt() {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MockURLProtocol.self]
@@ -266,9 +266,63 @@ final class AuthorizationRquestTests: XCTestCase {
                 let pdOptional = try await processPresentationDefinition(
                     authorizationRequest, requestObject, using: mockSession)
                 let pd = try XCTUnwrap(pdOptional, "PresentationDefinition should not be nil.")
-                let sdJwt = "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiOWhnWm5VbGEyT1JhTHB3Wkp6T0pBTUZfVUd2dzVOekIwTEdmU1VaNTN6cyJdLCJfc2RfYWxnIjoiU0hBLTI1NiJ9.nzsiKRK39ijCaw0oD9nmhrB41HnZj_CiShckWZAVRW3tCDTm3vrJHyoVj4F7_2mx2aMvbT4iAekDGGtsXyhdvw~WyJmZWE3MTcwYTc3OGRiNzk1IiwiaXNfb2xkZXJfdGhhbl8xMyIsdHJ1ZV0~"
+                let sdJwt =
+                    "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiOWhnWm5VbGEyT1JhTHB3Wkp6T0pBTUZfVUd2dzVOekIwTEdmU1VaNTN6cyJdLCJfc2RfYWxnIjoiU0hBLTI1NiJ9.nzsiKRK39ijCaw0oD9nmhrB41HnZj_CiShckWZAVRW3tCDTm3vrJHyoVj4F7_2mx2aMvbT4iAekDGGtsXyhdvw~WyJmZWE3MTcwYTc3OGRiNzk1IiwiaXNfb2xkZXJfdGhhbl8xMyIsdHJ1ZV0~"
                 XCTAssertNotNil(pd.matchSdJwtVcToRequirement(sdJwt: sdJwt))
                 XCTAssertEqual(pd.id, "12345")
+            }
+            catch {
+                XCTFail("Request should not fail. \(error)")
+            }
+        }
+    }
+
+    func testPresentationDefinitionProperDescriptorSelection() {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let mockSession = URLSession(configuration: configuration)
+
+        let testURL = URL(string: "https://example.com/presentation_definition.json")!
+        guard
+            let url = Bundle.main.url(
+                forResource: "presentation_definition_multi_descriptors", withExtension: "json"),
+            let mockData = try? Data(contentsOf: url)
+        else {
+            XCTFail("Cannot read presentation_definition.json")
+            return
+        }
+        let response = HTTPURLResponse(
+            url: url, statusCode: 200, httpVersion: nil, headerFields: nil)
+        MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
+
+        let authorizationRequest = AuthorizationRequestPayloadImpl(
+            presentationDefinition: nil
+        )
+        let requestObject = RequestObjectPayloadImpl(
+            presentationDefinitionUri: testURL.absoluteString
+        )
+
+        runAsyncTest {
+            do {
+                let pdOptional = try await processPresentationDefinition(
+                    authorizationRequest, requestObject, using: mockSession)
+                let pd = try XCTUnwrap(pdOptional, "PresentationDefinition should not be nil.")
+                let sdJwt1 =
+                    "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiOWhnWm5VbGEyT1JhTHB3Wkp6T0pBTUZfVUd2dzVOekIwTEdmU1VaNTN6cyJdLCJfc2RfYWxnIjoiU0hBLTI1NiJ9.nzsiKRK39ijCaw0oD9nmhrB41HnZj_CiShckWZAVRW3tCDTm3vrJHyoVj4F7_2mx2aMvbT4iAekDGGtsXyhdvw~WyJmZWE3MTcwYTc3OGRiNzk1IiwiaXNfb2xkZXJfdGhhbl8xMyIsdHJ1ZV0~"
+                let sdJwt2 =
+                    "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiQmVHOFVNc1VHdzJFUFNodUhGbDZsek9CZERnaW1LNzE3bjJ5VnN6SWRRbyJdLCJfc2RfYWxnIjoiU0hBLTI1NiJ9.FI4uBC_pL9nMcrzrrMBhZXrgNR6WEJNQxCruoz5gWlc4fDV7Y4UYj-NYJ0O_IVXkfvJJSG4mBRu63LJaTrKdGA~WyJhNDZjZmJlOTUyN2YzOWI3IiwicG9zdGFsX2FkZHJlc3MiLCJUb2t5byBKYXBhbiJd~"
+
+                guard let (inputDescriptor1, _) = pd.matchSdJwtVcToRequirement(sdJwt: sdJwt1) else {
+                    XCTFail("inputDescriptor should not be nil")
+                    return
+                }
+                XCTAssertEqual(inputDescriptor1.id, "input2")
+
+                guard let (inputDescriptor2, _) = pd.matchSdJwtVcToRequirement(sdJwt: sdJwt2) else {
+                    XCTFail("inputDescriptor should not be nil")
+                    return
+                }
+                XCTAssertEqual(inputDescriptor2.id, "input1")
             }
             catch {
                 XCTFail("Request should not fail. \(error)")
