@@ -51,7 +51,7 @@ class CredentialListViewModel {
         print("format: \(format)")
         do {
             if format == "vc+sd-jwt" {
-                let ret = presentationDefinition.matchSdJwtVcToRequirement(
+                let ret = presentationDefinition.firstMatchedInputDescriptor(
                     sdJwt: credential.payload)
                 if let (_, disclosures) = ret {
                     return 0

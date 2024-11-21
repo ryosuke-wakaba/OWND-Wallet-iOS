@@ -69,7 +69,7 @@ struct PresentationDefinition: Codable {
     // extension
     let submissionRequirements: [SubmissionRequirement]?
 
-    func matchSdJwtVcToRequirement(sdJwt: String) -> (
+    func firstMatchedInputDescriptor(sdJwt: String) -> (
         InputDescriptor, [DisclosureWithOptionality]
     )? {
         guard let sdJwtParts = try? SDJwtUtil.divideSDJwt(sdJwt: sdJwt) else {
