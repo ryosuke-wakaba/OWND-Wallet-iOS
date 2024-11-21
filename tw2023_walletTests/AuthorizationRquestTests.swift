@@ -285,7 +285,7 @@ final class AuthorizationRquestTests: XCTestCase {
         let testURL = URL(string: "https://example.com/presentation_definition.json")!
         guard
             let url = Bundle.main.url(
-                forResource: "presentation_definition_multi_descriptors_fields_required", withExtension: "json"),
+                forResource: "presentation_definition_multi_descriptors_1", withExtension: "json"),
             let mockData = try? Data(contentsOf: url)
         else {
             XCTFail("Cannot read presentation_definition.json")

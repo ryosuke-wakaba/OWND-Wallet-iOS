@@ -216,8 +216,8 @@
 		A8ADC69B2BCEAD090077A0C4 /* idTokenSharingHistories.json in Resources */ = {isa = PBXBuildFile; fileRef = A8ADC69A2BCEAD090077A0C4 /* idTokenSharingHistories.json */; };
 		A8AF22882C12A59B00D6EDA5 /* RestoreHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AF22872C12A59B00D6EDA5 /* RestoreHelper.swift */; };
 		A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AF228C2C12A6C100D6EDA5 /* RestoreHelperTests.swift */; };
-		A8B0E66C2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json in Resources */ = {isa = PBXBuildFile; fileRef = A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json */; };
-		A8B0E66D2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json in Resources */ = {isa = PBXBuildFile; fileRef = A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json */; };
+		A8B0E66C2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json in Resources */ = {isa = PBXBuildFile; fileRef = A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json */; };
+		A8B0E66D2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json in Resources */ = {isa = PBXBuildFile; fileRef = A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json */; };
 		A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C0A3D22CABD088008998C5 /* Errors.swift */; };
 		A8C0A3D42CABD089008998C5 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C0A3D22CABD088008998C5 /* Errors.swift */; };
 		A8C810422B82042300CF8CD6 /* SharingToViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8C8103C2B82042200CF8CD6 /* SharingToViewModel.swift */; };
@@ -451,7 +451,7 @@
 		A8ADC69A2BCEAD090077A0C4 /* idTokenSharingHistories.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = idTokenSharingHistories.json; sourceTree = "<group>"; };
 		A8AF22872C12A59B00D6EDA5 /* RestoreHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreHelper.swift; sourceTree = "<group>"; };
 		A8AF228C2C12A6C100D6EDA5 /* RestoreHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreHelperTests.swift; sourceTree = "<group>"; };
-		A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = presentation_definition_multi_descriptors_fields_required.json; sourceTree = "<group>"; };
+		A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = presentation_definition_multi_descriptors_1.json; sourceTree = "<group>"; };
 		A8C0A3D22CABD088008998C5 /* Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errors.swift; sourceTree = "<group>"; };
 		A8C810382B80951800CF8CD6 /* SharingToRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToRow.swift; sourceTree = "<group>"; };
 		A8C8103C2B82042200CF8CD6 /* SharingToViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
@@ -579,7 +579,7 @@
 				A82601A72C2679F800BF8139 /* credential_display */,
 				8BB513882B3ACDAC00D4EFB3 /* token_response.json */,
 				8B0E0AB12B4054E80080F6A3 /* presentation_definition.json */,
-				A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json */,
+				A8B0E66B2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1482,7 +1482,7 @@
 				A8AB4BDA2C29873400C009A1 /* credential_response_vc_sd_jwt.json in Resources */,
 				8B297C452B39779000D2998D /* credential_supported_ldp_vc.json in Resources */,
 				8B297C3F2B39746000D2998D /* credential_supported_jwt_vc.json in Resources */,
-				A8B0E66D2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json in Resources */,
+				A8B0E66D2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json in Resources */,
 				A8AB4BC52C294FFD00C009A1 /* credential_offer_minimum.json in Resources */,
 				A8AB4BE82C2A62B000C009A1 /* credential_issuer_metadata_ldp_vc.json in Resources */,
 				8B43AE3B2B3AA1300016CF83 /* authorization_server.json in Resources */,
@@ -1525,7 +1525,7 @@
 				A82601A92C267A2A00BF8139 /* credential_display_filled.json in Resources */,
 				A8AB4BD22C296C7800C009A1 /* claim_map_filled.json in Resources */,
 				8B43AE3A2B3A9DD20016CF83 /* authorization_server.json in Resources */,
-				A8B0E66C2CE078E800D9E823 /* presentation_definition_multi_descriptors_fields_required.json in Resources */,
+				A8B0E66C2CE078E800D9E823 /* presentation_definition_multi_descriptors_1.json in Resources */,
 				8B297C442B39778B00D2998D /* credential_supported_ldp_vc.json in Resources */,
 				A8AB4BE02C298D3B00C009A1 /* credential_response_deferred.json in Resources */,
 				A8AB4BE32C298D9700C009A1 /* credential_response_notification.json in Resources */,
