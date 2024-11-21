@@ -1,0 +1,44 @@
+{
+    "id": "12345",
+    "input_descriptors": [
+        {
+            "id": "input1",
+            "name": "First Input",
+            "format": {
+                "vc+sd-jwt": {}
+            },
+            "group": ["A"],
+            "constraints": {
+                "limit_disclosure": "required",
+                "fields": [
+                    {
+                        "path": ["$.postal_code"],
+                        "filter": {"type": "string"}
+                    },
+                    {
+                        "path": ["$.prefecture"],
+                        "filter": {"type": "string"}
+                    }
+                ]
+            }
+        },
+        {
+            "id": "input2",
+            "name": "Second Input",
+            "format": {
+                "vc+sd-jwt": {}
+            },
+            "group": ["B"],
+            "constraints": {
+                "limit_disclosure": "required",
+                "fields": [
+                    {
+                        "path": ["$.prefecture"],
+                        "filter": {"type": "string"}
+                    }
+                ]
+            }
+        }
+    ]
+}
+
