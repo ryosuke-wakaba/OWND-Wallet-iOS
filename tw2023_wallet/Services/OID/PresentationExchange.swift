@@ -93,7 +93,7 @@ struct PresentationDefinition: Codable {
             // fieldKeysを取得
             let requiredOrOptionalKeys = inputDescriptor.filterKeysWithOptionality(
                 from: sourcePayload)
-            
+
             if requiredOrOptionalKeys.isEmpty {
                 continue
             }
@@ -103,8 +103,7 @@ struct PresentationDefinition: Codable {
                 with: requiredOrOptionalKeys
             )
 
-            if !matchingDisclosures.isEmpty
-            {
+            if !matchingDisclosures.isEmpty {
                 return (inputDescriptor, matchingDisclosures)
             }
         }

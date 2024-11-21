@@ -304,12 +304,14 @@ final class AuthorizationRquestTests: XCTestCase {
 
         runAsyncTest {
             do {
-                guard let pd = try await processPresentationDefinition(
-                    authorizationRequest, requestObject, using: mockSession) else {
+                guard
+                    let pd = try await processPresentationDefinition(
+                        authorizationRequest, requestObject, using: mockSession)
+                else {
                     XCTFail("PresentationDefinition shoud be present")
                     return
                 }
-                
+
                 // is_older_than13
                 let sdJwt1 =
                     "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiOWhnWm5VbGEyT1JhTHB3Wkp6T0pBTUZfVUd2dzVOekIwTEdmU1VaNTN6cyJdLCJfc2RfYWxnIjoiU0hBLTI1NiJ9.nzsiKRK39ijCaw0oD9nmhrB41HnZj_CiShckWZAVRW3tCDTm3vrJHyoVj4F7_2mx2aMvbT4iAekDGGtsXyhdvw~WyJmZWE3MTcwYTc3OGRiNzk1IiwiaXNfb2xkZXJfdGhhbl8xMyIsdHJ1ZV0~"
@@ -317,11 +319,17 @@ final class AuthorizationRquestTests: XCTestCase {
                 let sdJwt2 =
                     "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiQmVHOFVNc1VHdzJFUFNodUhGbDZsek9CZERnaW1LNzE3bjJ5VnN6SWRRbyJdLCJfc2RfYWxnIjoiU0hBLTI1NiJ9.FI4uBC_pL9nMcrzrrMBhZXrgNR6WEJNQxCruoz5gWlc4fDV7Y4UYj-NYJ0O_IVXkfvJJSG4mBRu63LJaTrKdGA~WyJhNDZjZmJlOTUyN2YzOWI3IiwicG9zdGFsX2FkZHJlc3MiLCJUb2t5byBKYXBhbiJd~"
 
-                guard let (inputDescriptor1, disclosureWithOptionallity1) = pd.firstMatchedInputDescriptor(sdJwt: sdJwt1) else {
+                guard
+                    let (inputDescriptor1, disclosureWithOptionallity1) =
+                        pd.firstMatchedInputDescriptor(sdJwt: sdJwt1)
+                else {
                     XCTFail("inputDescriptor should not be nil")
                     return
                 }
-                guard let (inputDescriptor2, disclosureWithOptionallity2) = pd.firstMatchedInputDescriptor(sdJwt: sdJwt2) else {
+                guard
+                    let (inputDescriptor2, disclosureWithOptionallity2) =
+                        pd.firstMatchedInputDescriptor(sdJwt: sdJwt2)
+                else {
                     XCTFail("inputDescriptor should not be nil")
                     return
                 }
@@ -329,7 +337,7 @@ final class AuthorizationRquestTests: XCTestCase {
                 XCTAssertTrue(disclosureWithOptionallity1.count == 1)
                 XCTAssertTrue(!disclosureWithOptionallity1[0].isUserSelectable)
                 XCTAssertTrue(disclosureWithOptionallity1[0].isSubmit)
-                
+
                 XCTAssertEqual(inputDescriptor2.id, "input1")
                 XCTAssertTrue(disclosureWithOptionallity2.count == 1)
                 XCTAssertTrue(!disclosureWithOptionallity2[0].isUserSelectable)
