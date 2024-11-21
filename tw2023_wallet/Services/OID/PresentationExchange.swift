@@ -89,7 +89,7 @@ struct PresentationDefinition: Codable {
             })
 
         for inputDescriptor in inputDescriptors {
-            
+
             // inputDescriptorとsourcePayload(クレデンシャル側)に共通するkeyを、optionality付きで取得
             // イメージ: {(key, optionality) | key in inputDescriptor && key in sourcePayload}
             let commonKeysWithOptionality = inputDescriptor.filterKeysWithOptionality(
@@ -100,7 +100,7 @@ struct PresentationDefinition: Codable {
             if commonKeysWithOptionality.isEmpty {
                 continue
             }
-            
+
             // inputDescriptorで必須とされる全てのキーが、共通キーに含まれていないならば、
             // このループのinputDescriptorにマッチしていない
             guard let fields = inputDescriptor.constraints.fields else {
@@ -130,7 +130,7 @@ struct PresentationDefinition: Codable {
         }
         return nil
     }
-    
+
     private func createDisclosureWithOptionality(
         from allDisclosures: [Disclosure], with commonKeysWithOptionality: [(String, Bool)]
     ) -> [DisclosureWithOptionality] {
