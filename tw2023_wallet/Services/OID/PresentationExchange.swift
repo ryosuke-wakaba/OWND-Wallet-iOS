@@ -93,6 +93,10 @@ struct PresentationDefinition: Codable {
             // fieldKeysを取得
             let requiredOrOptionalKeys = inputDescriptor.filterKeysWithOptionality(
                 from: sourcePayload)
+            
+            if requiredOrOptionalKeys.isEmpty {
+                continue
+            }
 
             let matchingDisclosures = createDisclosureWithOptionality(
                 from: allDisclosures,
@@ -100,7 +104,6 @@ struct PresentationDefinition: Codable {
             )
 
             if !matchingDisclosures.isEmpty
-                && !matchingDisclosures.allSatisfy({ !$0.isSubmit && !$0.isUserSelectable })
             {
                 return (inputDescriptor, matchingDisclosures)
             }
@@ -110,10 +113,9 @@ struct PresentationDefinition: Codable {
     private func createDisclosureWithOptionality(
         from allDisclosures: [Disclosure], with requiredOrOptionalKeys: [(String, Bool)]
     ) -> [DisclosureWithOptionality] {
-        return allDisclosures.map { disclosure in
+        return allDisclosures.compactMap { disclosure in
             guard let dkey = disclosure.key else {
-                return DisclosureWithOptionality(
-                    disclosure: disclosure, isSubmit: false, isUserSelectable: false)
+                return nil
             }
             for (keyName, optionality) in requiredOrOptionalKeys {
                 if keyName.contains(dkey) {
@@ -122,8 +124,7 @@ struct PresentationDefinition: Codable {
                         isUserSelectable: optionality)
                 }
             }
-            return DisclosureWithOptionality(
-                disclosure: disclosure, isSubmit: false, isUserSelectable: false)
+            return nil
         }
     }
 
