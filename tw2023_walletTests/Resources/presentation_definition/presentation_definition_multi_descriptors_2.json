@@ -38,6 +38,28 @@
                     }
                 ]
             }
+        },
+        {
+            "id": "input3",
+            "name": "Third Input",
+            "format": {
+                "vc+sd-jwt": {}
+            },
+            "group": ["C"],
+            "constraints": {
+                "limit_disclosure": "required",
+                "fields": [
+                    {
+                        "path": ["$.postal_code"],
+                        "filter": {"type": "string"}
+                    },
+                    {
+                        "path": ["$.family_name"],
+                        "filter": {"type": "string"},
+                        "optional": true
+                    }
+                ]
+            }
         }
     ]
 }
