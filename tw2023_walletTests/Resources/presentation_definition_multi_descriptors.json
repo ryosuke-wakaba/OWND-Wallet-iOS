@@ -4,7 +4,6 @@
         {
             "id": "input1",
             "name": "First Input",
-            "purpose": "For identification",
             "format": {
                 "vc+sd-jwt": {}
             },
@@ -14,7 +13,7 @@
                 "fields": [
                     {
                         "path": ["$.postal_address"],
-                        "filter": {"type": "boolean"}
+                        "filter": {"type": "string"}
                     }
                 ]
             }
@@ -22,7 +21,6 @@
         {
             "id": "input2",
             "name": "Second Input",
-            "purpose": "For identification",
             "format": {
                 "vc+sd-jwt": {}
             },
