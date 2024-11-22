@@ -48,7 +48,7 @@ class CredentialDetailViewModel {
         if let pd = presentationDefinition {
             switch credential.format {
                 case "vc+sd-jwt":
-                    if let matched = pd.matchSdJwtVcToRequirement(
+                    if let matched = pd.firstMatchedInputDescriptor(
                         sdJwt: credential.payload)
                     {
                         let (inputDescriptors, disclosuresWithOptionality) = matched

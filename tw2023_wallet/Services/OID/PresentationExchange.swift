@@ -69,7 +69,7 @@ struct PresentationDefinition: Codable {
     // extension
     let submissionRequirements: [SubmissionRequirement]?
 
-    func matchSdJwtVcToRequirement(sdJwt: String) -> (
+    func firstMatchedInputDescriptor(sdJwt: String) -> (
         InputDescriptor, [DisclosureWithOptionality]
     )? {
         guard let sdJwtParts = try? SDJwtUtil.divideSDJwt(sdJwt: sdJwt) else {
@@ -88,32 +88,64 @@ struct PresentationDefinition: Codable {
                 }
             })
 
-        // 各InputDescriptorをループ
         for inputDescriptor in inputDescriptors {
-            // fieldKeysを取得
-            let requiredOrOptionalKeys = inputDescriptor.filterKeysWithOptionality(
+
+            // inputDescriptorとsourcePayload(クレデンシャル側)に共通するkeyを、optionality付きで取得
+            let commonKeysWithOptionality = inputDescriptor.filterKeysWithOptionality(
                 from: sourcePayload)
 
-            let matchingDisclosures = createDisclosureWithOptionality(
-                from: allDisclosures,
-                with: requiredOrOptionalKeys
-            )
-
-            if !matchingDisclosures.isEmpty {
-                return (inputDescriptor, matchingDisclosures)
+            // sourcePayload(クレデンシャル側)とinputDescriptorに
+            // 共通するキーがないならば、このループのinputDescriptorにマッチしていない。
+            if commonKeysWithOptionality.isEmpty {
+                continue
             }
+
+            // inputDescriptorで必須とされる全てのキーが、共通キーに含まれていないならば、
+            // このループのinputDescriptorにマッチしていない
+            guard let fields = inputDescriptor.constraints.fields else {
+                continue
+            }
+            let allIncluded = fields.allSatisfy { field in
+                let optionalField = field.optional ?? false
+                if optionalField {
+                    return true
+                }
+                return field.path.contains { jsonPath in
+                    let simplifiedPath = String(jsonPath.dropFirst(2))
+                    return commonKeysWithOptionality.contains { (key, _) in key == simplifiedPath }
+                }
+            }
+            if !allIncluded {
+                continue
+            }
+
+            // 引数に与えられたクレデンシャルは、このループの inputDescriptor に合致している。
+            // クレデンシャルの各クレームについて、「送信必須のクレーム」、「送信するか否かを選択できるクレーム」、「送信しないクレーム」の情報を返す。
+            let claimDisclosability = createDisclosureWithOptionality(
+                from: allDisclosures,
+                with: commonKeysWithOptionality
+            )
+            return (inputDescriptor, claimDisclosability)
         }
         return nil
     }
+
     private func createDisclosureWithOptionality(
-        from allDisclosures: [Disclosure], with requiredOrOptionalKeys: [(String, Bool)]
+        from allDisclosures: [Disclosure], with commonKeysWithOptionality: [(String, Bool)]
     ) -> [DisclosureWithOptionality] {
+        // 自身が開示可能なSD-JWTクレーム(allDisclosures)について、
+        // 1.送信が必須なもの、2.送信するか否かを選択できるもの、3.送信しないもの の情報をつけて返す。
+        //
+        //   1. isSubmit: true,                               isUserSelectable: false
+        //   2. isSubmit: false(デフォルトでは送信しないということ), isUserSelectable: true
+        //   3. isSubmit: false,                              isUserSelectable: false
+        //
         return allDisclosures.map { disclosure in
             guard let dkey = disclosure.key else {
                 return DisclosureWithOptionality(
                     disclosure: disclosure, isSubmit: false, isUserSelectable: false)
             }
-            for (keyName, optionality) in requiredOrOptionalKeys {
+            for (keyName, optionality) in commonKeysWithOptionality {
                 if keyName.contains(dkey) {
                     return DisclosureWithOptionality(
                         disclosure: disclosure, isSubmit: !optionality,

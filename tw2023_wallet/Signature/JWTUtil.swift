@@ -71,7 +71,7 @@ func convertRstoDer(r: Data, s: Data) -> Data? {
 }
 
 enum JWTUtil {
-    
+
     /*
      For verification-related methods, we plan to enhance the checking process
      and implement a mechanism to control the level of checking in the future.

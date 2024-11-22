@@ -531,7 +531,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition1.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         XCTAssertNil(selected)
     }
@@ -545,7 +545,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition1.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
@@ -579,7 +579,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition2.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
@@ -613,7 +613,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition3.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
@@ -647,7 +647,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition4.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
@@ -681,7 +681,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition4.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
@@ -709,7 +709,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition5.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
@@ -743,7 +743,7 @@ final class OpenIdProviderTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let presentationDefinition = try decoder.decode(
             PresentationDefinition.self, from: presentationDefinition6.data(using: .utf8)!)
-        let selected = presentationDefinition.matchSdJwtVcToRequirement(
+        let selected = presentationDefinition.firstMatchedInputDescriptor(
             sdJwt: sdJwt)
         if let (inputDescriptor, disclosures) = selected {
             XCTAssertEqual(inputDescriptor.id, "input1")
