@@ -91,7 +91,6 @@ struct PresentationDefinition: Codable {
         for inputDescriptor in inputDescriptors {
 
             // inputDescriptorとsourcePayload(クレデンシャル側)に共通するkeyを、optionality付きで取得
-            // イメージ: {(key, optionality) | key in inputDescriptor && key in sourcePayload}
             let commonKeysWithOptionality = inputDescriptor.filterKeysWithOptionality(
                 from: sourcePayload)
 
