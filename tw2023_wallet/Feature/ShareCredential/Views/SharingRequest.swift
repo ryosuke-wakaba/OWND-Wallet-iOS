@@ -55,17 +55,23 @@ struct SharingRequest: View {
                                         Spacer()
                                     }
                                     // ------------ title section ------------
-                                    let titleKey =
-                                        viewModel.presentationDefinition != nil
-                                        ? "provide_the_information_necessary_to_start_using"
-                                        : "provide_the_information_required_to_register"
-                                    Text(
-                                        String(
+                                    if let pd = viewModel.presentationDefinition,
+                                        let name = pd.name
+                                    {
+                                        Text(name)
+                                            .modifier(Title3Black())
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    else {
+                                        let titleKey =
+                                            "provide_the_information_required_to_register"
+                                        let title = String(
                                             format: NSLocalizedString(titleKey, comment: ""),
                                             clientInfo.name)
-                                    )
-                                    .modifier(Title3Black())
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                        Text(title)
+                                            .modifier(Title3Black())
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
 
                                     // ------------ logo to logo section ------------
                                     HStack {
@@ -149,47 +155,23 @@ struct SharingRequest: View {
                                             title: "provide_information",
                                             action: {
                                                 Task {
-                                                    if viewModel.presentationDefinition != nil,
-                                                        viewModel.selectedCredential
-                                                    {
-                                                        let result = await viewModel.shareVpToken(
-                                                            credentials: [sharingRequestModel.data!]
-                                                        )
-                                                        switch result {
-                                                            case .success(let postResult):
-                                                                print("VP Token sharing succeeded.")
-                                                                if postResult.location != nil {
-                                                                    sharingRequestModel.postResult =
-                                                                        postResult
-                                                                }
-                                                                showAlert = true
-                                                                alertTitle =
-                                                                    "VP Token sharing succeeded."
-                                                            case .failure(let error):
-                                                                print(
-                                                                    "VP Token sharing failed with error: \(error)"
-                                                                )
-                                                                showAlert = true
-                                                        }
-                                                    }
-                                                    else {
-                                                        let result = await viewModel.shareIdToken()
-                                                        switch result {
-                                                            case .success(let postResult):
-                                                                print("ID Token sharing succeeded.")
-                                                                if postResult.location != nil {
-                                                                    sharingRequestModel.postResult =
-                                                                        postResult
-                                                                }
-                                                                showAlert = true
-                                                                alertTitle =
-                                                                    "ID Token sharing succeeded."
-                                                            case .failure(let error):
-                                                                print(
-                                                                    "ID Token sharing failed with error: \(error)"
-                                                                )
-                                                                showAlert = true
-                                                        }
+                                                    let result = await viewModel.shareToken(
+                                                        credentials: sharingRequestModel.data)
+                                                    switch result {
+                                                        case .success(let postResult):
+                                                            print("Token sharing succeeded.")
+                                                            if postResult.location != nil {
+                                                                sharingRequestModel.postResult =
+                                                                    postResult
+                                                            }
+                                                            showAlert = true
+                                                            alertTitle =
+                                                                "Token sharing succeeded."
+                                                        case .failure(let error):
+                                                            print(
+                                                                "Token sharing failed with error: \(error)"
+                                                            )
+                                                            showAlert = true
                                                     }
                                                 }
                                             }
@@ -207,17 +189,18 @@ struct SharingRequest: View {
                 if sharingRequestModel.data != nil {
                     viewModel.selectedCredential = true
                     if let submission = sharingRequestModel.data,
-                        let metadata = sharingRequestModel.metadata
+                        let metadata = sharingRequestModel.metadata,
+                        let firstSubmission = submission.first  // Workaround until multiple credentials are possible on the UI.
                     {
                         if let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
-                            format: submission.format,
-                            types: submission.types,
+                            format: firstSubmission.format,
+                            types: firstSubmission.types,
                             metadata: metadata
                         ) {
                             if let display = credentialSupported.display {
                                 proofBy = String(
                                     format: NSLocalizedString("proof_by", comment: ""),
-                                    display[0].name!)
+                                    display[0].name)
                             }
                         }
                     }

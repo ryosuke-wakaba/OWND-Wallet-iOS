@@ -10,16 +10,19 @@ import Foundation
 @Observable
 class SharingRequestModel {
     var redirectTo: String? = nil
-    var postResult: PostResult? = nil
+    var postResult: TokenSendResult? = nil
     var presentationDefinition: PresentationDefinition? = nil
     init(presentationDefinition: PresentationDefinition? = nil) {
         self.presentationDefinition = presentationDefinition
     }
 
     var type: String? = nil
-    var data: SubmissionCredential? = nil
+    var data: [SubmissionCredential]? = nil
     var metadata: CredentialIssuerMetadata? = nil
-    func setSelectedCredential(data: SubmissionCredential, metadata: CredentialIssuerMetadata) {
+    func setSelectedCredentials(
+        data: [SubmissionCredential],
+        metadata: CredentialIssuerMetadata
+    ) {
         self.data = data
         self.metadata = metadata
     }

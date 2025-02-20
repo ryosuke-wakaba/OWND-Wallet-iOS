@@ -14,6 +14,7 @@ class ModelData {
     var credentialSharingHistories: [CredentialSharingHistory] = []  // 新しい配列
     var sharingHistories: [History] = []
     var issuerMetaDataList: [CredentialIssuerMetadata] = []  // IssureMetaDataを呼ぶため仮
+    var authorizationMetaDataList: [AuthorizationServerMetadata] = []
     var clientInfoList: [ClientInfo] = []
     var presentationDefinitions: [PresentationDefinition] = []
 
@@ -35,6 +36,10 @@ class ModelData {
         let histories = (credentialSharingHistories + idTokenSharingHistories) as [History]
 
         self.sharingHistories = histories
+    }
+
+    func loadAuthorizationMetaDataList() {
+        self.authorizationMetaDataList = load("authorizationMetaDataList.json")
     }
 
     func loadIssuerMetaDataList() {
@@ -67,6 +72,7 @@ func load<T: Decodable>(_ filename: String) -> T {
 
     do {
         let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(T.self, from: data)
     }
     catch {

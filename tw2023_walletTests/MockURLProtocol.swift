@@ -10,6 +10,7 @@ import Foundation
 class MockURLProtocol: URLProtocol {
     static var mockResponses: [String: (Data?, HTTPURLResponse?)] = [:]
     static var lastRequest: URLRequest?
+    static var lastRequestBody: Data?
 
     override class func canInit(with request: URLRequest) -> Bool {
         return true
@@ -23,6 +24,15 @@ class MockURLProtocol: URLProtocol {
         if let url = request.url,
             let (data, response) = matchMockResponse(for: url.absoluteString)
         {
+
+            if let bodyData = request.httpBody {
+                MockURLProtocol.lastRequestBody = bodyData
+            }
+            else if let stream = request.httpBodyStream {
+                // `httpBodyStream` がある場合、データを読み取る
+                let bodyData = readData(from: stream)
+                MockURLProtocol.lastRequestBody = bodyData
+            }
 
             MockURLProtocol.lastRequest = request
 
@@ -54,5 +64,26 @@ class MockURLProtocol: URLProtocol {
 
     override func stopLoading() {
         // 何もしない
+    }
+
+    private func readData(from stream: InputStream) -> Data {
+        stream.open()
+        defer { stream.close() }
+
+        let bufferSize = 1024
+        var buffer = [UInt8](repeating: 0, count: bufferSize)
+        var data = Data()
+
+        while stream.hasBytesAvailable {
+            let bytesRead = stream.read(&buffer, maxLength: bufferSize)
+            if bytesRead > 0 {
+                data.append(buffer, count: bytesRead)
+            }
+            else if bytesRead < 0 {
+                // エラーが発生した場合の処理（オプション）
+                break
+            }
+        }
+        return data
     }
 }

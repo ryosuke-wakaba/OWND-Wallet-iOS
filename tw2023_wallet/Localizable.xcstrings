@@ -636,7 +636,7 @@
         }
       }
     },
-    "failed_to_show_credential_offer" : {
+    "failed_to_load_info_for_issuance" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1143,6 +1143,17 @@
     "OK" : {
 
     },
+    "optional_to_provide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提供がオプションの情報"
+          }
+        }
+      }
+    },
     "organizerName" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1306,23 +1317,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "情報を提供する"
-          }
-        }
-      }
-    },
-    "provide_the_information_necessary_to_start_using" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Provide the information necessary to start using %@."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@の利用開始に必要な情報を提供します"
           }
         }
       }

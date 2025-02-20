@@ -81,8 +81,7 @@ class ES256K {
         ]
 
         // Encode header to Base64URL
-        let encodedHeader = try Data(JSONSerialization.data(withJSONObject: header))
-            .base64URLEncodedString()
+        let encodedHeader = try header.toBase64UrlString()
 
         // Encode payload to Base64URL
         let encodedPayload = payload.data(using: .utf8)?.base64URLEncodedString() ?? ""

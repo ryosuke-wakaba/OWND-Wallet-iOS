@@ -7,10 +7,26 @@
 
 import Foundation
 
+func jwtVcJsonClaimsTobeDisclosed(jwt: String) -> [Disclosure] {
+    if let (_, body, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+        let vc = body["vc"] as? [String: Any],
+        let credentialSubject = vc["credentialSubject"] as? [String: Any]
+    {
+        let disclosures = credentialSubject.map { key, value in
+            // valueがネストしていることは想定していない。
+            return Disclosure(disclosure: nil, key: key, value: value as? String)
+        }
+        return disclosures
+    }
+    return []
+}
+
 @Observable
 class CredentialDetailViewModel {
-    var claimsToDisclose: [Disclosure] = []
-    var claimsNotToDisclosed: [Disclosure] = []
+    var requiredClaims: [DisclosureWithOptionality] = []
+    var userSelectableClaims: [DisclosureWithOptionality] = []
+    var undisclosedClaims: [DisclosureWithOptionality] = []
+
     var dataModel: CredentialDetailModel = .init()
     var inputDescriptor: InputDescriptor? = nil
 
@@ -32,26 +48,30 @@ class CredentialDetailViewModel {
         if let pd = presentationDefinition {
             switch credential.format {
                 case "vc+sd-jwt":
-                    if let selected = selectDisclosure(
-                        sdJwt: credential.payload, presentationDefinition: pd)
+                    if let matched = pd.firstMatchedInputDescriptor(
+                        sdJwt: credential.payload)
                     {
-                        let (inputDescriptors, _disclosures) = selected
+                        let (inputDescriptors, disclosuresWithOptionality) = matched
                         self.inputDescriptor = inputDescriptors
-                        self.claimsToDisclose = _disclosures
 
-                        let allDisclosures = try! SDJwtUtil.decodeSDJwt(credential.payload)
-                        self.claimsNotToDisclosed = allDisclosures.filter { disclosure in
-                            !claimsToDisclose.contains { selected in
-                                selected.disclosure == disclosure.disclosure
-                            }
+                        self.requiredClaims = disclosuresWithOptionality.filter { d in
+                            d.isSubmit && !d.isUserSelectable
+                        }
+                        self.userSelectableClaims = disclosuresWithOptionality.filter { d in
+                            d.isUserSelectable
+                        }
+                        self.undisclosedClaims = disclosuresWithOptionality.filter { d in
+                            !d.isSubmit && !d.isUserSelectable
                         }
                     }
                 case "jwt_vc_json":
                     inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定
-                    self.claimsNotToDisclosed = []
-
-                    let jwt = credential.payload
-                    self.claimsToDisclose = JWTUtil.convertJWTClaimsAsDisclosure(jwt: jwt)
+                    self.undisclosedClaims = []
+                    self.requiredClaims = jwtVcJsonClaimsTobeDisclosed(jwt: credential.payload).map
+                    { it in
+                        return DisclosureWithOptionality(
+                            disclosure: it, isSubmit: true, isUserSelectable: false)
+                    }
                 default:
                     inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定
             }
@@ -60,7 +80,12 @@ class CredentialDetailViewModel {
         print("done")
     }
 
-    func getSubmissionCredential(credential: Credential) -> SubmissionCredential {
+    func createSubmissionCredential(
+        credential: Credential,
+        discloseClaims: [DisclosureWithOptionality]
+    )
+        -> SubmissionCredential
+    {
         let types = try! VCIMetadataUtil.extractTypes(
             format: credential.format, credential: credential.payload)
         let submissionCredential = SubmissionCredential(
@@ -68,7 +93,8 @@ class CredentialDetailViewModel {
             format: credential.format,
             types: types,
             credential: credential.payload,
-            inputDescriptor: self.inputDescriptor!
+            inputDescriptor: self.inputDescriptor!,
+            discloseClaims: discloseClaims
         )
         return submissionCredential
     }

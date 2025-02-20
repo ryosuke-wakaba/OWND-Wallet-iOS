@@ -7,21 +7,22 @@
 
 import Foundation
 
-class EnumDeserializer<T: RawRepresentable>: JSONDecoder {
-    typealias EnumType = T
+enum JsonSerializationError: Error {
+    case UnableToEncodeString
+}
 
-    init(enumType: EnumType.Type) {
-        self.enumType = enumType
-        super.init()
+extension Dictionary where Key == String, Value == Any {
+
+    public func toBase64UrlString() throws -> String {
+        let jsonData = try JSONSerialization.data(withJSONObject: self, options: [])
+        return jsonData.base64URLEncodedString()
     }
 
-    private let enumType: EnumType.Type
-
-    required init(from decoder: Decoder) throws {
-        fatalError("init(from:) has not been implemented")
-    }
-
-    func deserialize(rawValue: String) -> EnumType? {
-        return enumType.init(rawValue: rawValue as! T.RawValue)
+    public func toString() throws -> String {
+        let jsonData = try JSONSerialization.data(withJSONObject: self, options: [])
+        guard let jsonString = String(data: jsonData, encoding: .utf8) else {
+            throw JsonSerializationError.UnableToEncodeString
+        }
+        return jsonString
     }
 }

@@ -61,15 +61,13 @@ class DisplayQRCodeViewModel: ObservableObject {
         //        else {
         //            return nil
         //        }
-        let jsonDict = [
+        let jsonDict: [String: Any] = [
             "format": credential.format,
             "credential": credential.payload,
             "display": credential.qrDisplay,
         ]
 
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: jsonDict, options: []),
-            let jsonString = String(data: jsonData, encoding: .utf8)
-        else {
+        guard let jsonString = try? jsonDict.toString() else {
             return nil
         }
 

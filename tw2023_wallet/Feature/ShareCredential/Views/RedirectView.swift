@@ -137,19 +137,6 @@ struct RedirectView: View {
             )
         }
     }
-
-    func openURLInSafari(urlString: String) {
-        if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
-            presentationMode.wrappedValue.dismiss()
-        }
-        else {
-            print("invalid url is specified.")
-            alertTitle = "URLが不正です"
-            alertMessage = urlString
-            showAlert = true
-        }
-    }
 }
 
 #Preview {

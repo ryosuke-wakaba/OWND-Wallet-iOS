@@ -41,11 +41,12 @@ class JwtVpJsonGeneratorImpl: JwtVpJsonGenerator {
             vp: vpClaims
         )
         let vpTokenPayload = jwtPayload.toDictionary()
-        do {
-            return try JWTUtil.sign(keyAlias: keyAlias, header: header, payload: vpTokenPayload)
-        }
-        catch {
-            fatalError("Failed to sign JWT: \(error)")
+        let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: vpTokenPayload)
+        switch result {
+            case let .success(jwt):
+                return jwt
+            case let .failure(error):
+                fatalError("Failed to sign JWT: \(error)")
         }
     }
 

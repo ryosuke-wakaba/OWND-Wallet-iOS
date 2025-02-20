@@ -22,15 +22,23 @@ final class JWTUtilTest: XCTestCase {
         ]
         let payload: [String: String] = [:]
 
-        let jwt = try! JWTUtil.sign(keyAlias: tag, header: header, payload: payload)
-        let signatureVerification = JWTUtil.verifyJwt(jwt: jwt, publicKey: publicKey)
+        let result = JWTUtil.sign(keyAlias: tag, header: header, payload: payload)
 
-        switch signatureVerification {
-            case .success(let jwt):
-                XCTAssertTrue(jwt.header["alg"] as! String == "ES256")
-            case .failure(let error):
+        switch result {
+            case let .success(jwt):
+                let signatureVerification = JWTUtil.verifyJwt(
+                    jwt: jwt, publicKey: publicKey)
+                switch signatureVerification {
+                    case .success(let jwt):
+                        XCTAssertTrue(jwt.header["alg"] as! String == "ES256")
+                    case .failure(let error):
+                        XCTFail()
+                }
+
+            case let .failure(error):
                 XCTFail()
         }
+
     }
 
     func testDecodeJwt() {
