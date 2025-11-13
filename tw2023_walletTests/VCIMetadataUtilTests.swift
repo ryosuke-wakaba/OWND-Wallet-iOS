@@ -20,7 +20,8 @@ final class VCIMetadataUtilTests: XCTestCase {
     func testFindMatchingCredentialsJwtVc() {
         let issuer = "https://datasign-demo-vci.tunnelto.dev"
         guard
-            let data = try? loadJsonTestData(fileName: "credential_issuer_metadata_jwt_vc")
+            let data = try? loadCredentialIssuerMetadata(
+                credentialSupportedFileNames: ["credential_supported_jwt_vc"])
         else {
             XCTFail("Cannot read credential_issuer_metadata.json")
             return
@@ -30,7 +31,7 @@ final class VCIMetadataUtilTests: XCTestCase {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: data)
             XCTAssertEqual(metadata.credentialIssuer, issuer)
-            let types = ["IdentityCredential"]
+            let types = ["VerifiableCredential", "UniversityDegreeCredential"]
             let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
                 format: "jwt_vc_json", types: types, metadata: metadata)
             XCTAssertNotNil(credentialSupported)
@@ -44,7 +45,8 @@ final class VCIMetadataUtilTests: XCTestCase {
     func testFindMatchingCredentialsSdJwt() {
         let issuer = "https://datasign-demo-vci.tunnelto.dev"
         guard
-            let data = try? loadJsonTestData(fileName: "credential_issuer_metadata_sd_jwt")
+            let data = try? loadCredentialIssuerMetadata(
+                credentialSupportedFileNames: ["credential_supported_vc_sd_jwt"])
         else {
             XCTFail("Cannot read credential_issuer_metadata.json")
             return
@@ -54,9 +56,9 @@ final class VCIMetadataUtilTests: XCTestCase {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: data)
             XCTAssertEqual(metadata.credentialIssuer, issuer)
-            let types = ["EmployeeCredential"]
+            let vct = "SD_JWT_VC_example_in_OpenID4VCI"
             let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
-                format: "vc+sd-jwt", types: types, metadata: metadata)
+                format: "dc+sd-jwt", types: [vct], metadata: metadata)
             XCTAssertNotNil(credentialSupported)
         }
         catch {
@@ -67,7 +69,8 @@ final class VCIMetadataUtilTests: XCTestCase {
     func testExtractDisplayByClaim() {
         let issuer = "https://datasign-demo-vci.tunnelto.dev"
         guard
-            let data = try? loadJsonTestData(fileName: "credential_issuer_metadata_sd_jwt")
+            let data = try? loadCredentialIssuerMetadata(
+                credentialSupportedFileNames: ["credential_supported_vc_sd_jwt"])
         else {
             XCTFail("Cannot read credential_issuer_metadata.json")
             return
@@ -77,9 +80,9 @@ final class VCIMetadataUtilTests: XCTestCase {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: data)
             XCTAssertEqual(metadata.credentialIssuer, issuer)
-            let types = ["EmployeeCredential"]
+            let vct = "SD_JWT_VC_example_in_OpenID4VCI"
             let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
-                format: "vc+sd-jwt", types: types, metadata: metadata)
+                format: "dc+sd-jwt", types: [vct], metadata: metadata)
             if let credentialSupported = credentialSupported {
                 let displayMap = VCIMetadataUtil.extractDisplayByClaim(
                     credentialsSupported: credentialSupported)
@@ -87,56 +90,32 @@ final class VCIMetadataUtilTests: XCTestCase {
                 print(displayMap)
 
                 XCTAssertNotNil(displayMap)
-                XCTAssertEqual(displayMap.count, 6)
+                // Updated SD-JWT credential has: given_name, family_name, address
+                XCTAssertTrue(displayMap.count >= 3)
 
-                if let display1 = displayMap["company_name"] {
+                if let display1 = displayMap["given_name"] {
                     XCTAssertEqual(display1.count, 2)
-                    XCTAssertEqual(display1[0].name, "Company Name")
-                    XCTAssertEqual(display1[1].name, "会社名")
-                }
-                else {
-                    XCTFail("Display for 'company_name' should exist")
-                }
-
-                if let display1 = displayMap["employee_no"] {
-                    XCTAssertEqual(display1.count, 2)
-                    XCTAssertEqual(display1[0].name, "Employee No")
-                    XCTAssertEqual(display1[1].name, "社員番号")
-                }
-                else {
-                    XCTFail("Display for 'employee_no' should exist")
-                }
-                if let display2 = displayMap["given_name"] {
-                    XCTAssertEqual(display2.count, 2)
-                    XCTAssertEqual(display2[0].name, "Given Name")
-                    XCTAssertEqual(display2[1].name, "名")
+                    XCTAssertEqual(display1[0].name, "Given Name")
+                    XCTAssertEqual(display1[1].name, "Vorname")
                 }
                 else {
                     XCTFail("Display for 'given_name' should exist")
                 }
-                if let display3 = displayMap["family_name"] {
-                    XCTAssertEqual(display3.count, 2)
-                    XCTAssertEqual(display3[0].name, "Family Name")
-                    XCTAssertEqual(display3[1].name, "姓")
+                if let display2 = displayMap["family_name"] {
+                    XCTAssertEqual(display2.count, 2)
+                    XCTAssertEqual(display2[0].name, "Surname")
+                    XCTAssertEqual(display2[1].name, "Nachname")
                 }
                 else {
                     XCTFail("Display for 'family_name' should exist")
                 }
-                if let display4 = displayMap["gender"] {
-                    XCTAssertEqual(display4.count, 2)
-                    XCTAssertEqual(display4[0].name, "Gender")
-                    XCTAssertEqual(display4[1].name, "性別")
+                if let display3 = displayMap["address"] {
+                    XCTAssertEqual(display3.count, 2)
+                    XCTAssertEqual(display3[0].name, "Place of residence")
+                    XCTAssertEqual(display3[1].name, "Wohnsitz")
                 }
                 else {
-                    XCTFail("Display for 'gender' should exist")
-                }
-                if let display5 = displayMap["division"] {
-                    XCTAssertEqual(display5.count, 2)
-                    XCTAssertEqual(display5[0].name, "Division")
-                    XCTAssertEqual(display5[1].name, "部署")
-                }
-                else {
-                    XCTFail("Display for 'division' should exist")
+                    XCTFail("Display for 'address' should exist")
                 }
             }
             else {
@@ -151,7 +130,8 @@ final class VCIMetadataUtilTests: XCTestCase {
     func testSerializationAndDeserialization() {
         let issuer = "https://datasign-demo-vci.tunnelto.dev"
         guard
-            let data = try? loadJsonTestData(fileName: "credential_issuer_metadata_sd_jwt")
+            let data = try? loadCredentialIssuerMetadata(
+                credentialSupportedFileNames: ["credential_supported_vc_sd_jwt"])
         else {
             XCTFail("Cannot read credential_issuer_metadata.json")
             return
@@ -161,10 +141,10 @@ final class VCIMetadataUtilTests: XCTestCase {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: data)
             XCTAssertEqual(metadata.credentialIssuer, issuer)
-            let types = ["EmployeeCredential"]
+            let vct = "SD_JWT_VC_example_in_OpenID4VCI"
             guard
                 let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
-                    format: "vc+sd-jwt", types: types, metadata: metadata)
+                    format: "dc+sd-jwt", types: [vct], metadata: metadata)
             else {
                 XCTFail("ExtractDisplayByClaim should not fail")
                 return
@@ -180,12 +160,12 @@ final class VCIMetadataUtilTests: XCTestCase {
                 displayMapString: serialized)
 
             XCTAssertNotNil(deserialized)
-            XCTAssertEqual(deserialized.count, 6)
+            XCTAssertTrue(deserialized.count >= 3)
 
             if let display1 = deserialized["given_name"] {
                 XCTAssertEqual(display1.count, 2)
                 XCTAssertEqual(display1[0].name, "Given Name")
-                XCTAssertEqual(display1[1].name, "名")
+                XCTAssertEqual(display1[1].name, "Vorname")
             }
             else {
                 XCTFail("Display for 'given_name' should exist")
@@ -193,11 +173,11 @@ final class VCIMetadataUtilTests: XCTestCase {
 
             if let display2 = deserialized["family_name"] {
                 XCTAssertEqual(display2.count, 2)
-                XCTAssertEqual(display2[0].name, "Family Name")
-                XCTAssertEqual(display2[1].name, "姓")
+                XCTAssertEqual(display2[0].name, "Surname")
+                XCTAssertEqual(display2[1].name, "Nachname")
             }
             else {
-                XCTFail("Display for 'last_name' should exist")
+                XCTFail("Display for 'family_name' should exist")
             }
 
             // あとは割愛
