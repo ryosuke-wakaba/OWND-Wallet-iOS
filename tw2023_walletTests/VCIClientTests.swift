@@ -369,4 +369,140 @@ final class VCIClientTests: XCTestCase {
         }
     }
 
+    // Integration test: Full credential issuance flow from Credential Offer URL
+    func testFullCredentialIssuanceFlow() {
+        runAsyncTest {
+            // Step 1: Parse Credential Offer URL
+            let credentialOfferUrl = "openid-credential-offer://?credential_offer=%7B%22credential_issuer%22%3A%22https%3A%2F%2Fdatasign-demo-vci.tunnelto.dev%22%2C%22credential_configuration_ids%22%3A%5B%22IdentityCredential%22%5D%2C%22grants%22%3A%7B%22urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code%22%3A%7B%22pre-authorized_code%22%3A%22SplxlOBeZQQYbYS6WxSbIA%22%2C%22tx_code%22%3A%7B%7D%7D%7D%7D"
+
+            guard let offer = CredentialOffer.fromString(credentialOfferUrl) else {
+                XCTFail("Failed to parse credential offer URL")
+                return
+            }
+
+            // Verify parsed credential offer
+            XCTAssertEqual(offer.credentialIssuer, "https://datasign-demo-vci.tunnelto.dev")
+            XCTAssertEqual(offer.credentialConfigurationIds.first, "IdentityCredential")
+            XCTAssertNotNil(offer.grants?.preAuthorizedCode)
+
+            let issuer = offer.credentialIssuer
+
+            // Setup mock session
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [MockURLProtocol.self]
+            let mockSession = URLSession(configuration: configuration)
+
+            // Step 2: Mock metadata endpoints
+            let issuerMetadataUrl = URL(string: "\(issuer)/.well-known/openid-credential-issuer")!
+            let authServerMetadataUrl = URL(string: "\(issuer)/.well-known/oauth-authorization-server")!
+
+            guard
+                let mockIssuerMetadata = try? loadJsonTestData(
+                    fileName: "credential_issuer_metadata_jwt_vc"),
+                let mockAuthServerMetadata = try? loadJsonTestData(
+                    fileName: "authorization_server")
+            else {
+                XCTFail("Cannot read metadata json files")
+                return
+            }
+
+            MockURLProtocol.mockResponses[issuerMetadataUrl.absoluteString] = (
+                mockIssuerMetadata,
+                HTTPURLResponse(
+                    url: issuerMetadataUrl,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil)
+            )
+
+            MockURLProtocol.mockResponses[authServerMetadataUrl.absoluteString] = (
+                mockAuthServerMetadata,
+                HTTPURLResponse(
+                    url: authServerMetadataUrl,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil)
+            )
+
+            // Step 3: Retrieve all metadata
+            do {
+                let metadata = try await retrieveAllMetadata(issuer: issuer, using: mockSession)
+
+                // Verify metadata
+                XCTAssertEqual(metadata.credentialIssuerMetadata.credentialIssuer, issuer)
+                XCTAssertNotNil(metadata.authorizationServerMetadata.tokenEndpoint)
+                // OID4VCI 1.0: Verify nonce_endpoint is present
+                XCTAssertEqual(metadata.credentialIssuerMetadata.nonceEndpoint, "\(issuer)/nonce")
+
+                // Step 4: Mock token endpoint
+                let tokenUrl = URL(string: "\(issuer)/token")!
+                guard let mockTokenResponse = try? loadJsonTestData(fileName: "token_response")
+                else {
+                    XCTFail("Cannot read token_response.json")
+                    return
+                }
+
+                MockURLProtocol.mockResponses[tokenUrl.absoluteString] = (
+                    mockTokenResponse,
+                    HTTPURLResponse(
+                        url: tokenUrl,
+                        statusCode: 200,
+                        httpVersion: nil,
+                        headerFields: nil)
+                )
+
+                // Step 5: Issue token
+                let vciClient = try await VCIClient(credentialOffer: offer, metaData: metadata)
+                let token = try await vciClient.issueToken(txCode: "493536", using: mockSession)
+
+                // Verify token response
+                XCTAssertEqual(token.accessToken, "example-access-token")
+                XCTAssertEqual(token.cNonce, "example-c-nonce")
+
+                // Step 6: Mock credential endpoint
+                let credentialUrl = URL(string: "\(issuer)/credentials")!
+                guard
+                    let mockCredentialResponse = try? loadJsonTestData(
+                        fileName: "credential_response_mock")
+                else {
+                    XCTFail("Cannot read credential_response_mock.json")
+                    return
+                }
+
+                MockURLProtocol.mockResponses[credentialUrl.absoluteString] = (
+                    mockCredentialResponse,
+                    HTTPURLResponse(
+                        url: credentialUrl,
+                        statusCode: 200,
+                        httpVersion: nil,
+                        headerFields: nil)
+                )
+
+                // Step 7: Issue credential with proof
+                let proofs = Proofs(jwt: ["example-jwt-proof"], cwt: nil, ldpVp: nil)
+                let credentialRequest = createCredentialRequest(
+                    credentialConfigurationId: "IdentityCredential",
+                    proofs: proofs
+                )
+
+                let credentialResponse = try await vciClient.issueCredential(
+                    payload: credentialRequest,
+                    accessToken: token.accessToken,
+                    using: mockSession
+                )
+
+                // Verify credential response
+                XCTAssertNotNil(credentialResponse.credential)
+                XCTAssertEqual(credentialResponse.credential, "example-credential")
+                XCTAssertEqual(credentialResponse.cNonce, "example-c-nonce")
+
+                // Success: Full flow completed
+                print("✅ Full credential issuance flow completed successfully")
+            }
+            catch {
+                XCTFail("Full credential issuance flow failed: \(error)")
+            }
+        }
+    }
+
 }
