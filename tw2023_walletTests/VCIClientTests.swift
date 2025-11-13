@@ -226,14 +226,11 @@ final class VCIClientTests: XCTestCase {
                 url: testURL.absoluteURL, statusCode: 200, httpVersion: nil, headerFields: nil)
             MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
 
-            // CredentialRequestのインスタンスを作成
-            let credentialRequest = CredentialRequestVcSdJwt(
-                format: "vc+sd-jwt",
-                proof: JwtProof(proofType: "jwt", jwt: "example-jwt"),
-                credentialIdentifier: nil,
-                credentialResponseEncryption: nil,
-                vct: "IdentityCredential",
-                claims: nil
+            // OID4VCI 1.0: CredentialRequestのインスタンスを作成
+            let proofs = Proofs(jwt: ["example-jwt"], cwt: nil, ldpVp: nil)
+            let credentialRequest = createCredentialRequest(
+                credentialConfigurationId: "IdentityCredential",
+                proofs: proofs
             )
 
             // postCredentialRequest関数のテスト
@@ -346,11 +343,11 @@ final class VCIClientTests: XCTestCase {
                 credentialIssuerMetadata: credentialIssuerMetadata,
                 authorizationServerMetadata: authorizationServerMetadata)
 
-            // payload generation
-            let proof = JwtProof(proofType: "jwt", jwt: "dummy-proof")
-            let payload = try createCredentialRequest(
-                formatValue: "vc+sd-jwt", credentialType: "UniversityDegreeCredential",
-                proofable: proof)
+            // OID4VCI 1.0: payload generation
+            let proofs = Proofs(jwt: ["dummy-proof"], cwt: nil, ldpVp: nil)
+            let payload = createCredentialRequest(
+                credentialConfigurationId: "UniversityDegreeCredential",
+                proofs: proofs)
 
             do {
                 guard let offer = self.credentialOffer else {

@@ -186,37 +186,34 @@ struct LdpVpProof: Proofable {
     let ldpVp: LdpVp
 }
 
-protocol CredentialRequest: Encodable {
-    associatedtype ProofType: Proofable
-    var format: String { get }
-    var proof: ProofType? { get }
+// OID4VCI 1.0: New proof structure
+struct Proofs: Codable {
+    let jwt: [String]?
+    let cwt: [String]?
+    let ldpVp: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case jwt
+        case cwt
+        case ldpVp = "ldp_vp"
+    }
+}
+
+// OID4VCI 1.0: Nonce endpoint response
+struct NonceResponse: Codable {
+    let cNonce: String
+    let cNonceExpiresIn: Int?
+}
+
+// OID4VCI 1.0: Simplified credential request
+struct CredentialRequestV1: Codable {
+    let credentialConfigurationId: String
+    let proofs: Proofs?
 
     // REQUIRED when credential_identifiers parameter was returned from the Token Response.
     // It MUST NOT be used otherwise
-    var credentialIdentifier: String? { get }
-    var credentialResponseEncryption: CredentialRequestCredentialResponseEncryption? { get }
-}
-
-struct CredentialRequestVcSdJwt: CredentialRequest {
-    let format: String
-    let proof: JwtProof?
     let credentialIdentifier: String?
     let credentialResponseEncryption: CredentialRequestCredentialResponseEncryption?
-
-    // REQUIRED when the format parameter is present in the Credential Request. It MUST NOT be used otherwise
-    let vct: String?
-    let claims: [String: Claim]?
-}
-
-struct CredentialRequestJwtVcJson: CredentialRequest {
-    let format: String
-    let proof: JwtProof?
-    var credentialIdentifier: String?
-    var credentialResponseEncryption: CredentialRequestCredentialResponseEncryption?
-
-    // REQUIRED when the format parameter is present in the Credential Request.
-    // It MUST NOT be used otherwise
-    let credentialDefinition: CredentialDefinitionJwtVcJson?
 }
 
 struct CredentialResponse: Codable {
@@ -227,57 +224,17 @@ struct CredentialResponse: Codable {
     let notificationId: String?
 }
 
-struct CredentialDefinitionJwtVcJson: Encodable {
-    let type: [String]
-    let credentialSubject: [String: ClaimOnlyMandatory]?
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case credentialSubject = "credentialSubject"
-    }
-}
-
-func createCredentialRequest(formatValue: String, credentialType: String, proofable: Proofable?)
-    throws -> any CredentialRequest
-{
-    switch formatValue {
-        case "vc+sd-jwt":
-            // Proof is optional. Only if present, convert to the appropriate type.
-            var proof: JwtProof? = nil
-            if let someProof = proofable {
-                guard let jwtProof = someProof as? JwtProof else {
-                    throw VCIClientError.jwtProofRequired
-                }
-                proof = jwtProof
-            }
-            return CredentialRequestVcSdJwt(
-                format: formatValue,
-                proof: proof,
-                credentialIdentifier: nil,
-                credentialResponseEncryption: nil,
-                vct: credentialType,
-                claims: nil
-            )
-        case "jwt_vc_json":
-            // Proof is optional. Only if present, convert to the appropriate type.
-            var proof: JwtProof? = nil
-            if let someProof = proofable {
-                guard let jwtProof = someProof as? JwtProof else {
-                    throw VCIClientError.jwtProofRequired
-                }
-                proof = jwtProof
-            }
-            return CredentialRequestJwtVcJson(
-                format: formatValue,
-                proof: proof,
-                credentialDefinition:
-                    CredentialDefinitionJwtVcJson(
-                        type: [credentialType],
-                        credentialSubject: nil)
-            )
-        default:
-            throw VCIClientError.unsupportedCredentialFormat(format: formatValue)
-    }
+// OID4VCI 1.0: Simplified credential request creation
+func createCredentialRequest(
+    credentialConfigurationId: String,
+    proofs: Proofs?
+) -> CredentialRequestV1 {
+    return CredentialRequestV1(
+        credentialConfigurationId: credentialConfigurationId,
+        proofs: proofs,
+        credentialIdentifier: nil,
+        credentialResponseEncryption: nil
+    )
 }
 
 func postTokenRequest(
@@ -302,7 +259,7 @@ func postTokenRequest(
 }
 
 func postCredentialRequest(
-    _ credentialRequest: any CredentialRequest, to url: URL, accessToken: String,
+    _ credentialRequest: CredentialRequestV1, to url: URL, accessToken: String,
     using session: URLSession = URLSession.shared
 ) async throws -> CredentialResponse {
     var request = URLRequest(url: url)
@@ -310,24 +267,16 @@ func postCredentialRequest(
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    // CredentialRequestをJSONにエンコード
-    // todo: snake_case と camelCaseの混在を適切に扱うようにする
+    // OID4VCI 1.0: Simplified request encoding
     let encoder = JSONEncoder()
     encoder.keyEncodingStrategy = .convertToSnakeCase
 
-    let encoded = try encoder.encode(credentialRequest)
-    var payload: Data? = nil
-    if let jsonString = String(data: encoded, encoding: .utf8) {
-        // workaround
-        let credSubWithCamelCase = jsonString.replacingOccurrences(
-            of: "\"credential_subject\"", with: "\"credentialSubject\"")
-        payload = credSubWithCamelCase.data(using: .utf8)
-        print("JSON String: \(jsonString)")
-    }
-    else {
-        print("Failed to convert Data to String")
-    }
+    let payload = try encoder.encode(credentialRequest)
     request.httpBody = payload
+
+    if let jsonString = String(data: payload, encoding: .utf8) {
+        print("Credential Request JSON: \(jsonString)")
+    }
 
     let (data, response) = try await session.data(for: request)
 
@@ -389,7 +338,7 @@ class VCIClient {
     }
 
     func issueCredential(
-        payload: any CredentialRequest, accessToken: String,
+        payload: CredentialRequestV1, accessToken: String,
         using session: URLSession = URLSession.shared
     ) async throws -> CredentialResponse {
         return try await postCredentialRequest(

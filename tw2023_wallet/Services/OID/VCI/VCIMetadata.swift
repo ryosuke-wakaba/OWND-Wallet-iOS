@@ -266,6 +266,7 @@ struct CredentialIssuerMetadata: Codable {
     let batchCredentialEndpoint: String?
     let deferredCredentialEndpoint: String?
     let notificationEndpoint: String?
+    let nonceEndpoint: String?
     let credentialResponseEncryption: CredentialResponseEncryption?
     let credentialIdentifiersSupported: Bool?
     let signedMetadata: String?
@@ -280,6 +281,7 @@ struct CredentialIssuerMetadata: Codable {
         case batchCredentialEndpoint = "batchCredentialEndpoint"
         case deferredCredentialEndpoint = "deferredCredentialEndpoint"
         case notificationEndpoint = "notificationEndpoint"
+        case nonceEndpoint = "nonceEndpoint"
         case credentialResponseEncryption = "credentialResponseEncryption"
         case credentialIdentifiersSupported = "credentialIdentifiersSupported"
         case credentialConfigurationsSupported = "credentialConfigurationsSupported"
@@ -312,6 +314,8 @@ struct CredentialIssuerMetadata: Codable {
             String.self, forKey: .deferredCredentialEndpoint)
         notificationEndpoint = try container.decodeIfPresent(
             String.self, forKey: .notificationEndpoint)
+        nonceEndpoint = try container.decodeIfPresent(
+            String.self, forKey: .nonceEndpoint)
         credentialResponseEncryption = try container.decodeIfPresent(
             CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)
         credentialIdentifiersSupported = try container.decodeIfPresent(
