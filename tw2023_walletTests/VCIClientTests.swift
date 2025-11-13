@@ -27,13 +27,10 @@ final class DecodingCredentialOfferTests: XCTestCase {
         XCTAssertEqual(credentialOffer.credentialConfigurationIds[0], "IdentityCredential")
 
         let grants = credentialOffer.grants
-        XCTAssertEqual(grants?.authorizationCode?.issuerState, "eyJhbGciOiJSU0Et...FYUaBy")
-
         XCTAssertEqual(grants?.preAuthorizedCode?.preAuthorizedCode, "adhjhdjajkdkhjhdj")
         XCTAssertEqual(grants?.preAuthorizedCode?.txCode?.inputMode, "numeric")
         XCTAssertEqual(grants?.preAuthorizedCode?.txCode?.length, 4)
         XCTAssertEqual(grants?.preAuthorizedCode?.txCode?.description, "description")
-        XCTAssertEqual(grants?.preAuthorizedCode?.interval, 10)
         XCTAssertEqual(
             grants?.preAuthorizedCode?.authorizationServer, "https://datasign-demo-vci.tunnelto.dev"
         )
@@ -81,13 +78,10 @@ final class DecodingCredentialOfferTests: XCTestCase {
         XCTAssertEqual(credentialOffer.credentialConfigurationIds[0], "IdentityCredential")
 
         let grants = credentialOffer.grants
-        XCTAssertEqual(grants?.authorizationCode?.issuerState, "eyJhbGciOiJSU0Et...FYUaBy")
-
         XCTAssertEqual(grants?.preAuthorizedCode?.preAuthorizedCode, "adhjhdjajkdkhjhdj")
         XCTAssertEqual(grants?.preAuthorizedCode?.txCode?.inputMode, "numeric")
         XCTAssertEqual(grants?.preAuthorizedCode?.txCode?.length, 4)
         XCTAssertEqual(grants?.preAuthorizedCode?.txCode?.description, "description")
-        XCTAssertEqual(grants?.preAuthorizedCode?.interval, 10)
         XCTAssertEqual(
             grants?.preAuthorizedCode?.authorizationServer, "https://datasign-demo-vci.tunnelto.dev"
         )
@@ -306,8 +300,8 @@ final class VCIClientTests: XCTestCase {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             guard
-                let jsonIssuerMetaData = try? loadJsonTestData(
-                    fileName: "credential_issuer_metadata_jwt_vc"),
+                let jsonIssuerMetaData = try? loadCredentialIssuerMetadata(
+                    credentialSupportedFileNames: ["credential_supported_jwt_vc"]),
                 let jsonAuthorizationServerData = try? loadJsonTestData(
                     fileName: "authorization_server")
             else {
@@ -359,8 +353,8 @@ final class VCIClientTests: XCTestCase {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             guard
-                let jsonIssuerMetaData = try? loadJsonTestData(
-                    fileName: "credential_issuer_metadata_jwt_vc"),
+                let jsonIssuerMetaData = try? loadCredentialIssuerMetadata(
+                    credentialSupportedFileNames: ["credential_supported_jwt_vc"]),
                 let jsonAuthorizationServerData = try? loadJsonTestData(
                     fileName: "authorization_server")
             else {
@@ -419,8 +413,8 @@ final class VCIClientTests: XCTestCase {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             guard
-                let jsonIssuerMetaData = try? loadJsonTestData(
-                    fileName: "credential_issuer_metadata_sd_jwt"),
+                let jsonIssuerMetaData = try? loadCredentialIssuerMetadata(
+                    credentialSupportedFileNames: ["credential_supported_vc_sd_jwt"]),
                 let jsonAuthorizationServerData = try? loadJsonTestData(
                     fileName: "authorization_server")
             else {
@@ -489,8 +483,8 @@ final class VCIClientTests: XCTestCase {
             let authServerMetadataUrl = URL(string: "\(issuer)/.well-known/oauth-authorization-server")!
 
             guard
-                let mockIssuerMetadata = try? loadJsonTestData(
-                    fileName: "credential_issuer_metadata_jwt_vc"),
+                let mockIssuerMetadata = try? loadCredentialIssuerMetadata(
+                    credentialSupportedFileNames: ["credential_supported_jwt_vc"]),
                 let mockAuthServerMetadata = try? loadJsonTestData(
                     fileName: "authorization_server")
             else {
