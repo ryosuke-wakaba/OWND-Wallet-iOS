@@ -42,29 +42,27 @@ class CredentialOfferViewModel: ObservableObject {
 
         let vciClient = try await VCIClient(credentialOffer: offer, metaData: metadata)
 
+        // Step 1: Issue token
         let token = try await vciClient.issueToken(txCode: txCode)
         let accessToken = token.accessToken
-        let cNonce = token.cNonce
+
+        // Step 2: OID4VCI 1.0 - Fetch nonce from dedicated nonce endpoint
+        let nonceResponse = try await vciClient.fetchNonce()
+        let cNonce = nonceResponse.cNonce
 
         // binding key generation
-        let proofRequired = cNonce != nil
         let isKeyPairExist = KeyPairUtil.isKeyPairExist(
             alias: Constants.Cryptography.KEY_BINDING)
-        if !isKeyPairExist && proofRequired {
+        if !isKeyPairExist {
             try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
         }
 
-        // OID4VCI 1.0: proof generation
-        var proofsObject: Proofs? = nil
-        if proofRequired {
-            if let nonce = cNonce {
-                let credentialIssuer = offer.credentialIssuer
-                let proofJwt = try KeyPairUtil.createProofJwt(
-                    keyAlias: Constants.Cryptography.KEY_BINDING, audience: credentialIssuer,
-                    nonce: nonce)
-                proofsObject = Proofs(jwt: [proofJwt], cwt: nil, ldpVp: nil)
-            }
-        }
+        // Step 3: OID4VCI 1.0 - Generate proof using nonce from nonce endpoint
+        let credentialIssuer = offer.credentialIssuer
+        let proofJwt = try KeyPairUtil.createProofJwt(
+            keyAlias: Constants.Cryptography.KEY_BINDING, audience: credentialIssuer,
+            nonce: cNonce)
+        let proofsObject = Proofs(jwt: [proofJwt], cwt: nil, ldpVp: nil)
 
         // OID4VCI 1.0: Credential Request Generation
         let credentialRequest = createCredentialRequest(

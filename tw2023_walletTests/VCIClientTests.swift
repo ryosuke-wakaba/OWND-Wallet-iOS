@@ -246,6 +246,98 @@ final class VCIClientTests: XCTestCase {
         }
     }
 
+    // OID4VCI 1.0: Test nonce endpoint request function
+    func testPostNonceRequest() {
+        runAsyncTest {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [MockURLProtocol.self]
+            let mockSession = URLSession(configuration: configuration)
+
+            let testURL = URL(string: "https://example.com/nonce")!
+
+            // Create mock nonce response (OID4VCI 1.0: only c_nonce, no expires_in)
+            let mockNonceResponse = """
+            {
+                "c_nonce": "example-nonce-value"
+            }
+            """.data(using: .utf8)!
+
+            let response = HTTPURLResponse(
+                url: testURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+            MockURLProtocol.mockResponses[testURL.absoluteString] = (mockNonceResponse, response)
+
+            do {
+                let nonceResponse = try await postNonceRequest(to: testURL, using: mockSession)
+                XCTAssertEqual(nonceResponse.cNonce, "example-nonce-value")
+            }
+            catch {
+                XCTFail("Request should not fail: \(error)")
+            }
+        }
+    }
+
+    // OID4VCI 1.0: Test VCIClient.fetchNonce method
+    func testFetchNonce() {
+        runAsyncTest {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [MockURLProtocol.self]
+            let mockSession = URLSession(configuration: configuration)
+
+            let issuer = "https://datasign-demo-vci.tunnelto.dev"
+            let nonceUrl = URL(string: "\(issuer)/nonce")!
+
+            // Mock nonce endpoint response
+            let mockNonceResponse = """
+            {
+                "c_nonce": "fetched-nonce-value"
+            }
+            """.data(using: .utf8)!
+
+            MockURLProtocol.mockResponses[nonceUrl.absoluteString] = (
+                mockNonceResponse,
+                HTTPURLResponse(
+                    url: nonceUrl,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil)
+            )
+
+            // Setup metadata with nonce endpoint
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            guard
+                let jsonIssuerMetaData = try? loadJsonTestData(
+                    fileName: "credential_issuer_metadata_jwt_vc"),
+                let jsonAuthorizationServerData = try? loadJsonTestData(
+                    fileName: "authorization_server")
+            else {
+                XCTFail("Cannot read resource json")
+                return
+            }
+            let credentialIssuerMetadata = try decoder.decode(
+                CredentialIssuerMetadata.self, from: jsonIssuerMetaData)
+            let authorizationServerMetadata = try decoder.decode(
+                AuthorizationServerMetadata.self, from: jsonAuthorizationServerData)
+            let metadata = Metadata(
+                credentialIssuerMetadata: credentialIssuerMetadata,
+                authorizationServerMetadata: authorizationServerMetadata)
+
+            guard let offer = self.credentialOffer else {
+                XCTFail("credential offer is not initialized properly")
+                return
+            }
+
+            do {
+                let vciClient = try await VCIClient(credentialOffer: offer, metaData: metadata)
+                let nonceResponse = try await vciClient.fetchNonce(using: mockSession)
+                XCTAssertEqual(nonceResponse.cNonce, "fetched-nonce-value")
+            }
+            catch {
+                XCTFail("Request should not fail: \(error)")
+            }
+        }
+    }
+
     func testIssueToken() {
         runAsyncTest {
             // setup mock for `/token`
@@ -457,9 +549,28 @@ final class VCIClientTests: XCTestCase {
 
                 // Verify token response
                 XCTAssertEqual(token.accessToken, "example-access-token")
-                XCTAssertEqual(token.cNonce, "example-c-nonce")
 
-                // Step 6: Mock credential endpoint
+                // Step 6: OID4VCI 1.0 - Mock and fetch nonce from nonce endpoint
+                let nonceUrl = URL(string: "\(issuer)/nonce")!
+                let mockNonceResponse = """
+                {
+                    "c_nonce": "nonce-from-endpoint"
+                }
+                """.data(using: .utf8)!
+
+                MockURLProtocol.mockResponses[nonceUrl.absoluteString] = (
+                    mockNonceResponse,
+                    HTTPURLResponse(
+                        url: nonceUrl,
+                        statusCode: 200,
+                        httpVersion: nil,
+                        headerFields: nil)
+                )
+
+                let nonceResponse = try await vciClient.fetchNonce(using: mockSession)
+                XCTAssertEqual(nonceResponse.cNonce, "nonce-from-endpoint")
+
+                // Step 7: Mock credential endpoint
                 let credentialUrl = URL(string: "\(issuer)/credentials")!
                 guard
                     let mockCredentialResponse = try? loadJsonTestData(
@@ -478,7 +589,7 @@ final class VCIClientTests: XCTestCase {
                         headerFields: nil)
                 )
 
-                // Step 7: Issue credential with proof
+                // Step 8: Issue credential with proof (using nonce from nonce endpoint)
                 let proofs = Proofs(jwt: ["example-jwt-proof"], cwt: nil, ldpVp: nil)
                 let credentialRequest = createCredentialRequest(
                     credentialConfigurationId: "IdentityCredential",

@@ -15,6 +15,7 @@ enum VCIClientError: Error {
     case unsupportedCredentialFormat(format: String)
     case credentialEndpointIsRequired
     case jwtProofRequired
+    case nonceEndpointIsRequired  // OID4VCI 1.0
 }
 
 struct GrantAuthorizationCode: Codable {
@@ -202,7 +203,6 @@ struct Proofs: Codable {
 // OID4VCI 1.0: Nonce endpoint response
 struct NonceResponse: Codable {
     let cNonce: String
-    let cNonceExpiresIn: Int?
 }
 
 // OID4VCI 1.0: Simplified credential request
@@ -290,6 +290,25 @@ func postCredentialRequest(
     return try decoder.decode(CredentialResponse.self, from: data)
 }
 
+// OID4VCI 1.0: Nonce Endpoint (not a protected resource)
+func postNonceRequest(
+    to url: URL, using session: URLSession = URLSession.shared
+) async throws -> NonceResponse {
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+
+    let (data, response) = try await session.data(for: request)
+
+    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        throw URLError(.badServerResponse)
+    }
+
+    // Decode nonce response
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    return try decoder.decode(NonceResponse.self, from: data)
+}
+
 class VCIClient {
 
     private var metadata: Metadata
@@ -343,5 +362,16 @@ class VCIClient {
     ) async throws -> CredentialResponse {
         return try await postCredentialRequest(
             payload, to: credentialEndpoint, accessToken: accessToken, using: session)
+    }
+
+    // OID4VCI 1.0: Fetch nonce from dedicated nonce endpoint
+    func fetchNonce(using session: URLSession = URLSession.shared) async throws -> NonceResponse {
+        guard let nonceEndpointString = metadata.credentialIssuerMetadata.nonceEndpoint,
+            let nonceEndpointUrl = URL(string: nonceEndpointString)
+        else {
+            throw VCIClientError.nonceEndpointIsRequired
+        }
+
+        return try await postNonceRequest(to: nonceEndpointUrl, using: session)
     }
 }
