@@ -10,6 +10,7 @@ import Foundation
 
 enum KeyError: Error {
     case KeyNotFound
+    case UnsupportedSigningAlgorithm(algorithm: String)
 }
 
 enum JwkError: Error {
@@ -103,7 +104,14 @@ class KeyPairUtil {
         return nil
     }
 
-    static func createProofJwt(keyAlias: String, audience: String, nonce: String) throws -> String {
+    static func createProofJwt(keyAlias: String, audience: String, nonce: String, proofSigningAlgValuesSupported: [String]) throws -> String {
+
+        // Select signing algorithm from supported algorithms
+        // Currently only ES256 is supported
+        guard proofSigningAlgValuesSupported.contains("ES256") else {
+            throw KeyError.UnsupportedSigningAlgorithm(algorithm: proofSigningAlgValuesSupported.joined(separator: ", "))
+        }
+        let selectedAlgorithm = "ES256"
 
         guard let publicKey = KeyPairUtil.getPublicKey(alias: keyAlias),
             let jwk = publicKeyToJwk(publicKey: publicKey)
@@ -113,7 +121,7 @@ class KeyPairUtil {
 
         let header: [String: Any] = [
             "typ": "openid4vci-proof+jwt",
-            "alg": "ES256",
+            "alg": selectedAlgorithm,
             "jwk": jwk,
         ]
         let payload: [String: Any] = [

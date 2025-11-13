@@ -70,7 +70,7 @@ final class KeyPairUitlTests: XCTestCase {
         }
 
         let proofJwt = try! KeyPairUtil.createProofJwt(
-            keyAlias: tag, audience: "audience", nonce: "nonce")
+            keyAlias: tag, audience: "audience", nonce: "nonce", proofSigningAlgValuesSupported: ["ES256"])
 
         XCTAssertTrue(KeyPairUtil.verifyJwt(jwkJson: jwk, jwt: proofJwt))
 

@@ -71,15 +71,16 @@ class CredentialOfferViewModel: ObservableObject {
         if let proofTypesSupported = credentialConfig.proofTypesSupported, !proofTypesSupported.isEmpty {
             // proof_types_supported exists and is not empty
             let supportedTypes = Array(proofTypesSupported.keys)
-            guard proofTypesSupported["jwt"] != nil else {
+            guard let jwtProofType = proofTypesSupported["jwt"] else {
                 throw CredentialOfferViewModelError.UnsupportedProofType(supportedTypes: supportedTypes)
             }
 
-            // Generate jwt proof
+            // Generate jwt proof with supported signing algorithms
             let proofJwt = try KeyPairUtil.createProofJwt(
                 keyAlias: Constants.Cryptography.KEY_BINDING,
                 audience: credentialIssuer,
-                nonce: cNonce)
+                nonce: cNonce,
+                proofSigningAlgValuesSupported: jwtProofType.proofSigningAlgValuesSupported)
             proofsObject = Proofs(jwt: [proofJwt], cwt: nil, ldpVp: nil)
         } else {
             // proof_types_supported is nil or empty - no proofs required
