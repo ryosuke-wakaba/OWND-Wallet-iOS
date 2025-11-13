@@ -13,7 +13,7 @@ class VCIMetadataUtil {
         var types: [String] = []
 
         switch format {
-            case "vc+sd-jwt":
+            case "dc+sd-jwt":  // OID4VCI 1.0: New format name
                 let jwt = try SDJwtUtil.divideSDJwt(sdJwt: credential).issuerSignedJwt
                 let decoded = try decodeJWTPayload(jwt: jwt)
                 let vct = decoded["vct"] as! String
@@ -40,8 +40,8 @@ class VCIMetadataUtil {
             (_, credentialSupported) -> Bool in
             switch credentialSupported {
                 case let credentialSupported as CredentialSupportedVcSdJwt:
-                    // VcSdJwtの場合、vctとtypesの最初の要素を比較
-                    return format == "vc+sd-jwt"
+                    // OID4VCI 1.0: VcSdJwtの場合、vctとtypesの最初の要素を比較
+                    return format == "dc+sd-jwt"
                         && types.first == credentialSupported.vct
 
                 case let credentialSupported as CredentialSupportedJwtVcJson:
@@ -68,9 +68,16 @@ class VCIMetadataUtil {
 
         switch credentialsSupported {
             case let credentialsSupported as CredentialSupportedJwtVcJson:
-                if let credentialSubject = credentialsSupported.credentialDefinition
-                    .credentialSubject
-                {
+                // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to credentialDefinition.credentialSubject
+                if let metadata = credentialsSupported.credentialMetadata,
+                   let metadataClaims = metadata.claims {
+                    for claim in metadataClaims {
+                        // Use the last element of path as the claim key
+                        if let lastName = claim.path.last, let display = claim.display {
+                            displayMap[lastName] = display
+                        }
+                    }
+                } else if let credentialSubject = credentialsSupported.credentialDefinition.credentialSubject {
                     for (k, v) in credentialSubject {
                         if let display = v.display {
                             displayMap[k] = display
@@ -79,7 +86,16 @@ class VCIMetadataUtil {
                 }
 
             case let credentialsSupported as CredentialSupportedVcSdJwt:
-                if let credentialSubject = credentialsSupported.claims {
+                // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to claims
+                if let metadata = credentialsSupported.credentialMetadata,
+                   let metadataClaims = metadata.claims {
+                    for claim in metadataClaims {
+                        // Use the last element of path as the claim key
+                        if let lastName = claim.path.last, let display = claim.display {
+                            displayMap[lastName] = display
+                        }
+                    }
+                } else if let credentialSubject = credentialsSupported.claims {
                     for (k, v) in credentialSubject {
                         if let display = v.display {
                             displayMap[k] = display
