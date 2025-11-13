@@ -79,7 +79,7 @@ OWND Wallet iOSの設計・開発・運用に関するドキュメントです�
 
 ### 仕様・標準
 - [W3C Verifiable Credentials](https://www.w3.org/TR/vc-data-model/)
-- [OID4VCI Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-12.html)
+- [OID4VCI 1.0 Final Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html)
 - [OID4VP Specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-18.html)
 - [SIOPv2 Specification](https://openid.net/specs/openid-connect-self-issued-v2-1_0-13.html)
 - [Presentation Exchange](https://identity.foundation/presentation-exchange/)

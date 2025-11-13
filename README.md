@@ -34,7 +34,7 @@ OWND Wallet iOS is an implementation of a white-label digital identity wallet th
 ## Terminology
 - **Verifiable Credential (VC):** A digital identity that can be cryptographically verified.
 - **Verifiable Presentation (VP):** A data format used to present VCs to a verifier.
-- **OpenID for Verifiable Credential Issuance (OID4VCI):** A standard protocol for issuing VCs. For more information, visit [OID4VCI Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-12.html).
+- **OpenID for Verifiable Credential Issuance (OID4VCI):** A standard protocol for issuing VCs. For more information, visit [OID4VCI 1.0 Final Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html).
 - **Self-Issued OpenID Provider v2 (SIOPv2):** A standard protocol for issuing self-signed identities. More details can be found at [SIOPv2 Specification](https://openid.net/specs/openid-connect-self-issued-v2-1_0-13.html).
 - **OpenID for Verifiable Presentations (OID4VP):** A standard protocol for issuing VPs. Read more at [OID4VP Specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-18.html).
 
