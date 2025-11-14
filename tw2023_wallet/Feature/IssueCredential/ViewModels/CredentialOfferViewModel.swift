@@ -8,24 +8,6 @@
 import Foundation
 import SwiftUI
 
-enum CredentialOfferViewModelError: Error {
-    case LoadDataDidNotFinishuccessfully
-    case CredentialOfferConfigurationIsEmpty
-    case ProofGenerationFailed
-    case UnsupportedProofType(supportedTypes: [String])
-
-    case TransactionIdIsRequired
-    case DeferredIssuanceIsNotSupported
-    case CredentialToBeConvertedDoesNotExist
-
-    case FailedToConvertToInternalFormat
-
-    // credential offer format
-    case CredentialOfferQueryItemsNotFound
-    case CredentialOfferParameterNotFound
-    case InvalidCredentialOffer
-}
-
 class CredentialOfferViewModel: ObservableObject {
     var dataModel: CredentialOfferModel = .init()
 
@@ -38,7 +20,7 @@ class CredentialOfferViewModel: ObservableObject {
             let metadata = dataModel.metaData,
             let configId = credentialConfigurationId
         else {
-            throw CredentialOfferViewModelError.LoadDataDidNotFinishuccessfully
+            throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
         let vciClient = try await VCIClient(credentialOffer: offer, metaData: metadata)
@@ -63,7 +45,7 @@ class CredentialOfferViewModel: ObservableObject {
 
         // Get credential configuration from metadata
         guard let credentialConfig = metadata.credentialIssuerMetadata.credentialConfigurationsSupported[configId] else {
-            throw CredentialOfferViewModelError.LoadDataDidNotFinishuccessfully
+            throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
         // Determine if proofs should be included based on proof_types_supported
@@ -72,7 +54,7 @@ class CredentialOfferViewModel: ObservableObject {
             // proof_types_supported exists and is not empty
             let supportedTypes = Array(proofTypesSupported.keys)
             guard let jwtProofType = proofTypesSupported["jwt"] else {
-                throw CredentialOfferViewModelError.UnsupportedProofType(supportedTypes: supportedTypes)
+                throw CredentialIssuanceError.unsupportedProofType(supportedTypes: supportedTypes)
             }
 
             // Generate jwt proof with supported signing algorithms
@@ -97,11 +79,11 @@ class CredentialOfferViewModel: ObservableObject {
 
         if credentialResponse.credential == nil {
             if credentialResponse.transactionId == nil {
-                throw CredentialOfferViewModelError.TransactionIdIsRequired
+                throw CredentialIssuanceError.transactionIdIsRequired
             }
 
             // todo: implement deferred issuance
-            throw CredentialOfferViewModelError.DeferredIssuanceIsNotSupported
+            throw CredentialIssuanceError.deferredIssuanceIsNotSupported
         }
         else {
             // save credential
@@ -136,7 +118,7 @@ class CredentialOfferViewModel: ObservableObject {
         guard let offer = dataModel.credentialOffer,
             let metadata = dataModel.metaData
         else {
-            throw CredentialOfferViewModelError.LoadDataDidNotFinishuccessfully
+            throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
         let offerIds = offer.credentialConfigurationIds
@@ -144,7 +126,7 @@ class CredentialOfferViewModel: ObservableObject {
         // OID4VCI 1.0: Use credential_configuration_id directly
         // todo: support multiple credential offer
         guard let firstOfferCredential = offerIds.first else {
-            throw CredentialOfferViewModelError.CredentialOfferConfigurationIsEmpty
+            throw CredentialIssuanceError.credentialOfferConfigurationIsEmpty
         }
 
         dataModel.targetCredentialId = firstOfferCredential
@@ -155,7 +137,7 @@ class CredentialOfferViewModel: ObservableObject {
         throws -> Datastore_CredentialData
     {
         guard let credentialToSave = credentialResponse.credential else {
-            throw CredentialOfferViewModelError.CredentialToBeConvertedDoesNotExist
+            throw CredentialIssuanceError.credentialToBeConvertedDoesNotExist
         }
 
         // OID4VCI 1.0: Determine format from metadata
@@ -163,14 +145,15 @@ class CredentialOfferViewModel: ObservableObject {
             let metadata = dataModel.metaData,
             let config = metadata.credentialIssuerMetadata.credentialConfigurationsSupported[configId]
         else {
-            throw CredentialOfferViewModelError.LoadDataDidNotFinishuccessfully
+            throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
         let format = config.format
+        let credentialFormat = CredentialFormat(formatString: format)
         let basicInfo: [String: Any] =
-            format == "dc+sd-jwt"
-            ? extractSDJwtInfo(credential: credentialToSave, format: format)
-            : extractInfoFromJwt(jwt: credentialToSave, format: format)
+            credentialFormat?.isSDJWT == true
+            ? JWTParsingUtil.extractSDJwtInfo(credential: credentialToSave, format: format)
+            : JWTParsingUtil.extractInfoFromJwt(jwt: credentialToSave, format: format)
 
         let encoder = JSONEncoder()
 
@@ -199,41 +182,8 @@ class CredentialOfferViewModel: ObservableObject {
 
         }
         catch {
-            throw CredentialOfferViewModelError.FailedToConvertToInternalFormat
+            throw CredentialIssuanceError.failedToConvertToInternalFormat
         }
-    }
-
-    private func extractSDJwtInfo(credential: String, format: String) -> [String: Any] {
-        let issuerSignedJwt = credential.split(separator: "~")[0]
-        return extractInfoFromJwt(jwt: String(issuerSignedJwt), format: format)
-    }
-
-    private func extractJwtVcJsonInfo(credential: String, format: String) -> [String: Any] {
-        return extractInfoFromJwt(jwt: credential, format: format)
-    }
-
-    private func extractInfoFromJwt(jwt: String, format: String) -> [String: Any] {
-        guard let decodedPayload = jwt.components(separatedBy: ".")[1].base64UrlDecoded(),
-            let decodedString = String(data: decodedPayload, encoding: .utf8),
-            let jsonData = decodedString.data(using: .utf8),
-            let jwtDictionary = try? JSONSerialization.jsonObject(with: jsonData, options: [])
-                as? [String: Any]
-        else {
-            return [:]
-        }
-
-        let iss = jwtDictionary["iss"] as? String ?? ""
-        let iat = jwtDictionary["iat"] as? Int64 ?? 0
-        let exp = jwtDictionary["exp"] as? Int64 ?? 0
-        let typeOrVct: String
-        if format == "dc+sd-jwt" {
-            typeOrVct = jwtDictionary["vct"] as? String ?? ""
-        }
-        else {
-            typeOrVct = jwtDictionary["type"] as? String ?? ""
-        }
-
-        return ["iss": iss, "iat": iat, "exp": exp, "typeOrVct": typeOrVct]
     }
 
 }

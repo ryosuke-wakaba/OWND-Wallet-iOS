@@ -108,6 +108,14 @@
 		8B81E2FF2B35B97500ED3B4E /* CredentialOffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B81E2FE2B35B97500ED3B4E /* CredentialOffer.swift */; };
 		8B81E3062B35BA7500ED3B4E /* CredentialOfferViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B81E3052B35BA7500ED3B4E /* CredentialOfferViewModel.swift */; };
 		8B81E3092B35BAB200ED3B4E /* SharingRequestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B81E3082B35BAB200ED3B4E /* SharingRequestViewModel.swift */; };
+		8B89648A2EC70A4700DD917E /* CredentialFormats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964882EC70A4700DD917E /* CredentialFormats.swift */; };
+		8B89648B2EC70A4700DD917E /* CredentialFormats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964882EC70A4700DD917E /* CredentialFormats.swift */; };
+		8B89648E2EC70A8100DD917E /* CredentialIssuanceErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89648C2EC70A8100DD917E /* CredentialIssuanceErrors.swift */; };
+		8B89648F2EC70A8100DD917E /* CredentialIssuanceErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89648C2EC70A8100DD917E /* CredentialIssuanceErrors.swift */; };
+		8B8964982EC70CF100DD917E /* MetadataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964972EC70CF100DD917E /* MetadataDecoder.swift */; };
+		8B8964992EC70CF100DD917E /* JWTParsingUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */; };
+		8B89649A2EC70CF100DD917E /* MetadataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964972EC70CF100DD917E /* MetadataDecoder.swift */; };
+		8B89649B2EC70CF100DD917E /* JWTParsingUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */; };
 		8B91B1542B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */; };
 		8B91B1562B6BBBAC00A1AA1A /* CredentialListForSharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */; };
 		8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
@@ -376,6 +384,10 @@
 		8B81E2FE2B35B97500ED3B4E /* CredentialOffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialOffer.swift; sourceTree = "<group>"; };
 		8B81E3052B35BA7500ED3B4E /* CredentialOfferViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialOfferViewModel.swift; sourceTree = "<group>"; };
 		8B81E3082B35BAB200ED3B4E /* SharingRequestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingRequestViewModel.swift; sourceTree = "<group>"; };
+		8B8964882EC70A4700DD917E /* CredentialFormats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialFormats.swift; sourceTree = "<group>"; };
+		8B89648C2EC70A8100DD917E /* CredentialIssuanceErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialIssuanceErrors.swift; sourceTree = "<group>"; };
+		8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTParsingUtil.swift; sourceTree = "<group>"; };
+		8B8964972EC70CF100DD917E /* MetadataDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataDecoder.swift; sourceTree = "<group>"; };
 		8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensOnFullScreen.swift; sourceTree = "<group>"; };
 		8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CredentialListForSharing.swift; sourceTree = "<group>"; };
 		8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JwtVpJsonGeneratorImpl.swift; sourceTree = "<group>"; };
@@ -683,6 +695,8 @@
 		8B81E29B2B33CC4000ED3B4E /* tw2023_wallet */ = {
 			isa = PBXGroup;
 			children = (
+				8B89648D2EC70A8100DD917E /* Errors */,
+				8B8964892EC70A4700DD917E /* Constants */,
 				A8CE83AD2C0465040061915C /* tw2023_wallet.entitlements */,
 				A84AB6CF2B4F7C4D00E8C88B /* datastore */,
 				A83039C52B4E6E1A004139A7 /* proto */,
@@ -954,6 +968,22 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
+		8B8964892EC70A4700DD917E /* Constants */ = {
+			isa = PBXGroup;
+			children = (
+				8B8964882EC70A4700DD917E /* CredentialFormats.swift */,
+			);
+			path = Constants;
+			sourceTree = "<group>";
+		};
+		8B89648D2EC70A8100DD917E /* Errors */ = {
+			isa = PBXGroup;
+			children = (
+				8B89648C2EC70A8100DD917E /* CredentialIssuanceErrors.swift */,
+			);
+			path = Errors;
+			sourceTree = "<group>";
+		};
 		8BB2BA772B4BC93400C668BA /* Lock */ = {
 			isa = PBXGroup;
 			children = (
@@ -1197,6 +1227,8 @@
 		A8E8922E2B3A6FBC009F3755 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */,
+				8B8964972EC70CF100DD917E /* MetadataDecoder.swift */,
 				A8E8922F2B3A705D009F3755 /* SerializeUtil.swift */,
 				A89297532B3AA151007315BE /* ZipUtil.swift */,
 				A892975A2B3AA81C007315BE /* CertificateUtil.swift */,
@@ -1592,6 +1624,7 @@
 				8B5C659E2B552C2700D72289 /* VerificationArgs.swift in Sources */,
 				F6CC76952B567C1100FA26A8 /* QRReaderView.swift in Sources */,
 				8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */,
+				8B89648E2EC70A8100DD917E /* CredentialIssuanceErrors.swift in Sources */,
 				8B81E2CF2B33D8AB00ED3B4E /* Setting.swift in Sources */,
 				A8C810442B82042300CF8CD6 /* SharingToRow.swift in Sources */,
 				A89297542B3AA151007315BE /* ZipUtil.swift in Sources */,
@@ -1615,6 +1648,7 @@
 				F6E0A5452B47E74700A30F6D /* AddCertificates.swift in Sources */,
 				8B81E3092B35BAB200ED3B4E /* SharingRequestViewModel.swift in Sources */,
 				A8C810422B82042300CF8CD6 /* SharingToViewModel.swift in Sources */,
+				8B89648A2EC70A4700DD917E /* CredentialFormats.swift in Sources */,
 				F6BB103D2B50B5810063DBBF /* StatusBox.swift in Sources */,
 				8B81E29F2B33CC4000ED3B4E /* ContentView.swift in Sources */,
 				A8137C3D2B478710008CA5AC /* KeyPairUtil.swift in Sources */,
@@ -1677,6 +1711,8 @@
 				F621E1F32B6C654D0034BF95 /* RecipientDetail.swift in Sources */,
 				F6E0A01D2B400FAA00C2B541 /* ImageLoader.swift in Sources */,
 				F6CC76912B567AD100FA26A8 /* QrCodeScannerView.swift in Sources */,
+				8B8964982EC70CF100DD917E /* MetadataDecoder.swift in Sources */,
+				8B8964992EC70CF100DD917E /* JWTParsingUtil.swift in Sources */,
 				8B774A542B7B7B5400F5ED55 /* QRReaderViewLauncher.swift in Sources */,
 				F6BB10432B50FC100063DBBF /* ActionButtonBlack.swift in Sources */,
 				F6CC769C2B57CDB900FA26A8 /* QRCodeGenerator.swift in Sources */,
@@ -1740,6 +1776,7 @@
 				A810871E2B3BC9DF004425DE /* ES256KTest.swift in Sources */,
 				8B297C382B3953D700D2998D /* VCIMetadata.swift in Sources */,
 				A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */,
+				8B89648F2EC70A8100DD917E /* CredentialIssuanceErrors.swift in Sources */,
 				8BAB8D8B2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */,
 				8B297C372B39538500D2998D /* VCIMetadataTests.swift in Sources */,
 				8BAB8D8C2C10045300B579A4 /* Constants.swift in Sources */,
@@ -1752,6 +1789,8 @@
 				8B5C65992B5251C000D72289 /* KeyBindingImpl.swift in Sources */,
 				8B5C659C2B54D97400D72289 /* ES256K.swift in Sources */,
 				8B0E0AA92B3ED7D20080F6A3 /* AuthorizationRquestTests.swift in Sources */,
+				8B89649A2EC70CF100DD917E /* MetadataDecoder.swift in Sources */,
+				8B89649B2EC70CF100DD917E /* JWTParsingUtil.swift in Sources */,
 				A88BF3532CB7807600401ACC /* SerializeUtilTest.swift in Sources */,
 				8BB2BA7F2B4C188E00C668BA /* EncryptionHelperTests.swift in Sources */,
 				8B43AE322B3A5B880016CF83 /* VCIMetadataClientTests.swift in Sources */,
@@ -1763,6 +1802,7 @@
 				8B5C659F2B552C2700D72289 /* VerificationArgs.swift in Sources */,
 				8BB2BA752B4BC46400C668BA /* BiometricAuth.swift in Sources */,
 				8B0E0AAA2B3EEFC20080F6A3 /* AuthRequest.swift in Sources */,
+				8B89648B2EC70A4700DD917E /* CredentialFormats.swift in Sources */,
 				8B5C65932B515C2000D72289 /* KeyPairUtil.swift in Sources */,
 				8B81E2AE2B33CC4300ED3B4E /* tw2023_walletTests.swift in Sources */,
 				A83039C02B4E4229004139A7 /* SDJwtUtilTest.swift in Sources */,

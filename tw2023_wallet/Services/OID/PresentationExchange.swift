@@ -392,7 +392,7 @@ class JwtVpJsonPresentation {
          For now, we will keep the current implementation, but it should be adjusted accordingly based on the specification we adopt.
          */
         let pathNested = Path(
-            format: "jwt_vc_json",
+            format: CredentialFormat.jwtVCJson.rawValue,
             path: "$.vp.verifiableCredential[\(pathNestedIndex)]"
         )
 

@@ -38,15 +38,16 @@ class VCIMetadataUtil {
     ) -> CredentialConfiguration? {
         return metadata.credentialConfigurationsSupported.first {
             (_, credentialSupported) -> Bool in
+            let credentialFormat = CredentialFormat(formatString: format)
             switch credentialSupported {
                 case let credentialSupported as CredentialSupportedVcSdJwt:
                     // OID4VCI 1.0: VcSdJwtの場合、vctとtypesの最初の要素を比較
-                    return format == "dc+sd-jwt"
+                    return credentialFormat?.isSDJWT == true
                         && types.first == credentialSupported.vct
 
                 case let credentialSupported as CredentialSupportedJwtVcJson:
                     // JwtVcJsonの場合、typesとcredentialDefinition.typeを両方ソートして比較
-                    return format == "jwt_vc_json"
+                    return credentialFormat == .jwtVCJson
                         && containsAllElements(credentialSupported.credentialDefinition.type, types)
 
                 default:

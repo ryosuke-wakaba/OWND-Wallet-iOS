@@ -50,7 +50,9 @@ class CredentialListViewModel {
         let format = credential.format
         print("format: \(format)")
         do {
-            if format == "vc+sd-jwt" || format == "dc+sd-jwt" {  // OID4VCI 1.0: Support both formats
+            let credentialFormat = CredentialFormat(formatString: format)
+
+            if credentialFormat?.isSDJWT == true {
                 let ret = presentationDefinition.firstMatchedInputDescriptor(
                     sdJwt: credential.payload)
                 if let (_, disclosures) = ret {
@@ -59,7 +61,7 @@ class CredentialListViewModel {
                 }
                 return false
             }
-            else if format == "jwt_vc_json" {
+            else if credentialFormat == .jwtVCJson {
                 let (_, payload, _) = try JWTUtil.decodeJwt(jwt: credential.payload)
                 print("satisfyConstrains?")
                 return presentationDefinition.satisfyConstrains(

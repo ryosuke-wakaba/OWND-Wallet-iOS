@@ -288,9 +288,9 @@ func decodeCredentialSupported(from jsonData: Data) throws -> CredentialConfigur
     print(formatContainer)
 
     switch formatContainer.format {
-        case "dc+sd-jwt":  // OID4VCI 1.0: New format name
+        case CredentialFormat.dcSDJWT.rawValue:  // OID4VCI 1.0: New format name
             return try decoder.decode(CredentialSupportedVcSdJwt.self, from: jsonData)
-        case "jwt_vc_json":
+        case CredentialFormat.jwtVCJson.rawValue:
             return try decoder.decode(CredentialSupportedJwtVcJson.self, from: jsonData)
         case "ldp_vc":
             return try decoder.decode(CredentialSupportedLdpVc.self, from: jsonData)

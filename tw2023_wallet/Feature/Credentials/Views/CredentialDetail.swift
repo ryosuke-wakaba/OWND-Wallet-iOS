@@ -63,7 +63,7 @@ struct CredentialDetail: View {
                         // ------------------------- QR code section -------------------------
                         if !vpMode {
                             // QR表示画面のリンク
-                            if self.credential.format == "jwt_vc_json" {
+                            if CredentialFormat(formatString: self.credential.format) == .jwtVCJson {
                                 Text("display_qr_code")
                                     .underline()
                                     .modifier(BodyGray())
