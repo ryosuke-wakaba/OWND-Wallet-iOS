@@ -50,7 +50,7 @@ class CredentialListViewModel {
         let format = credential.format
         print("format: \(format)")
         do {
-            if format == "vc+sd-jwt" {
+            if format == "vc+sd-jwt" || format == "dc+sd-jwt" {  // OID4VCI 1.0: Support both formats
                 let ret = presentationDefinition.firstMatchedInputDescriptor(
                     sdJwt: credential.payload)
                 if let (_, disclosures) = ret {

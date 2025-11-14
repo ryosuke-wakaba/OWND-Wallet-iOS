@@ -402,7 +402,8 @@ enum CredentialIssuanceError: Error {
 
 ## References
 
-- [OID4VCI Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-12.html)
+- [OID4VCI 1.0 Final Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html)
+- [ADR: OID4VCI 1.0 Upgrade](../../docs/adr/0001-upgrade-oid4vci-to-version-1.0.md)
 - Implementation: `tw2023_wallet/Services/OID/VCI/`
 - Data Manager: `tw2023_wallet/datastore/CredentialDataManager.swift`
 - Protocol Buffers: `tw2023_wallet/proto/credential_data.proto`

@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum VCIClientError: Error {
+enum VCIClientError: Error, LocalizedError {
     case undecodableCredentialOffer(json: String)
     case retrieveMetaDataError(error: MetadataError)
     case tokenEndpointIsRequired
@@ -15,6 +15,50 @@ enum VCIClientError: Error {
     case unsupportedCredentialFormat(format: String)
     case credentialEndpointIsRequired
     case jwtProofRequired
+    case nonceEndpointIsRequired  // OID4VCI 1.0
+    case oauthError(error: String, description: String?)
+    case httpError(statusCode: Int, body: String?)
+
+    var errorDescription: String? {
+        switch self {
+        case .oauthError(let error, let description):
+            if let description = description, !description.isEmpty {
+                // Show description as main message, with error code in parentheses
+                return "\(description)\n(error: \(error))"
+            }
+            return "Error: \(error)"
+        case .httpError(let statusCode, let body):
+            if let body = body {
+                return "HTTP \(statusCode): \(body)"
+            }
+            return "HTTP \(statusCode)"
+        case .nonceEndpointIsRequired:
+            return "Nonce endpoint is required"
+        case .undecodableCredentialOffer(let json):
+            return "Undecodable credential offer: \(json)"
+        case .retrieveMetaDataError(let error):
+            return "Metadata error: \(error)"
+        case .tokenEndpointIsRequired:
+            return "Token endpoint is required"
+        case .credentialEndpointIsRequiredG, .credentialEndpointIsRequired:
+            return "Credential endpoint is required"
+        case .unsupportedCredentialFormat(let format):
+            return "Unsupported credential format: \(format)"
+        case .jwtProofRequired:
+            return "JWT proof is required"
+        }
+    }
+}
+
+// OAuth 2.0 / OID4VCI Error Response
+struct OAuthErrorResponse: Codable {
+    let error: String
+    let errorDescription: String?
+
+    enum CodingKeys: String, CodingKey {
+        case error
+        case errorDescription = "error_description"
+    }
 }
 
 struct GrantAuthorizationCode: Codable {
@@ -126,14 +170,14 @@ struct OAuthTokenRequest: Codable {
     let preAuthorizedCode: String?
     let txCode: String?
 
-    // It is assumed that the snake case strategy is configured.
+    // OAuth 2.0 Token Request parameters use snake_case
     enum CodingKeys: String, CodingKey {
         case code
-        case grantType = "grantType"
-        case redirectUri = "redirectUri"
-        case clientId = "clientId"
-        case preAuthorizedCode = "pre-authorizedCode"
-        case txCode = "txCode"
+        case grantType = "grant_type"
+        case redirectUri = "redirect_uri"
+        case clientId = "client_id"
+        case preAuthorizedCode = "pre-authorized_code"
+        case txCode = "tx_code"
     }
 }
 
@@ -186,37 +230,33 @@ struct LdpVpProof: Proofable {
     let ldpVp: LdpVp
 }
 
-protocol CredentialRequest: Encodable {
-    associatedtype ProofType: Proofable
-    var format: String { get }
-    var proof: ProofType? { get }
+// OID4VCI 1.0: New proof structure
+struct Proofs: Codable {
+    let jwt: [String]?
+    let cwt: [String]?
+    let ldpVp: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case jwt
+        case cwt
+        case ldpVp = "ldp_vp"
+    }
+}
+
+// OID4VCI 1.0: Nonce endpoint response
+struct NonceResponse: Codable {
+    let cNonce: String
+}
+
+// OID4VCI 1.0: Simplified credential request
+struct CredentialRequestV1: Codable {
+    let credentialConfigurationId: String
+    let proofs: Proofs?
 
     // REQUIRED when credential_identifiers parameter was returned from the Token Response.
     // It MUST NOT be used otherwise
-    var credentialIdentifier: String? { get }
-    var credentialResponseEncryption: CredentialRequestCredentialResponseEncryption? { get }
-}
-
-struct CredentialRequestVcSdJwt: CredentialRequest {
-    let format: String
-    let proof: JwtProof?
     let credentialIdentifier: String?
     let credentialResponseEncryption: CredentialRequestCredentialResponseEncryption?
-
-    // REQUIRED when the format parameter is present in the Credential Request. It MUST NOT be used otherwise
-    let vct: String?
-    let claims: [String: Claim]?
-}
-
-struct CredentialRequestJwtVcJson: CredentialRequest {
-    let format: String
-    let proof: JwtProof?
-    var credentialIdentifier: String?
-    var credentialResponseEncryption: CredentialRequestCredentialResponseEncryption?
-
-    // REQUIRED when the format parameter is present in the Credential Request.
-    // It MUST NOT be used otherwise
-    let credentialDefinition: CredentialDefinitionJwtVcJson?
 }
 
 struct CredentialResponse: Codable {
@@ -227,57 +267,17 @@ struct CredentialResponse: Codable {
     let notificationId: String?
 }
 
-struct CredentialDefinitionJwtVcJson: Encodable {
-    let type: [String]
-    let credentialSubject: [String: ClaimOnlyMandatory]?
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case credentialSubject = "credentialSubject"
-    }
-}
-
-func createCredentialRequest(formatValue: String, credentialType: String, proofable: Proofable?)
-    throws -> any CredentialRequest
-{
-    switch formatValue {
-        case "vc+sd-jwt":
-            // Proof is optional. Only if present, convert to the appropriate type.
-            var proof: JwtProof? = nil
-            if let someProof = proofable {
-                guard let jwtProof = someProof as? JwtProof else {
-                    throw VCIClientError.jwtProofRequired
-                }
-                proof = jwtProof
-            }
-            return CredentialRequestVcSdJwt(
-                format: formatValue,
-                proof: proof,
-                credentialIdentifier: nil,
-                credentialResponseEncryption: nil,
-                vct: credentialType,
-                claims: nil
-            )
-        case "jwt_vc_json":
-            // Proof is optional. Only if present, convert to the appropriate type.
-            var proof: JwtProof? = nil
-            if let someProof = proofable {
-                guard let jwtProof = someProof as? JwtProof else {
-                    throw VCIClientError.jwtProofRequired
-                }
-                proof = jwtProof
-            }
-            return CredentialRequestJwtVcJson(
-                format: formatValue,
-                proof: proof,
-                credentialDefinition:
-                    CredentialDefinitionJwtVcJson(
-                        type: [credentialType],
-                        credentialSubject: nil)
-            )
-        default:
-            throw VCIClientError.unsupportedCredentialFormat(format: formatValue)
-    }
+// OID4VCI 1.0: Simplified credential request creation
+func createCredentialRequest(
+    credentialConfigurationId: String,
+    proofs: Proofs?
+) -> CredentialRequestV1 {
+    return CredentialRequestV1(
+        credentialConfigurationId: credentialConfigurationId,
+        proofs: proofs,
+        credentialIdentifier: nil,
+        credentialResponseEncryption: nil
+    )
 }
 
 func postTokenRequest(
@@ -290,9 +290,33 @@ func postTokenRequest(
     let encoder = URLEncodedFormEncoder()
     request.httpBody = try encoder.encode(tokenRequest)
 
+    // Debug: Log request details
+    if let bodyString = String(data: request.httpBody ?? Data(), encoding: .utf8) {
+        print("Token Request URL: \(url)")
+        print("Token Request Body: \(bodyString)")
+    }
+
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        // Log error details
+        if let httpResponse = response as? HTTPURLResponse {
+            print("Token Request Error - Status Code: \(httpResponse.statusCode)")
+            if let errorBody = String(data: data, encoding: .utf8) {
+                print("Token Request Error - Response Body: \(errorBody)")
+            }
+
+            // Try to parse OAuth error response
+            let decoder = JSONDecoder()
+            // Don't use convertFromSnakeCase here because OAuthErrorResponse has explicit CodingKeys
+            if let oauthError = try? decoder.decode(OAuthErrorResponse.self, from: data) {
+                throw VCIClientError.oauthError(error: oauthError.error, description: oauthError.errorDescription)
+            }
+
+            // If not OAuth error format, return HTTP error with body
+            let errorBody = String(data: data, encoding: .utf8)
+            throw VCIClientError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
+        }
         throw URLError(.badServerResponse)
     }
 
@@ -302,7 +326,7 @@ func postTokenRequest(
 }
 
 func postCredentialRequest(
-    _ credentialRequest: any CredentialRequest, to url: URL, accessToken: String,
+    _ credentialRequest: CredentialRequestV1, to url: URL, accessToken: String,
     using session: URLSession = URLSession.shared
 ) async throws -> CredentialResponse {
     var request = URLRequest(url: url)
@@ -310,28 +334,38 @@ func postCredentialRequest(
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-    // CredentialRequestをJSONにエンコード
-    // todo: snake_case と camelCaseの混在を適切に扱うようにする
+    // OID4VCI 1.0: Simplified request encoding
     let encoder = JSONEncoder()
     encoder.keyEncodingStrategy = .convertToSnakeCase
 
-    let encoded = try encoder.encode(credentialRequest)
-    var payload: Data? = nil
-    if let jsonString = String(data: encoded, encoding: .utf8) {
-        // workaround
-        let credSubWithCamelCase = jsonString.replacingOccurrences(
-            of: "\"credential_subject\"", with: "\"credentialSubject\"")
-        payload = credSubWithCamelCase.data(using: .utf8)
-        print("JSON String: \(jsonString)")
-    }
-    else {
-        print("Failed to convert Data to String")
-    }
+    let payload = try encoder.encode(credentialRequest)
     request.httpBody = payload
+
+    if let jsonString = String(data: payload, encoding: .utf8) {
+        print("Credential Request JSON: \(jsonString)")
+    }
 
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        // Log error details
+        if let httpResponse = response as? HTTPURLResponse {
+            print("Credential Request Error - Status Code: \(httpResponse.statusCode)")
+            if let errorBody = String(data: data, encoding: .utf8) {
+                print("Credential Request Error - Response Body: \(errorBody)")
+            }
+
+            // Try to parse OAuth error response
+            let decoder = JSONDecoder()
+            // Don't use convertFromSnakeCase here because OAuthErrorResponse has explicit CodingKeys
+            if let oauthError = try? decoder.decode(OAuthErrorResponse.self, from: data) {
+                throw VCIClientError.oauthError(error: oauthError.error, description: oauthError.errorDescription)
+            }
+
+            // If not OAuth error format, return HTTP error with body
+            let errorBody = String(data: data, encoding: .utf8)
+            throw VCIClientError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
+        }
         throw URLError(.badServerResponse)
     }
 
@@ -339,6 +373,45 @@ func postCredentialRequest(
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
     return try decoder.decode(CredentialResponse.self, from: data)
+}
+
+// OID4VCI 1.0: Nonce Endpoint (not a protected resource)
+func postNonceRequest(
+    to url: URL, using session: URLSession = URLSession.shared
+) async throws -> NonceResponse {
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+
+    print("Nonce Request URL: \(url)")
+
+    let (data, response) = try await session.data(for: request)
+
+    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        // Log error details
+        if let httpResponse = response as? HTTPURLResponse {
+            print("Nonce Request Error - Status Code: \(httpResponse.statusCode)")
+            if let errorBody = String(data: data, encoding: .utf8) {
+                print("Nonce Request Error - Response Body: \(errorBody)")
+            }
+
+            // Try to parse OAuth error response
+            let decoder = JSONDecoder()
+            // Don't use convertFromSnakeCase here because OAuthErrorResponse has explicit CodingKeys
+            if let oauthError = try? decoder.decode(OAuthErrorResponse.self, from: data) {
+                throw VCIClientError.oauthError(error: oauthError.error, description: oauthError.errorDescription)
+            }
+
+            // If not OAuth error format, return HTTP error with body
+            let errorBody = String(data: data, encoding: .utf8)
+            throw VCIClientError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
+        }
+        throw URLError(.badServerResponse)
+    }
+
+    // Decode nonce response
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    return try decoder.decode(NonceResponse.self, from: data)
 }
 
 class VCIClient {
@@ -389,10 +462,21 @@ class VCIClient {
     }
 
     func issueCredential(
-        payload: any CredentialRequest, accessToken: String,
+        payload: CredentialRequestV1, accessToken: String,
         using session: URLSession = URLSession.shared
     ) async throws -> CredentialResponse {
         return try await postCredentialRequest(
             payload, to: credentialEndpoint, accessToken: accessToken, using: session)
+    }
+
+    // OID4VCI 1.0: Fetch nonce from dedicated nonce endpoint
+    func fetchNonce(using session: URLSession = URLSession.shared) async throws -> NonceResponse {
+        guard let nonceEndpointString = metadata.credentialIssuerMetadata.nonceEndpoint,
+            let nonceEndpointUrl = URL(string: nonceEndpointString)
+        else {
+            throw VCIClientError.nonceEndpointIsRequired
+        }
+
+        return try await postNonceRequest(to: nonceEndpointUrl, using: session)
     }
 }

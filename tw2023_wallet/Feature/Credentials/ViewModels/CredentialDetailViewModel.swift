@@ -47,7 +47,7 @@ class CredentialDetailViewModel {
         dataModel.isLoading = false
         if let pd = presentationDefinition {
             switch credential.format {
-                case "vc+sd-jwt":
+                case "vc+sd-jwt", "dc+sd-jwt":  // OID4VCI 1.0: Support both formats
                     if let matched = pd.firstMatchedInputDescriptor(
                         sdJwt: credential.payload)
                     {

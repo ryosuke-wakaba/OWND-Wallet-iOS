@@ -77,7 +77,7 @@ class VerificationViewModel {
                         }
                     }
                 }
-                else if format == "vc+sd-jwt" {
+                else if format == "vc+sd-jwt" || format == "dc+sd-jwt" {  // OID4VCI 1.0: Support both formats
                     // TODO: Implement
                 }
                 else {

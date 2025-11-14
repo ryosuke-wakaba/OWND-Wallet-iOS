@@ -53,6 +53,18 @@ struct ClaimOnlyMandatory: Codable {
     var mandatory: Bool?
 }
 
+// OID4VCI 1.0: New credential_metadata structure
+struct ClaimMetadata: Codable {
+    let path: [String]
+    let mandatory: Bool?
+    let display: [ClaimDisplay]?
+}
+
+struct CredentialMetadata: Codable {
+    let claims: [ClaimMetadata]?
+    let display: [CredentialDisplay]?
+}
+
 struct ProofSigningAlgValuesSupported: Codable {
     let proofSigningAlgValuesSupported: [String]
 }
@@ -114,7 +126,22 @@ struct CredentialSupportedVcSdJwt: CredentialConfiguration {
     let claims: ClaimMap?
     let order: [String]?
 
+    // OID4VCI 1.0: New credential_metadata field
+    let credentialMetadata: CredentialMetadata?
+
     func getClaimNames(locale: String = "ja-JP") -> [String] {
+        // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to claims
+        if let metadata = self.credentialMetadata, let metadataClaims = metadata.claims {
+            var names: [String] = []
+            for claim in metadataClaims {
+                // Use the last element of path as the claim name
+                if let lastName = claim.path.last {
+                    names.append(lastName)
+                }
+            }
+            return names
+        }
+
         guard let claims = self.claims else {
             return []
         }
@@ -153,7 +180,22 @@ struct CredentialSupportedJwtVcJson: CredentialConfiguration {
     let credentialDefinition: JwtVcJsonCredentialDefinition
     let order: [String]?
 
+    // OID4VCI 1.0: New credential_metadata field
+    let credentialMetadata: CredentialMetadata?
+
     func getClaimNames(locale: String = "ja-JP") -> [String] {
+        // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to credentialDefinition
+        if let metadata = self.credentialMetadata, let metadataClaims = metadata.claims {
+            var names: [String] = []
+            for claim in metadataClaims {
+                // Use the last element of path as the claim name
+                if let lastName = claim.path.last {
+                    names.append(lastName)
+                }
+            }
+            return names
+        }
+
         return self.credentialDefinition.getClaimNames(locale: locale)
     }
 }
@@ -246,7 +288,7 @@ func decodeCredentialSupported(from jsonData: Data) throws -> CredentialConfigur
     print(formatContainer)
 
     switch formatContainer.format {
-        case "vc+sd-jwt":
+        case "dc+sd-jwt":  // OID4VCI 1.0: New format name
             return try decoder.decode(CredentialSupportedVcSdJwt.self, from: jsonData)
         case "jwt_vc_json":
             return try decoder.decode(CredentialSupportedJwtVcJson.self, from: jsonData)
@@ -266,6 +308,7 @@ struct CredentialIssuerMetadata: Codable {
     let batchCredentialEndpoint: String?
     let deferredCredentialEndpoint: String?
     let notificationEndpoint: String?
+    let nonceEndpoint: String?
     let credentialResponseEncryption: CredentialResponseEncryption?
     let credentialIdentifiersSupported: Bool?
     let signedMetadata: String?
@@ -280,6 +323,7 @@ struct CredentialIssuerMetadata: Codable {
         case batchCredentialEndpoint = "batchCredentialEndpoint"
         case deferredCredentialEndpoint = "deferredCredentialEndpoint"
         case notificationEndpoint = "notificationEndpoint"
+        case nonceEndpoint = "nonceEndpoint"
         case credentialResponseEncryption = "credentialResponseEncryption"
         case credentialIdentifiersSupported = "credentialIdentifiersSupported"
         case credentialConfigurationsSupported = "credentialConfigurationsSupported"
@@ -312,6 +356,8 @@ struct CredentialIssuerMetadata: Codable {
             String.self, forKey: .deferredCredentialEndpoint)
         notificationEndpoint = try container.decodeIfPresent(
             String.self, forKey: .notificationEndpoint)
+        nonceEndpoint = try container.decodeIfPresent(
+            String.self, forKey: .nonceEndpoint)
         credentialResponseEncryption = try container.decodeIfPresent(
             CredentialResponseEncryption.self, forKey: .credentialResponseEncryption)
         credentialIdentifiersSupported = try container.decodeIfPresent(

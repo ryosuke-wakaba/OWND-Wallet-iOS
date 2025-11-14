@@ -12,6 +12,7 @@ enum CredentialOfferViewModelError: Error {
     case LoadDataDidNotFinishuccessfully
     case CredentialOfferConfigurationIsEmpty
     case ProofGenerationFailed
+    case UnsupportedProofType(supportedTypes: [String])
 
     case TransactionIdIsRequired
     case DeferredIssuanceIsNotSupported
@@ -28,54 +29,67 @@ enum CredentialOfferViewModelError: Error {
 class CredentialOfferViewModel: ObservableObject {
     var dataModel: CredentialOfferModel = .init()
 
-    var credentialFormat: String? = nil
-    var credentialType: String? = nil
+    var credentialConfigurationId: String? = nil
 
     private let credentialDataManager = CredentialDataManager(container: nil)
 
     func sendRequest(txCode: String?) async throws {
         guard let offer = dataModel.credentialOffer,
             let metadata = dataModel.metaData,
-            let credFormat = credentialFormat,
-            let credType = credentialType
+            let configId = credentialConfigurationId
         else {
             throw CredentialOfferViewModelError.LoadDataDidNotFinishuccessfully
         }
 
         let vciClient = try await VCIClient(credentialOffer: offer, metaData: metadata)
 
+        // Step 1: Issue token
         let token = try await vciClient.issueToken(txCode: txCode)
         let accessToken = token.accessToken
-        let cNonce = token.cNonce
+
+        // Step 2: OID4VCI 1.0 - Fetch nonce from dedicated nonce endpoint
+        let nonceResponse = try await vciClient.fetchNonce()
+        let cNonce = nonceResponse.cNonce
 
         // binding key generation
-        let proofRequired = cNonce != nil
         let isKeyPairExist = KeyPairUtil.isKeyPairExist(
             alias: Constants.Cryptography.KEY_BINDING)
-        if !isKeyPairExist && proofRequired {
+        if !isKeyPairExist {
             try KeyPairUtil.generateSignVerifyKeyPair(alias: Constants.Cryptography.KEY_BINDING)
         }
 
-        // proof generation
-        var proofObject: Proofable? = nil
-        if proofRequired {
-            if let nonce = cNonce {
-                let credentialIssuer = offer.credentialIssuer
-                let proofJwt = try KeyPairUtil.createProofJwt(
-                    keyAlias: Constants.Cryptography.KEY_BINDING, audience: credentialIssuer,
-                    nonce: nonce)
-                switch credFormat {
-                    case "vc+sd-jwt", "jwt_vc_json":
-                        proofObject = JwtProof(proofType: "jwt", jwt: proofJwt)
-                    default:
-                        throw CredentialOfferViewModelError.ProofGenerationFailed
-                }
-            }
+        // Step 3: OID4VCI 1.0 - Generate proof based on proof_types_supported
+        let credentialIssuer = offer.credentialIssuer
+
+        // Get credential configuration from metadata
+        guard let credentialConfig = metadata.credentialIssuerMetadata.credentialConfigurationsSupported[configId] else {
+            throw CredentialOfferViewModelError.LoadDataDidNotFinishuccessfully
         }
 
-        // Credential Request Generation
-        let credentialRequest = try createCredentialRequest(
-            formatValue: credFormat, credentialType: credType, proofable: proofObject)
+        // Determine if proofs should be included based on proof_types_supported
+        let proofsObject: Proofs?
+        if let proofTypesSupported = credentialConfig.proofTypesSupported, !proofTypesSupported.isEmpty {
+            // proof_types_supported exists and is not empty
+            let supportedTypes = Array(proofTypesSupported.keys)
+            guard let jwtProofType = proofTypesSupported["jwt"] else {
+                throw CredentialOfferViewModelError.UnsupportedProofType(supportedTypes: supportedTypes)
+            }
+
+            // Generate jwt proof with supported signing algorithms
+            let proofJwt = try KeyPairUtil.createProofJwt(
+                keyAlias: Constants.Cryptography.KEY_BINDING,
+                audience: credentialIssuer,
+                nonce: cNonce,
+                proofSigningAlgValuesSupported: jwtProofType.proofSigningAlgValuesSupported)
+            proofsObject = Proofs(jwt: [proofJwt], cwt: nil, ldpVp: nil)
+        } else {
+            // proof_types_supported is nil or empty - no proofs required
+            proofsObject = nil
+        }
+
+        // OID4VCI 1.0: Credential Request Generation
+        let credentialRequest = createCredentialRequest(
+            credentialConfigurationId: configId, proofs: proofsObject)
 
         // Issue credential
         let credentialResponse = try await vciClient.issueCredential(
@@ -127,33 +141,14 @@ class CredentialOfferViewModel: ObservableObject {
 
         let offerIds = offer.credentialConfigurationIds
 
+        // OID4VCI 1.0: Use credential_configuration_id directly
         // todo: support multiple credential offer
         guard let firstOfferCredential = offerIds.first else {
             throw CredentialOfferViewModelError.CredentialOfferConfigurationIsEmpty
         }
 
         dataModel.targetCredentialId = firstOfferCredential
-
-        for (_, supportedInMetadata) in metadata.credentialIssuerMetadata
-            .credentialConfigurationsSupported
-        {
-            switch supportedInMetadata {
-                case let credentialSupported as CredentialSupportedJwtVcJson:
-                    if credentialSupported.credentialDefinition.type.contains(firstOfferCredential)
-                    {
-                        credentialFormat = "jwt_vc_json"
-                        credentialType = firstOfferCredential
-                    }
-
-                case let credentialSupported as CredentialSupportedVcSdJwt:
-                    if credentialSupported.vct == firstOfferCredential {
-                        credentialFormat = "vc+sd-jwt"
-                        credentialType = firstOfferCredential
-                    }
-                default:
-                    break
-            }
-        }
+        credentialConfigurationId = firstOfferCredential
     }
 
     private func convertToProtoBuf(accessToken: String, credentialResponse: CredentialResponse)
@@ -163,11 +158,19 @@ class CredentialOfferViewModel: ObservableObject {
             throw CredentialOfferViewModelError.CredentialToBeConvertedDoesNotExist
         }
 
+        // OID4VCI 1.0: Determine format from metadata
+        guard let configId = credentialConfigurationId,
+            let metadata = dataModel.metaData,
+            let config = metadata.credentialIssuerMetadata.credentialConfigurationsSupported[configId]
+        else {
+            throw CredentialOfferViewModelError.LoadDataDidNotFinishuccessfully
+        }
+
+        let format = config.format
         let basicInfo: [String: Any] =
-            credentialFormat == "vc+sd-jwt"
-            ? extractSDJwtInfo(
-                credential: credentialToSave, format: credentialFormat!)
-            : extractInfoFromJwt(jwt: credentialToSave, format: credentialFormat!)
+            format == "dc+sd-jwt"
+            ? extractSDJwtInfo(credential: credentialToSave, format: format)
+            : extractInfoFromJwt(jwt: credentialToSave, format: format)
 
         let encoder = JSONEncoder()
 
@@ -181,7 +184,7 @@ class CredentialOfferViewModel: ObservableObject {
             var credentialData = Datastore_CredentialData()
             credentialData.id = UUID().uuidString
 
-            credentialData.format = credentialFormat!
+            credentialData.format = format
             credentialData.credential = credentialToSave
             credentialData.iss = basicInfo["iss"] as! String
             credentialData.iat = basicInfo["iat"] as! Int64
@@ -223,7 +226,7 @@ class CredentialOfferViewModel: ObservableObject {
         let iat = jwtDictionary["iat"] as? Int64 ?? 0
         let exp = jwtDictionary["exp"] as? Int64 ?? 0
         let typeOrVct: String
-        if format == "vc+sd-jwt" {
+        if format == "dc+sd-jwt" {
             typeOrVct = jwtDictionary["vct"] as? String ?? ""
         }
         else {

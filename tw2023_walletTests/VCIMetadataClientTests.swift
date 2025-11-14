@@ -25,15 +25,14 @@ final class CredentialIssuerMetadataTests: XCTestCase {
 
             let testURL = URL(string: "https://example.com/api/endpoint")!
             guard
-                let url = Bundle.main.url(
-                    forResource: "credential_issuer_metadata_jwt_vc", withExtension: "json"),
-                let mockData = try? Data(contentsOf: url)
+                let mockData = try? loadCredentialIssuerMetadata(
+                    credentialSupportedFileNames: ["credential_supported_jwt_vc"])
             else {
                 XCTFail("Cannot read credential_issuer_metadata.json")
                 return
             }
             let response = HTTPURLResponse(
-                url: url, statusCode: 200, httpVersion: nil, headerFields: nil)
+                url: testURL, statusCode: 200, httpVersion: nil, headerFields: nil)
             MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
 
             do {

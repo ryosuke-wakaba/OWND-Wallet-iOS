@@ -169,9 +169,8 @@ class CredentialDataManagerTests: XCTestCase {
     func testToCredential() {
 
         guard
-            let url = Bundle.main.url(
-                forResource: "credential_issuer_metadata_jwt_vc", withExtension: "json"),
-            let jsonData = try? Data(contentsOf: url)
+            let jsonData = try? loadCredentialIssuerMetadata(
+                credentialSupportedFileNames: ["credential_supported_jwt_vc"])
         else {
             XCTFail("Cannot read credential_issuer_metadata.json")
             return
