@@ -282,6 +282,9 @@
         }
       }
     },
+    "Check your network connection and try scanning the QR code again." : {
+      "comment" : "Recovery suggestion for metadata loading failure"
+    },
     "city" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -478,6 +481,9 @@
         }
       }
     },
+    "Deferred credential issuance is not yet supported." : {
+      "comment" : "Error when deferred issuance is attempted"
+    },
     "Delete" : {
       "localizations" : {
         "ja" : {
@@ -614,6 +620,9 @@
         }
       }
     },
+    "Error" : {
+
+    },
     "eventName" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -635,6 +644,18 @@
           }
         }
       }
+    },
+    "Failed to convert credential to internal storage format." : {
+      "comment" : "Error when credential conversion fails"
+    },
+    "Failed to generate cryptographic proof." : {
+      "comment" : "Error when proof generation fails"
+    },
+    "Failed to load credential metadata. Please try again." : {
+      "comment" : "Error when metadata loading fails"
+    },
+    "Failed to save the credential. Please try again." : {
+      "comment" : "Recovery suggestion for conversion failure"
     },
     "failed_to_load_info_for_issuance" : {
       "localizations" : {
@@ -817,6 +838,15 @@
           }
         }
       }
+    },
+    "Invalid credential offer format." : {
+      "comment" : "Error when credential offer is invalid"
+    },
+    "Invalid credential offer URL: query parameters not found." : {
+      "comment" : "Error when URL query items are missing"
+    },
+    "Invalid credential offer URL: required parameter not found." : {
+      "comment" : "Error when credential offer parameter is missing"
     },
     "invalid_certificate" : {
       "extractionState" : "manual",
@@ -1249,6 +1279,12 @@
           }
         }
       }
+    },
+    "Please contact the credential issuer for a valid offer." : {
+      "comment" : "Recovery suggestion for empty credential offer"
+    },
+    "Please try again. If the problem persists, restart the app." : {
+      "comment" : "Recovery suggestion for proof generation failure"
     },
     "prefecture" : {
       "extractionState" : "manual",
@@ -1688,6 +1724,27 @@
         }
       }
     },
+    "The credential offer does not contain any credentials." : {
+      "comment" : "Error when credential offer is empty"
+    },
+    "The credential response is incomplete. Please try again." : {
+      "comment" : "Recovery suggestion for missing transaction ID"
+    },
+    "The credential to be saved does not exist." : {
+      "comment" : "Error when credential is missing"
+    },
+    "The credential was not received from the issuer. Please try again." : {
+      "comment" : "Recovery suggestion for missing credential"
+    },
+    "The QR code format is invalid. Please scan a valid credential offer QR code." : {
+      "comment" : "Recovery suggestion for invalid credential offer URL"
+    },
+    "This credential issuer requires a proof type that is not yet supported. Please contact the app developer." : {
+      "comment" : "Recovery suggestion for unsupported proof type"
+    },
+    "This issuer uses deferred issuance which is not yet supported. Please try a different issuer." : {
+      "comment" : "Recovery suggestion for deferred issuance"
+    },
     "ticketNo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1739,6 +1796,9 @@
         }
       }
     },
+    "Transaction ID is required but was not provided." : {
+      "comment" : "Error when transaction ID is missing"
+    },
     "unable_to_create_backup_data" : {
       "localizations" : {
         "ja" : {
@@ -1761,6 +1821,9 @@
     },
     "Unknown" : {
 
+    },
+    "Unsupported proof type. Supported types: %@" : {
+      "comment" : "Error when proof type is not supported"
     },
     "url" : {
       "extractionState" : "manual",
