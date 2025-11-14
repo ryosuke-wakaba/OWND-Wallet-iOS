@@ -11,6 +11,8 @@ struct PinCodeInput: View {
     @State private var pinCode = ""  // PINコード用の状態変数
     @State var viewModel: CredentialOfferViewModel
     @State private var navigateToCredentialList = false
+    @State private var showErrorDialog = false
+    @State private var errorMessage = ""
     @FocusState private var isInputActive: Bool
 
     init(viewModel: CredentialOfferViewModel = CredentialOfferViewModel()) {
@@ -50,8 +52,20 @@ struct PinCodeInput: View {
                             title: "authentication",
                             action: {
                                 Task {
-                                    try await viewModel.sendRequest(txCode: pinCode)
-                                    self.navigateToCredentialList = true
+                                    do {
+                                        try await viewModel.sendRequest(txCode: pinCode)
+                                        self.navigateToCredentialList = true
+                                    } catch {
+                                        print("Error in sendRequest: \(error)")
+                                        // Use localizedDescription if available, otherwise use error description
+                                        if let localizedError = error as? LocalizedError,
+                                           let description = localizedError.errorDescription {
+                                            errorMessage = description
+                                        } else {
+                                            errorMessage = "\(error)"
+                                        }
+                                        showErrorDialog = true
+                                    }
                                 }
                             }
                         )
@@ -76,6 +90,13 @@ struct PinCodeInput: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.isInputActive = true
             }
+        }
+        .alert(isPresented: $showErrorDialog) {
+            Alert(
+                title: Text("Error"),
+                message: Text(errorMessage),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }

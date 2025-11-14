@@ -55,7 +55,7 @@ class IssuerDetailViewModel {
     func processX509Certificate(credential: Credential) async throws {
         let jwt = credential.payload
 
-        if credential.format == "vc+sd-jwt" {
+        if credential.format == "vc+sd-jwt" || credential.format == "dc+sd-jwt" {  // OID4VCI 1.0: Support both formats
             // SDJwtUtilを使用してJWTヘッダーをデコード
             guard let header = SDJwtUtil.getDecodedJwtHeader(jwt) else {
                 return

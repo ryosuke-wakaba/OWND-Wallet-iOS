@@ -388,7 +388,7 @@ class OpenIdProvider {
             (index, credential) -> PreparedSubmissionData? in
             let tokenIndex = isMultipleVpTokens ? index : index - 1
             switch credential.format {
-                case "vc+sd-jwt":
+                case "vc+sd-jwt", "dc+sd-jwt":  // OID4VCI 1.0: Support both formats
                     return
                         try credential.createVpTokenForSdJwtVc(
                             clientId: clientId,

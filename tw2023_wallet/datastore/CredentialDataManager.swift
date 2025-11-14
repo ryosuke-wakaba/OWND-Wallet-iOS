@@ -91,7 +91,7 @@ extension Datastore_CredentialData {
 
     private func getDisclosure() -> [String: String]? {
         switch self.format {
-            case "vc+sd-jwt":
+            case "vc+sd-jwt", "dc+sd-jwt":  // OID4VCI 1.0: Support both old and new format names
                 guard let decoded = try? SDJwtUtil.decodeSDJwt(self.credential) else {
                     return nil
                 }

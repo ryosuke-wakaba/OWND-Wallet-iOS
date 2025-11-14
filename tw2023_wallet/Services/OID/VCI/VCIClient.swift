@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum VCIClientError: Error {
+enum VCIClientError: Error, LocalizedError {
     case undecodableCredentialOffer(json: String)
     case retrieveMetaDataError(error: MetadataError)
     case tokenEndpointIsRequired
@@ -16,6 +16,49 @@ enum VCIClientError: Error {
     case credentialEndpointIsRequired
     case jwtProofRequired
     case nonceEndpointIsRequired  // OID4VCI 1.0
+    case oauthError(error: String, description: String?)
+    case httpError(statusCode: Int, body: String?)
+
+    var errorDescription: String? {
+        switch self {
+        case .oauthError(let error, let description):
+            if let description = description, !description.isEmpty {
+                // Show description as main message, with error code in parentheses
+                return "\(description)\n(error: \(error))"
+            }
+            return "Error: \(error)"
+        case .httpError(let statusCode, let body):
+            if let body = body {
+                return "HTTP \(statusCode): \(body)"
+            }
+            return "HTTP \(statusCode)"
+        case .nonceEndpointIsRequired:
+            return "Nonce endpoint is required"
+        case .undecodableCredentialOffer(let json):
+            return "Undecodable credential offer: \(json)"
+        case .retrieveMetaDataError(let error):
+            return "Metadata error: \(error)"
+        case .tokenEndpointIsRequired:
+            return "Token endpoint is required"
+        case .credentialEndpointIsRequiredG, .credentialEndpointIsRequired:
+            return "Credential endpoint is required"
+        case .unsupportedCredentialFormat(let format):
+            return "Unsupported credential format: \(format)"
+        case .jwtProofRequired:
+            return "JWT proof is required"
+        }
+    }
+}
+
+// OAuth 2.0 / OID4VCI Error Response
+struct OAuthErrorResponse: Codable {
+    let error: String
+    let errorDescription: String?
+
+    enum CodingKeys: String, CodingKey {
+        case error
+        case errorDescription = "error_description"
+    }
 }
 
 struct GrantAuthorizationCode: Codable {
@@ -127,14 +170,14 @@ struct OAuthTokenRequest: Codable {
     let preAuthorizedCode: String?
     let txCode: String?
 
-    // It is assumed that the snake case strategy is configured.
+    // OAuth 2.0 Token Request parameters use snake_case
     enum CodingKeys: String, CodingKey {
         case code
-        case grantType = "grantType"
-        case redirectUri = "redirectUri"
-        case clientId = "clientId"
-        case preAuthorizedCode = "pre-authorizedCode"
-        case txCode = "txCode"
+        case grantType = "grant_type"
+        case redirectUri = "redirect_uri"
+        case clientId = "client_id"
+        case preAuthorizedCode = "pre-authorized_code"
+        case txCode = "tx_code"
     }
 }
 
@@ -247,9 +290,33 @@ func postTokenRequest(
     let encoder = URLEncodedFormEncoder()
     request.httpBody = try encoder.encode(tokenRequest)
 
+    // Debug: Log request details
+    if let bodyString = String(data: request.httpBody ?? Data(), encoding: .utf8) {
+        print("Token Request URL: \(url)")
+        print("Token Request Body: \(bodyString)")
+    }
+
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        // Log error details
+        if let httpResponse = response as? HTTPURLResponse {
+            print("Token Request Error - Status Code: \(httpResponse.statusCode)")
+            if let errorBody = String(data: data, encoding: .utf8) {
+                print("Token Request Error - Response Body: \(errorBody)")
+            }
+
+            // Try to parse OAuth error response
+            let decoder = JSONDecoder()
+            // Don't use convertFromSnakeCase here because OAuthErrorResponse has explicit CodingKeys
+            if let oauthError = try? decoder.decode(OAuthErrorResponse.self, from: data) {
+                throw VCIClientError.oauthError(error: oauthError.error, description: oauthError.errorDescription)
+            }
+
+            // If not OAuth error format, return HTTP error with body
+            let errorBody = String(data: data, encoding: .utf8)
+            throw VCIClientError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
+        }
         throw URLError(.badServerResponse)
     }
 
@@ -281,6 +348,24 @@ func postCredentialRequest(
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        // Log error details
+        if let httpResponse = response as? HTTPURLResponse {
+            print("Credential Request Error - Status Code: \(httpResponse.statusCode)")
+            if let errorBody = String(data: data, encoding: .utf8) {
+                print("Credential Request Error - Response Body: \(errorBody)")
+            }
+
+            // Try to parse OAuth error response
+            let decoder = JSONDecoder()
+            // Don't use convertFromSnakeCase here because OAuthErrorResponse has explicit CodingKeys
+            if let oauthError = try? decoder.decode(OAuthErrorResponse.self, from: data) {
+                throw VCIClientError.oauthError(error: oauthError.error, description: oauthError.errorDescription)
+            }
+
+            // If not OAuth error format, return HTTP error with body
+            let errorBody = String(data: data, encoding: .utf8)
+            throw VCIClientError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
+        }
         throw URLError(.badServerResponse)
     }
 
@@ -297,9 +382,29 @@ func postNonceRequest(
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
 
+    print("Nonce Request URL: \(url)")
+
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        // Log error details
+        if let httpResponse = response as? HTTPURLResponse {
+            print("Nonce Request Error - Status Code: \(httpResponse.statusCode)")
+            if let errorBody = String(data: data, encoding: .utf8) {
+                print("Nonce Request Error - Response Body: \(errorBody)")
+            }
+
+            // Try to parse OAuth error response
+            let decoder = JSONDecoder()
+            // Don't use convertFromSnakeCase here because OAuthErrorResponse has explicit CodingKeys
+            if let oauthError = try? decoder.decode(OAuthErrorResponse.self, from: data) {
+                throw VCIClientError.oauthError(error: oauthError.error, description: oauthError.errorDescription)
+            }
+
+            // If not OAuth error format, return HTTP error with body
+            let errorBody = String(data: data, encoding: .utf8)
+            throw VCIClientError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
+        }
         throw URLError(.badServerResponse)
     }
 
