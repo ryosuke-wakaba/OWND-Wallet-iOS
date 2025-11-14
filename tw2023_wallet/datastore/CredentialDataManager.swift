@@ -34,18 +34,7 @@ func dataToInt32(data: Data) -> Int32 {
 
 extension Datastore_CredentialData {
     func parsedMetaData() -> CredentialIssuerMetadata? {
-        if let jsonData = self.credentialIssuerMetadata.data(using: .utf8) {
-            do {
-                let decoder = JSONDecoder()
-                decoder.keyDecodingStrategy = .convertFromSnakeCase
-                let result = try decoder.decode(CredentialIssuerMetadata.self, from: jsonData)
-                return result
-            }
-            catch {
-                print("Error converting JSON string to CredentialIssuerMetadata: \(error)")
-            }
-        }
-        return nil
+        return MetadataDecoder.decode(jsonString: self.credentialIssuerMetadata)
     }
 
     func generateQRDisplay() -> String {
@@ -54,15 +43,10 @@ extension Datastore_CredentialData {
             let types = try VCIMetadataUtil.extractTypes(
                 format: self.format, credential: self.credential)
 
-            // メタデータをData型に変換
-            guard let metadataData = self.credentialIssuerMetadata.data(using: .utf8) else {
-                return "メタデータの変換に失敗しました。"
-            }
-
             // メタデータをデコード
-            let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: metadataData)
+            guard let metadata = MetadataDecoder.decode(jsonString: self.credentialIssuerMetadata) else {
+                return "メタデータのデコードに失敗しました。"
+            }
 
             // メタデータから対応するクレデンシャルを探す
             guard

@@ -387,26 +387,27 @@ class OpenIdProvider {
         let preparedSubmissionData = try! credentials.enumerated().compactMap {
             (index, credential) -> PreparedSubmissionData? in
             let tokenIndex = isMultipleVpTokens ? index : index - 1
-            switch credential.format {
-                case "vc+sd-jwt", "dc+sd-jwt":  // OID4VCI 1.0: Support both formats
-                    return
-                        try credential.createVpTokenForSdJwtVc(
-                            clientId: clientId,
-                            nonce: nonce,
-                            tokenIndex: index,
-                            keyBinding: keyBinding)
+            let credentialFormat = CredentialFormat(formatString: credential.format)
 
-                case "jwt_vc_json":
-                    return
-                        try credential.createVpTokenForJwtVc(
-                            clientId: clientId,
-                            nonce: nonce,
-                            tokenIndex: index,
-                            jwtVpJsonGenerator: jwtVpJsonGenerator
+            if credentialFormat?.isSDJWT == true {
+                return
+                    try credential.createVpTokenForSdJwtVc(
+                        clientId: clientId,
+                        nonce: nonce,
+                        tokenIndex: index,
+                        keyBinding: keyBinding)
+            }
+            else if credentialFormat == .jwtVCJson {
+                return
+                    try credential.createVpTokenForJwtVc(
+                        clientId: clientId,
+                        nonce: nonce,
+                        tokenIndex: index,
+                        jwtVpJsonGenerator: jwtVpJsonGenerator
 
-                        )
-
-                default:
+                    )
+            }
+            else {
                     throw IllegalArgumentException.badParams
             }
         }

@@ -61,7 +61,9 @@ class VerificationViewModel {
                 }
 
             case .success(let decodedJWT):
-                if format == "jwt_vc_json" {
+                let credentialFormat = CredentialFormat(formatString: format)
+
+                if credentialFormat == .jwtVCJson {
                     if let vc = decodedJWT.body["vc"] as? [String: Any],
                         let credentialSubject = vc["credentialSubject"] as? [String: String]
                     {
@@ -77,7 +79,7 @@ class VerificationViewModel {
                         }
                     }
                 }
-                else if format == "vc+sd-jwt" || format == "dc+sd-jwt" {  // OID4VCI 1.0: Support both formats
+                else if credentialFormat?.isSDJWT == true {
                     // TODO: Implement
                 }
                 else {
