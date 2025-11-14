@@ -310,7 +310,7 @@ final class DecodingVCIMetadataTests: XCTestCase {
     }
 
     func testDecodeVcSdJwtMetadata() throws {
-        let jsonData = try loadJsonTestData(fileName: "credential_issuer_metadata_sd_jwt")
+        let jsonData = try loadCredentialIssuerMetadata(credentialSupportedFileNames: ["credential_supported_vc_sd_jwt"])
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: jsonData)
@@ -381,7 +381,7 @@ final class DecodingVCIMetadataTests: XCTestCase {
     }
 
     func testDecodeJwtVcMetadata() throws {
-        let jsonData = try loadJsonTestData(fileName: "credential_issuer_metadata_jwt_vc")
+        let jsonData = try loadCredentialIssuerMetadata(credentialSupportedFileNames: ["credential_supported_jwt_vc"])
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: jsonData)
@@ -447,7 +447,7 @@ final class DecodingVCIMetadataTests: XCTestCase {
     }
 
     func testDecodeLdpVcMetadata() throws {
-        let jsonData = try loadJsonTestData(fileName: "credential_issuer_metadata_ldp_vc")
+        let jsonData = try loadCredentialIssuerMetadata(credentialSupportedFileNames: ["credential_supported_ldp_vc"])
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: jsonData)

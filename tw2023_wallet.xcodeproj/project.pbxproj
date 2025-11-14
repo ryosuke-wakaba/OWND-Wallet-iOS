@@ -116,6 +116,12 @@
 		8B8964992EC70CF100DD917E /* JWTParsingUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */; };
 		8B89649A2EC70CF100DD917E /* MetadataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964972EC70CF100DD917E /* MetadataDecoder.swift */; };
 		8B89649B2EC70CF100DD917E /* JWTParsingUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */; };
+		8B8964A92EC7150600DD917E /* CredentialStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649F2EC7150600DD917E /* CredentialStorageService.swift */; };
+		8B8964AA2EC7150600DD917E /* ProofGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964A02EC7150600DD917E /* ProofGenerationService.swift */; };
+		8B8964AB2EC7150600DD917E /* TokenIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */; };
+		8B8964AC2EC7150600DD917E /* CredentialRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649E2EC7150600DD917E /* CredentialRequestService.swift */; };
+		8B8964AD2EC7150600DD917E /* CredentialIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */; };
+		8B8964AE2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */; };
 		8B91B1542B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */; };
 		8B91B1562B6BBBAC00A1AA1A /* CredentialListForSharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */; };
 		8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
@@ -388,6 +394,12 @@
 		8B89648C2EC70A8100DD917E /* CredentialIssuanceErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialIssuanceErrors.swift; sourceTree = "<group>"; };
 		8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTParsingUtil.swift; sourceTree = "<group>"; };
 		8B8964972EC70CF100DD917E /* MetadataDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataDecoder.swift; sourceTree = "<group>"; };
+		8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialIssuanceService.swift; sourceTree = "<group>"; };
+		8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialIssuanceServiceProtocols.swift; sourceTree = "<group>"; };
+		8B89649E2EC7150600DD917E /* CredentialRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialRequestService.swift; sourceTree = "<group>"; };
+		8B89649F2EC7150600DD917E /* CredentialStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialStorageService.swift; sourceTree = "<group>"; };
+		8B8964A02EC7150600DD917E /* ProofGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProofGenerationService.swift; sourceTree = "<group>"; };
+		8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenIssuanceService.swift; sourceTree = "<group>"; };
 		8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensOnFullScreen.swift; sourceTree = "<group>"; };
 		8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CredentialListForSharing.swift; sourceTree = "<group>"; };
 		8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JwtVpJsonGeneratorImpl.swift; sourceTree = "<group>"; };
@@ -598,6 +610,7 @@
 		8B297C312B393B5600D2998D /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				8B8964A22EC7150600DD917E /* CredentialIssuance */,
 				8B0E0A952B3BC3790080F6A3 /* Pairwise */,
 				8B297C322B393B6700D2998D /* OID */,
 			);
@@ -982,6 +995,19 @@
 				8B89648C2EC70A8100DD917E /* CredentialIssuanceErrors.swift */,
 			);
 			path = Errors;
+			sourceTree = "<group>";
+		};
+		8B8964A22EC7150600DD917E /* CredentialIssuance */ = {
+			isa = PBXGroup;
+			children = (
+				8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */,
+				8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */,
+				8B89649E2EC7150600DD917E /* CredentialRequestService.swift */,
+				8B89649F2EC7150600DD917E /* CredentialStorageService.swift */,
+				8B8964A02EC7150600DD917E /* ProofGenerationService.swift */,
+				8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */,
+			);
+			path = CredentialIssuance;
 			sourceTree = "<group>";
 		};
 		8BB2BA772B4BC93400C668BA /* Lock */ = {
@@ -1626,6 +1652,12 @@
 				8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */,
 				8B89648E2EC70A8100DD917E /* CredentialIssuanceErrors.swift in Sources */,
 				8B81E2CF2B33D8AB00ED3B4E /* Setting.swift in Sources */,
+				8B8964A92EC7150600DD917E /* CredentialStorageService.swift in Sources */,
+				8B8964AA2EC7150600DD917E /* ProofGenerationService.swift in Sources */,
+				8B8964AB2EC7150600DD917E /* TokenIssuanceService.swift in Sources */,
+				8B8964AC2EC7150600DD917E /* CredentialRequestService.swift in Sources */,
+				8B8964AD2EC7150600DD917E /* CredentialIssuanceService.swift in Sources */,
+				8B8964AE2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift in Sources */,
 				A8C810442B82042300CF8CD6 /* SharingToRow.swift in Sources */,
 				A89297542B3AA151007315BE /* ZipUtil.swift in Sources */,
 				A83039CB2B4E6E92004139A7 /* credential_sharing_history.proto in Sources */,

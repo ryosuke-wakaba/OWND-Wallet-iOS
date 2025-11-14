@@ -84,7 +84,7 @@ final class CredentialIssuerMetadataTests: XCTestCase {
             let issuer = "https://datasign-demo-vci.tunnelto.dev"
             let testURL1 = URL(string: "\(issuer)/.well-known/openid-credential-issuer")!
             guard
-                let mockData1 = try? loadJsonTestData(fileName: "credential_issuer_metadata_jwt_vc")
+                let mockData1 = try? loadCredentialIssuerMetadata(credentialSupportedFileNames: ["credential_supported_jwt_vc"])
             else {
                 XCTFail("Cannot read credential_issuer_metadata.json")
                 return
