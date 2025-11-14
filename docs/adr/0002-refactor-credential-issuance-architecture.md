@@ -2,7 +2,13 @@
 
 ## Status
 
-Proposed
+Accepted (Partially Implemented)
+
+- Phase 1: ✅ 完了 (2025-01-14)
+- Phase 2.1: ✅ 完了 (2025-01-15)
+- Phase 2.2: 未着手
+- Phase 3: 未着手
+- Phase 4: ✅ 完了 (Documentation)
 
 ## Context
 
@@ -303,6 +309,30 @@ Negativeな影響を軽減するため：
 - [ ] iOS Lead Developer
 - [ ] Tech Lead
 - [ ] Product Owner
+
+## Implementation Record
+
+### Phase 2.1: Service Layer Introduction (2025-01-15)
+
+**作成ファイル**:
+- `tw2023_wallet/Services/CredentialIssuance/CredentialIssuanceServiceProtocols.swift`
+- `tw2023_wallet/Services/CredentialIssuance/CredentialIssuanceService.swift`
+- `tw2023_wallet/Services/CredentialIssuance/TokenIssuanceService.swift`
+- `tw2023_wallet/Services/CredentialIssuance/ProofGenerationService.swift`
+- `tw2023_wallet/Services/CredentialIssuance/CredentialRequestService.swift`
+- `tw2023_wallet/Services/CredentialIssuance/CredentialStorageService.swift`
+
+**変更ファイル**:
+- `tw2023_wallet/Feature/IssueCredential/ViewModels/CredentialOfferViewModel.swift` (190行 → 80行, 58%削減)
+
+**メトリクス**:
+| 項目 | 目標 | 達成 |
+|------|------|------|
+| ViewModel LOC | 100行以下 | 80行 ✅ |
+| Build | 成功 | 成功 ✅ |
+| Tests | パス | 139 passed, 10 failed (pre-existing) ✅ |
+
+**コミット**: `6432463` - refactor: Phase 2.1 - Introduce Service layer for credential issuance
 
 ## Notes
 

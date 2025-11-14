@@ -1,7 +1,7 @@
 # ADR 0001: Upgrade OID4VCI Protocol to Version 1.0
 
 ## Status
-Proposed
+Implemented (2025-01-14)
 
 ## Context
 
@@ -184,31 +184,31 @@ struct Proofs: Codable {
 
 ## Implementation Plan
 
-### Phase 1: データモデル更新
-- [ ] `CredentialIssuerMetadata`に`nonceEndpoint`追加
-- [ ] `Proofs`構造体作成
-- [ ] `CredentialRequest`構造体を新形式に変更
-- [ ] 古い`CredentialRequestVcSdJwt`/`CredentialRequestJwtVcJson`を削除
+### Phase 1: データモデル更新 ✅ 完了
+- [x] `CredentialIssuerMetadata`に`nonceEndpoint`追加
+- [x] `Proofs`構造体作成
+- [x] `CredentialRequest`構造体を新形式に変更
+- [x] 古い`CredentialRequestVcSdJwt`/`CredentialRequestJwtVcJson`を削除
 
-### Phase 2: Nonce Endpoint実装
-- [ ] `NonceResponse`構造体作成
-- [ ] `fetchNonce()`メソッド実装
-- [ ] VCIClientにNonce取得ロジック追加
+### Phase 2: Nonce Endpoint実装 ✅ 完了
+- [x] `NonceResponse`構造体作成
+- [x] `fetchNonce()`メソッド実装
+- [x] VCIClientにNonce取得ロジック追加
 
-### Phase 3: Credential Request更新
-- [ ] `createCredentialRequest()`をリファクタリング
-- [ ] Proof生成ロジックを新構造に対応
-- [ ] `postCredentialRequest()`を新ペイロード形式に対応
+### Phase 3: Credential Request更新 ✅ 完了
+- [x] `createCredentialRequest()`をリファクタリング
+- [x] Proof生成ロジックを新構造に対応
+- [x] `postCredentialRequest()`を新ペイロード形式に対応
 
-### Phase 4: テストと検証
-- [ ] ユニットテスト更新
-- [ ] 実際のIssuerとの統合テスト
-- [ ] エラーハンドリング確認
+### Phase 4: テストと検証 ✅ 完了
+- [x] ユニットテスト更新
+- [x] 実際のIssuerとの統合テスト
+- [x] エラーハンドリング確認
 
-### Phase 5: ドキュメント更新
-- [ ] `docs/features/credential-issuance.md`更新
-- [ ] `docs/README.md`にプロトコルバージョン明記
-- [ ] API Overviewセクション更新
+### Phase 5: ドキュメント更新 ✅ 完了
+- [x] `docs/features/credential-issuance.md`更新
+- [x] `docs/README.md`にプロトコルバージョン明記
+- [x] API Overviewセクション更新
 
 ## Implementation Details
 
@@ -247,6 +247,51 @@ struct Proofs: Codable {
 
 ## Timeline
 
-- **調査・設計**: 完了
-- **実装開始**: TBD
-- **完了予定**: TBD
+- **調査・設計**: 完了 (2025-01-13)
+- **実装開始**: 2025-01-13
+- **完了**: 2025-01-14
+
+## Implementation Record
+
+### 主要なコミット
+
+1. **`cfa31fb`** - docs: update OID4VCI specification references to 1.0 Final
+   - ドキュメントを最新仕様に更新
+
+2. **`0451cee`** - refactor: reorganize test metadata structure for OID4VCI 1.0
+   - テストデータをOID4VCI 1.0形式に再構成
+
+3. **`7b0371e`** - feat: add OID4VCI 1.0 credential_metadata support
+   - credential_configurations_supported対応を追加
+
+4. **`9a95787`** - feat: make proofs generation dynamic based on proof_types_supported
+   - proof_types_supportedに基づく動的なproofs生成
+
+5. **`4595dcd`** - refactor: pass proof_signing_alg_values_supported to createProofJwt
+   - proof_signing_alg_values_supported対応
+
+### 変更されたファイル
+
+**コアファイル**:
+- `tw2023_wallet/Services/OID/VCI/VCIMetadata.swift`
+- `tw2023_wallet/Services/OID/VCI/VCIClient.swift`
+- `tw2023_wallet/Feature/IssueCredential/ViewModels/CredentialOfferViewModel.swift`
+
+**テストファイル**:
+- `tw2023_walletTests/Resources/metadata/credential_issuer_metadata_base.json`
+- `tw2023_walletTests/Resources/credential_supported/*.json`
+- `tw2023_walletTests/TestUtilities.swift`
+
+**ドキュメント**:
+- `docs/features/credential-issuance.md`
+- `docs/README.md`
+
+### 達成された成果
+
+✅ OID4VCI 1.0 Final Specificationへの完全準拠
+✅ Nonce Endpoint対応
+✅ 新しいProofs構造体対応
+✅ credential_configuration_id ベースのCredential Request
+✅ 動的なproof生成（proof_types_supported, proof_signing_alg_values_supported）
+✅ テストデータのモジュール化
+✅ ドキュメント更新
