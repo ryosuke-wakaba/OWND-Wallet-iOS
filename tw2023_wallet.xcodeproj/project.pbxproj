@@ -116,12 +116,6 @@
 		8B8964992EC70CF100DD917E /* JWTParsingUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */; };
 		8B89649A2EC70CF100DD917E /* MetadataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964972EC70CF100DD917E /* MetadataDecoder.swift */; };
 		8B89649B2EC70CF100DD917E /* JWTParsingUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */; };
-		8B8964A32EC7150600DD917E /* CredentialStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649F2EC7150600DD917E /* CredentialStorageService.swift */; };
-		8B8964A42EC7150600DD917E /* ProofGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964A02EC7150600DD917E /* ProofGenerationService.swift */; };
-		8B8964A52EC7150600DD917E /* TokenIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */; };
-		8B8964A62EC7150600DD917E /* CredentialRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649E2EC7150600DD917E /* CredentialRequestService.swift */; };
-		8B8964A72EC7150600DD917E /* CredentialIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */; };
-		8B8964A82EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */; };
 		8B8964A92EC7150600DD917E /* CredentialStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649F2EC7150600DD917E /* CredentialStorageService.swift */; };
 		8B8964AA2EC7150600DD917E /* ProofGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964A02EC7150600DD917E /* ProofGenerationService.swift */; };
 		8B8964AB2EC7150600DD917E /* TokenIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */; };
@@ -1860,12 +1854,6 @@
 				8B0E0AA02B3D69240080F6A3 /* PairwiseAccount.swift in Sources */,
 				A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */,
 				A88D323A2C26997700429E75 /* Metadata.swift in Sources */,
-				8B8964A32EC7150600DD917E /* CredentialStorageService.swift in Sources */,
-				8B8964A42EC7150600DD917E /* ProofGenerationService.swift in Sources */,
-				8B8964A52EC7150600DD917E /* TokenIssuanceService.swift in Sources */,
-				8B8964A62EC7150600DD917E /* CredentialRequestService.swift in Sources */,
-				8B8964A72EC7150600DD917E /* CredentialIssuanceService.swift in Sources */,
-				8B8964A82EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift in Sources */,
 				8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */,
 				8B43AE382B3A93C60016CF83 /* AuthServerMetadata.swift in Sources */,
 				8B0E0AB02B403D510080F6A3 /* PresentationExchange.swift in Sources */,
