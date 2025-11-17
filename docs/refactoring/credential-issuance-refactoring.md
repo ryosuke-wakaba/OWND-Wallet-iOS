@@ -138,12 +138,15 @@
 **見積工数**: 8-10時間
 
 **完了条件**:
-- [ ] 全Serviceインターフェースを定義
-- [ ] 各Service実装を作成
-- [ ] ViewModelをService使用に変更
-- [ ] 依存性注入をサポート
-- [ ] 既存の全機能が動作することを確認
-- [ ] 既存テストが全てパス
+- [x] 全Serviceインターフェースを定義
+- [x] 各Service実装を作成
+- [x] ViewModelをService使用に変更
+- [x] 依存性注入をサポート
+- [x] 既存の全機能が動作することを確認
+- [x] 既存テストが全てパス
+
+**実装完了**: 2025-01-15
+**コミット**: `6432463` - refactor: Phase 2.1 - Introduce Service layer for credential issuance
 
 ---
 
@@ -175,34 +178,6 @@
 - [ ] ViewModelから変換ロジックを削除
 - [ ] Unit Testを作成
 - [ ] 既存テストが全てパス
-
----
-
-#### 2.3 非同期処理のキャンセルサポート
-
-**目的**: ユーザーが処理をキャンセルできるようにする
-
-**対象ファイル**:
-- `tw2023_wallet/Feature/IssueCredential/ViewModels/CredentialOfferViewModel.swift`
-- `tw2023_wallet/Feature/ShareCredential/Views/PinCodeInput.swift`
-
-**変更内容**:
-1. `Task`のキャンセル機能を実装
-2. UI上のキャンセルボタンと連携
-3. 適切なタイミングで`Task.checkCancellation()`を呼び出し
-
-**影響範囲**:
-- CredentialOfferViewModel
-- PinCodeInput
-- CredentialOfferView
-
-**見積工数**: 3-4時間
-
-**完了条件**:
-- [ ] Task cancellation機能を実装
-- [ ] キャンセルボタンから呼び出し
-- [ ] 処理がキャンセルされることを確認
-- [ ] リソースが適切にクリーンアップされることを確認
 
 ---
 
@@ -333,24 +308,23 @@
 ## 実装スケジュール
 
 ```
-Week 1-2: フェーズ1 (基盤改善)
+Week 1-2: フェーズ1 (基盤改善) ✅ 完了
 ├─ Day 1-2:   エラーハンドリング統一
 ├─ Day 3-4:   定数管理
 └─ Day 5-10:  重複コード除去
 
 Week 3-5: フェーズ2 (アーキテクチャ改善)
-├─ Day 11-20: Service層導入
-├─ Day 21-26: データ変換分離
-└─ Day 27-30: キャンセルサポート
+├─ Day 11-20: Service層導入 ✅ 完了 (2025-01-15)
+└─ Day 21-26: データ変換分離
 
 Week 6-8: フェーズ3 (テスト強化)
-├─ Day 31-38: ViewModelテスト
-├─ Day 39-46: Integration Tests
-└─ Day 47-56: Serviceテスト
+├─ Day 27-34: ViewModelテスト
+├─ Day 35-42: Integration Tests
+└─ Day 43-52: Serviceテスト
 
 Week 9-10: フェーズ4 (ドキュメント・最適化)
-├─ Day 57-61: ドキュメント
-└─ Day 62-67: パフォーマンス最適化
+├─ Day 53-57: ドキュメント
+└─ Day 58-63: パフォーマンス最適化
 ```
 
 ## リスクと軽減策
@@ -386,6 +360,38 @@ Week 9-10: フェーズ4 (ドキュメント・最適化)
 4. **保守性**: Cyclomatic Complexity が10以下
 5. **ドキュメント**: 全ての公開APIにドキュメントコメント
 
+## Future Work（今後の対応）
+
+以下の改善項目は、現在のフェーズには含まれず、将来的に検討・実装する予定です：
+
+### 非同期処理のキャンセルサポート
+
+**目的**: ユーザーが処理をキャンセルできるようにする
+
+**対象ファイル**:
+- `tw2023_wallet/Feature/IssueCredential/ViewModels/CredentialOfferViewModel.swift`
+- `tw2023_wallet/Feature/ShareCredential/Views/PinCodeInput.swift`
+
+**変更内容**:
+1. `Task`のキャンセル機能を実装
+2. UI上のキャンセルボタンと連携
+3. 適切なタイミングで`Task.checkCancellation()`を呼び出し
+
+**影響範囲**:
+- CredentialOfferViewModel
+- PinCodeInput
+- CredentialOfferView
+
+**見積工数**: 3-4時間
+
+**完了条件**:
+- [ ] Task cancellation機能を実装
+- [ ] キャンセルボタンから呼び出し
+- [ ] 処理がキャンセルされることを確認
+- [ ] リソースが適切にクリーンアップされることを確認
+
+---
+
 ## 参照
 
 - [Credential Issuance Feature Document](../features/credential-issuance.md)
@@ -397,3 +403,5 @@ Week 9-10: フェーズ4 (ドキュメント・最適化)
 | 日付 | 版 | 変更内容 | 作成者 |
 |------|------|----------|--------|
 | 2025-01-14 | 1.0 | 初版作成 | Claude |
+| 2025-01-14 | 1.1 | フェーズ2から2.3（キャンセルサポート）をFuture Workに移動 | Claude |
+| 2025-01-15 | 1.2 | Phase 2.1（Service層導入）完了を記録 | Claude |
