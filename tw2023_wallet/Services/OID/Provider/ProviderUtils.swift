@@ -64,6 +64,10 @@ func sendFormData(
             request = URLRequest(url: url)
             request.httpMethod = "POST"
 
+            // Debug: check client_metadata
+            print("[directPostJwt] clientMetadata: \(String(describing: clientMetadata))")
+            print("[directPostJwt] jwks: \(String(describing: clientMetadata?.jwks))")
+
             // Get encryption public key from client_metadata.jwks
             guard let jwks = clientMetadata?.jwks,
                   let encryptionKey: ClientJWK = jwks.keys.first(where: { $0.use == "enc" || $0.alg == "ECDH-ES" }) ?? jwks.keys.first
