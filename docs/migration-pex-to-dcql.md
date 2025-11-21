@@ -324,6 +324,56 @@ func onFoundQrCode(_ code: String) {
 
 ---
 
+### Phase 12: VP Token 暗号化対応（HAIP準拠）
+
+**対象ファイル**:
+- `tw2023_wallet/Services/OID/Provider/OpenIdProvider.swift`
+- `tw2023_wallet/Services/OID/Provider/ProviderUtils.swift`
+- `tw2023_wallet/Signature/JWEUtil.swift` (新規)
+
+**作業内容**:
+- [ ] JWE暗号化ユーティリティ関数を追加
+- [ ] `client_metadata.jwks` からVerifier公開鍵を取得
+- [ ] `response_mode == direct_post.jwt` の場合、vp_tokenをJWEで暗号化
+- [ ] レスポンスを `response=<JWE>` 形式で送信
+
+**暗号化仕様**:
+- Algorithm: `ECDH-ES` (Elliptic Curve Diffie-Hellman Ephemeral Static)
+- Encryption Method: `A128GCM` (AES GCM using 128-bit key)
+- Curve: `P-256`
+
+**JWE Protected Header例**:
+```json
+{
+  "alg": "ECDH-ES",
+  "enc": "A128GCM",
+  "kid": "verifier-key-id",
+  "epk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "...",
+    "y": "..."
+  }
+}
+```
+
+**暗号化対象ペイロード**:
+```json
+{
+  "vp_token": {
+    "learning_credential": ["eyJhbGci..."]
+  }
+}
+```
+
+**送信形式**:
+- 暗号化時: `response=<JWE>&state=<state>`
+- 非暗号化時: `vp_token=<json>&state=<state>`
+
+**注意**: `state` パラメータは暗号化対象に含まれず、平文で別途送信
+
+---
+
 ## 進捗管理
 
 | Phase | タスク | ステータス | 完了日 |
@@ -339,6 +389,7 @@ func onFoundQrCode(_ code: String) {
 | 9 | 旧コードの削除 | ✅ 完了 | 2025-11-21 |
 | 10 | Client Identifier Prefix 対応 | ✅ 完了 | 2025-11-21 |
 | 11 | haip-vp:// スキーム対応 | ✅ 完了 | 2025-11-21 |
+| 12 | VP Token 暗号化対応 | 🚧 進行中 | - |
 
 ## 注意事項
 

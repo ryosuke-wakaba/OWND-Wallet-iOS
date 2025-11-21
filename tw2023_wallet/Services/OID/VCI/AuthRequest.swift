@@ -74,9 +74,25 @@ struct RPRegistrationMetadataPayload: Codable {
     var policyUri: String?
     var tosUri: String?
     var clientPurpose: String?
-    var jwks: String?  // todo jwksの配列型を指定する
+    var jwks: ClientJWKSet?
     var jwksUri: String?
     var vpFormatsSupported: Format?
+    var authorizationEncryptedResponseAlg: String?
+    var authorizationEncryptedResponseEnc: String?
+}
+
+struct ClientJWKSet: Codable {
+    var keys: [ClientJWK]
+}
+
+struct ClientJWK: Codable {
+    var kty: String
+    var crv: String?
+    var x: String?
+    var y: String?
+    var kid: String?
+    var use: String?
+    var alg: String?
 }
 
 protocol RequestObjectPayload: AuthorizationRequestCommonPayload, JWTPayload {}

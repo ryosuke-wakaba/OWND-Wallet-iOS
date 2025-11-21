@@ -328,6 +328,7 @@ class OpenIdProvider {
                 formData: mergedFormData,
                 url: URL(string: whereToRespond)!,
                 responseMode: responseMode,
+                clientMetadata: authRequestProcessedData?.clientMetadata,
                 using: session
             )
 

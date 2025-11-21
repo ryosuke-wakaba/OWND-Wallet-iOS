@@ -149,6 +149,8 @@
 		8BF1A1C42ED03FE9008CE820 /* DCQLMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C12ED03FE9008CE820 /* DCQLMatcher.swift */; };
 		8BF1A1C52ED03FE9008CE820 /* DCQL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C02ED03FE9008CE820 /* DCQL.swift */; };
 		8BF1A1C72ED0400E008CE820 /* dcqlQuery.json in Resources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */; };
+		8BF1A1C92ED07045008CE820 /* JWEUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWEUtil.swift */; };
+		8BF1A1CA2ED07045008CE820 /* JWEUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWEUtil.swift */; };
 		8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF745982B4FF85F000F74A9 /* JOSESwift */; };
 		A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
@@ -417,6 +419,7 @@
 		8BF1A1C02ED03FE9008CE820 /* DCQL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQL.swift; sourceTree = "<group>"; };
 		8BF1A1C12ED03FE9008CE820 /* DCQLMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQLMatcher.swift; sourceTree = "<group>"; };
 		8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dcqlQuery.json; sourceTree = "<group>"; };
+		8BF1A1C82ED07045008CE820 /* JWEUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWEUtil.swift; sourceTree = "<group>"; };
 		A80BFE752CAD070A00E30249 /* ProviderUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUtils.swift; sourceTree = "<group>"; };
 		A80FFF322B7F3D300076718E /* SharingToViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A80FFF342B7F3D990076718E /* SharingToModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
@@ -1036,6 +1039,7 @@
 		A81087102B3B0694004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
+				8BF1A1C82ED07045008CE820 /* JWEUtil.swift */,
 				A81087172B3BBA0C004425DE /* ES256K.swift */,
 				A810871F2B3D3277004425DE /* SignatureUtil.swift */,
 				A8137C402B47D611008CA5AC /* JWTUtil.swift */,
@@ -1674,6 +1678,7 @@
 				A84AB6F02B4FC0C200E8C88B /* credential_data.pb.swift in Sources */,
 				F699A8C42B3D6EE400F60B91 /* CredentialOfferModel.swift in Sources */,
 				F6A239A42B4E284C00B09F17 /* ClientInfo.swift in Sources */,
+				8BF1A1CA2ED07045008CE820 /* JWEUtil.swift in Sources */,
 				F67102F82B4A6D46006D48CB /* WalkThrough2.swift in Sources */,
 				F657D5D32B3C478B00901A6A /* CredentialDetailPreviewModel.swift in Sources */,
 				F6BB10472B5101B10063DBBF /* ProvideAge.swift in Sources */,
@@ -1830,6 +1835,7 @@
 				8B43AE322B3A5B880016CF83 /* VCIMetadataClientTests.swift in Sources */,
 				8B5C65912B515BC300D72289 /* JWTUtil.swift in Sources */,
 				A83039BE2B4E4229004139A7 /* CertificateUtilTest.swift in Sources */,
+				8BF1A1C92ED07045008CE820 /* JWEUtil.swift in Sources */,
 				8BEE638F2C19A48D00821543 /* CertificateUtil.swift in Sources */,
 				A84AB70D2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift in Sources */,
 				8BB2BA7A2B4BC95700C668BA /* AuthenticationView.swift in Sources */,
