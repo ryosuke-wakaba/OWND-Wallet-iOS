@@ -7,26 +7,29 @@
 
 import Foundation
 
+/// Format vp_token as DCQL response format: {"credential_id": ["token", ...]}
 func conformToFormData(preparedData: [PreparedSubmissionData]) -> String? {
     if preparedData.isEmpty {
-        return ""
+        return "{}"
     }
-    else if preparedData.count == 1 {
-        return preparedData[0].vpToken
-    }
-    else {
-        let tokens = preparedData.map { $0.vpToken }
-        let jsonEncoder = JSONEncoder()
-        if let jsonData = try? jsonEncoder.encode(tokens),
-            let jsonString = String(data: jsonData, encoding: .utf8)
-        {
-            return jsonString
-        }
-        else {
-            return nil
-        }
 
+    // Group tokens by DCQL credential ID
+    var tokensByCredentialId: [String: [String]] = [:]
+    for data in preparedData {
+        if tokensByCredentialId[data.dcqlCredentialId] == nil {
+            tokensByCredentialId[data.dcqlCredentialId] = []
+        }
+        tokensByCredentialId[data.dcqlCredentialId]?.append(data.vpToken)
     }
+
+    // Serialize to JSON
+    let jsonEncoder = JSONEncoder()
+    if let jsonData = try? jsonEncoder.encode(tokensByCredentialId),
+        let jsonString = String(data: jsonData, encoding: .utf8)
+    {
+        return jsonString
+    }
+    return nil
 }
 
 func sendFormData(

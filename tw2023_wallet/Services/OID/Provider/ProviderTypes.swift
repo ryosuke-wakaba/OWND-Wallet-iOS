@@ -36,6 +36,7 @@ struct TokenSendResult: Decodable {
 
 struct PreparedSubmissionData {
     let credentialId: String
+    let dcqlCredentialId: String  // DCQL credential query ID
     let vpToken: String
     let disclosedClaims: [DisclosedClaim]
     let purpose: String?
@@ -97,6 +98,7 @@ struct SubmissionCredential: Codable, Equatable {
 
         return PreparedSubmissionData(
             credentialId: id,
+            dcqlCredentialId: credentialQuery.id,
             vpToken: vpToken,
             disclosedClaims: disclosedClaims,
             purpose: nil)
@@ -127,6 +129,7 @@ struct SubmissionCredential: Codable, Equatable {
 
                 return PreparedSubmissionData(
                     credentialId: id,
+                    dcqlCredentialId: credentialQuery.id,
                     vpToken: vpToken,
                     disclosedClaims: disclosedClaims,
                     purpose: nil

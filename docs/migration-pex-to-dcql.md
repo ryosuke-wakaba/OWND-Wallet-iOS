@@ -128,9 +128,10 @@ class OpenIdProvider {
 **対象ファイル**: `tw2023_wallet/Services/OID/Provider/OpenIdProvider.swift`
 
 **作業内容**:
-- [ ] `respondToken()` から `presentation_submission` 生成を削除
-- [ ] `vp_token` のみを送信するように変更
-- [ ] レスポンスボディの構造を更新
+- [x] `respondToken()` から `presentation_submission` 生成を削除
+- [x] `vp_token` のみを送信するように変更
+- [x] レスポンスボディの構造を更新
+- [x] vp_token の形式を DCQL credential ID ベースに変更
 
 **変更前**:
 ```swift
@@ -143,10 +144,21 @@ let body = [
 
 **変更後**:
 ```swift
-// vp_token のみ
+// vp_token は DCQL credential ID をキーとするオブジェクト形式
+// 例: {"learning_credential": ["eyJhbGci...QMA"]}
 let body = [
-    "vp_token": vpToken
+    "vp_token": "{\"credential_id\": [\"token\"]}"
 ]
+```
+
+**vp_token の形式**:
+- キー: DCQL クエリで指定された `credentials[].id`
+- 値: VP トークンの配列（通常は1つ）
+
+```json
+{
+  "learning_credential": ["eyJhbGciOiJFUzI1NiIs..."]
+}
 ```
 
 ---
