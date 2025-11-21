@@ -79,9 +79,9 @@ class SharingRequestVPPreviewModel: SharingRequestViewModel {
         let clientInfoJsonData = clientInfoJson.data(using: .utf8)
         clientInfo = try! decoder.decode(ClientInfo.self, from: clientInfoJsonData!)
 
-        let presentationJsonData = presentationJson.data(using: .utf8)
-        presentationDefinition = try! decoder.decode(
-            PresentationDefinition.self, from: presentationJsonData!)
+        let dcqlQueryJsonData = dcqlQueryJson.data(using: .utf8)
+        dcqlQuery = try! decoder.decode(
+            DcqlQuery.self, from: dcqlQueryJsonData!)
         print("done")
         isLoading = false
     }
@@ -129,7 +129,7 @@ class SharingRequestLoadDataErrorPreviewModel: SharingRequestViewModel {
 }
 
 class CredentialListVpModePreviewModel: CredentialListViewModel {
-    override func loadData(presentationDefinition: PresentationDefinition? = nil) {
+    override func loadData(dcqlQuery: DcqlQuery? = nil) {
         // mock data for preview
         dataModel.isLoading = true
         print("load dummy data..")
@@ -169,43 +169,21 @@ let clientInfoJson = """
       }
     """
 
-let presentationJson = """
+let dcqlQueryJson = """
       {
-        "id": "12345",
-        "inputDescriptors": [
+        "credentials": [
           {
-            "id": "input1",
-            "name": "あなたが13歳以上であること",
-            "purpose": "OWND Projectの利用者として適格であると確認するために必要です。Walletに登録された証明書を使って証明します。",
-            "format": {
-              "vc+sd-jwt": {}
+            "id": "age_verification",
+            "format": "vc+sd-jwt",
+            "meta": {
+              "vct_values": ["AgeVerificationCredential"]
             },
-            "group": [
-              "A"
-            ],
-            "constraints": {
-              "limitDisclosure": "required",
-              "fields": [
-                {
-                  "path": [
-                    "$.is_older_than_13"
-                  ],
-                  "filter": {
-                    "type": "boolean"
-                  }
-                }
-              ]
-            }
+            "claims": [
+              {
+                "path": ["is_older_than_13"]
+              }
+            ]
           }
-        ],
-        "submissionRequirements": [
-          {
-            "name": "Over13 Proof",
-            "rule": "pick",
-            "count": 1,
-            "from": "A"
-          }
-        ],
-        "name": "OWND Projectの利用開始に必要な情報を提供してください"
+        ]
       }
     """

@@ -11,9 +11,9 @@ import Foundation
 class SharingRequestModel {
     var redirectTo: String? = nil
     var postResult: TokenSendResult? = nil
-    var presentationDefinition: PresentationDefinition? = nil
-    init(presentationDefinition: PresentationDefinition? = nil) {
-        self.presentationDefinition = presentationDefinition
+    var dcqlQuery: DcqlQuery? = nil
+    init(dcqlQuery: DcqlQuery? = nil) {
+        self.dcqlQuery = dcqlQuery
     }
 
     var type: String? = nil

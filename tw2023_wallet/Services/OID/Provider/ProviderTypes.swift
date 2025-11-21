@@ -37,7 +37,6 @@ struct TokenSendResult: Decodable {
 struct PreparedSubmissionData {
     let credentialId: String
     let vpToken: String
-    let descriptorMap: DescriptorMap
     let disclosedClaims: [DisclosedClaim]
     let purpose: String?
 }
@@ -47,7 +46,7 @@ struct SubmissionCredential: Codable, Equatable {
     let format: String
     let types: [String]
     let credential: String
-    let inputDescriptor: InputDescriptor
+    let credentialQuery: DcqlCredentialQuery
     let discloseClaims: [DisclosureWithOptionality]
 
     static func == (lhs: SubmissionCredential, rhs: SubmissionCredential) -> Bool {
@@ -63,10 +62,8 @@ struct SubmissionCredential: Codable, Equatable {
         guard let kb = keyBinding else {
             throw OpenIdProviderIllegalStateException.illegalKeyBindingState
         }
-        // ここに実装を追加します
-        let inputDescriptor = inputDescriptor
         let selectedDisclosures = discloseClaims.map { $0.disclosure }
-        print(String(describing: inputDescriptor))
+        print(String(describing: credentialQuery))
 
         let keyBindingJwt = try kb.generateJwt(
             sdJwt: credential, selectedDisclosures: selectedDisclosures, aud: clientId, nonce: nonce
@@ -92,13 +89,6 @@ struct SubmissionCredential: Codable, Equatable {
 
         print("### Created vpToken\n\(vpToken)")
 
-        let dm = DescriptorMap(
-            id: inputDescriptor.id,
-            format: format,
-            path: tokenIndex > -1 ? "$[\(tokenIndex)]" : "$",
-            pathNested: nil
-        )
-
         let disclosedClaims = selectedDisclosures.compactMap { disclosure -> DisclosedClaim? in
             guard let key = disclosure.key else { return nil }
             return DisclosedClaim(
@@ -107,8 +97,9 @@ struct SubmissionCredential: Codable, Equatable {
 
         return PreparedSubmissionData(
             credentialId: id,
-            vpToken: vpToken, descriptorMap: dm, disclosedClaims: disclosedClaims,
-            purpose: inputDescriptor.purpose)
+            vpToken: vpToken,
+            disclosedClaims: disclosedClaims,
+            purpose: nil)
     }
 
     func createVpTokenForJwtVc(
@@ -134,14 +125,9 @@ struct SubmissionCredential: Codable, Equatable {
                     vcJwt: credential, headerOptions: HeaderOptions(),
                     payloadOptions: JwtVpJsonPayloadOptions(aud: clientId, nonce: nonce))
 
-                let descriptorMap = JwtVpJsonPresentation.genDescriptorMap(
-                    inputDescriptorId: inputDescriptor.id,
-                    pathIndex: tokenIndex
-                )
                 return PreparedSubmissionData(
                     credentialId: id,
                     vpToken: vpToken,
-                    descriptorMap: descriptorMap,
                     disclosedClaims: disclosedClaims,
                     purpose: nil
                 )

@@ -27,7 +27,7 @@ class SharingRequestViewModel {
     var isLoading = false
     var hasLoadedData = false
     var clientInfo: ClientInfo? = nil
-    var presentationDefinition: PresentationDefinition? = nil
+    var dcqlQuery: DcqlQuery? = nil
     var selectedCredential: Bool = false
     var openIdProvider: OpenIdProvider? = nil
     var seed: String?
@@ -84,20 +84,35 @@ class SharingRequestViewModel {
                         print(clientMetadata)
                         throw IllegalArgumentException.badParams
                     }
-                    guard let url = URL(string: clientId), let schema = url.scheme,
-                        let host = url.host
-                    else {
-                        throw SharingRequestIllegalStateException.illegalState
-                    }
-                    let clientUrl = "\(schema)://\(host)"
                     print("clientId: \(clientId)")
-                    print("client url: \(clientUrl)")
-                    let (cert, derCertificates) = extractFirstCertSubject(url: clientUrl)
-                    // verify ov of rp
-                    print("verify cert chain")
-                    let b = try? SignatureUtil.validateCertificateChain(
-                        derCertificates: derCertificates)
-                    print("verified: \(b ?? false)")
+
+                    // Handle Client Identifier Prefix (OID4VP 1.0)
+                    var cert: CertificateInfo? = nil
+                    var verified = false
+
+                    if clientId.hasPrefix("x509_san_dns:") || clientId.hasPrefix("x509_hash:") {
+                        // For x509 schemes, certificate is verified via JWT x5c header
+                        // No need to extract from URL
+                        verified = processedRequestData.requestIsSigned
+                        print("x509 scheme - verified via JWT: \(verified)")
+                    } else {
+                        // For URL-based client_id (redirect_uri scheme or legacy)
+                        guard let url = URL(string: clientId), let schema = url.scheme,
+                            let host = url.host
+                        else {
+                            throw SharingRequestIllegalStateException.illegalState
+                        }
+                        let clientUrl = "\(schema)://\(host)"
+                        print("client url: \(clientUrl)")
+                        let (extractedCert, derCertificates) = extractFirstCertSubject(url: clientUrl)
+                        cert = extractedCert
+                        // verify ov of rp
+                        print("verify cert chain")
+                        let b = try? SignatureUtil.validateCertificateChain(
+                            derCertificates: derCertificates)
+                        verified = b ?? false
+                        print("verified: \(verified)")
+                    }
 
                     guard let seed = self.seed else {
                         throw SharingRequestIllegalStateException.illegalSeedState
@@ -114,12 +129,11 @@ class SharingRequestViewModel {
                         tosUrl: clientMetadata.tosUri ?? "",
                         jwkThumbprint: account!.thumbprint,
                         certificateInfo: cert,
-                        verified: b ?? false
+                        verified: verified
                     )
 
-                    print("set presentation request")
-                    // set presentation def
-                    presentationDefinition = processedRequestData.presentationDefinition
+                    print("set dcql query")
+                    dcqlQuery = processedRequestData.dcqlQuery
                     print("success")
                 case .failure(let error):
                     print(error)

@@ -26,17 +26,16 @@ func decodeUriAsJson(uri: String) throws -> [String: Any] {
         throw IllegalArgumentException.badParams
     }
 
-    guard let query = URLComponents(string: uri)?.query else {
+    guard let components = URLComponents(string: uri),
+          let queryItems = components.queryItems else {
         throw IllegalArgumentException.badParams
     }
 
-    let params = query.components(separatedBy: "&").map { $0.components(separatedBy: "=") }
     var json = [String: Any]()
 
-    for param in params {
-        if param.count != 2 { continue }
-        let key = param[0].removingPercentEncoding ?? ""
-        let value = param[1].removingPercentEncoding ?? ""
+    for item in queryItems {
+        let key = item.name
+        guard let value = item.value else { continue }
 
         if let boolValue = Bool(value) {
             json[key] = boolValue
@@ -65,7 +64,10 @@ func parse(uri: String) throws -> (String, AuthorizationRequestPayload) {
     }
     do {
         let json = try decodeUriAsJson(uri: uri)
+        print("parsed json keys: \(json.keys)")
+        print("request_uri in json: \(json["request_uri"] ?? "nil")")
         let ar = try AuthorizationRequestPayloadImpl(from: json)
+        print("ar.requestUri: \(ar.requestUri ?? "nil")")
         return (scheme, ar)
     }
     catch {
@@ -104,14 +106,14 @@ enum AuthorizationError: Error {
     case parseRequestError
     case getRequestObjectFailure
     case getClientMetadataFailure
-    case getPresentationDefinitionFailure
+    case getDcqlQueryFailure
     case getJwksFailure
     case keyIdNotFoundInJwtHeader
     case validateJwtFailure(reason: JWTVerificationError)
     case serverError(statusCode: Int)
     case invalidData
     case invalidClientMetadata
-    case invalidPresentationDefinition
+    case invalidDcqlQuery
 }
 
 func fetchJWT(from url: URL, using session: URLSession = URLSession.shared) async throws -> String {
@@ -195,7 +197,10 @@ func processRequestObject(
         print("requestUri: \(requestUri)")
         let jwtString = try await fetchJWT(from: requestUri, using: session)
         let decodedJWT = try decodeJWTPayload(jwt: jwtString)
+        print("decodedJWT keys: \(decodedJWT.keys)")
+        print("response_type in JWT: \(decodedJWT["response_type"] ?? "nil")")
         let ro = try RequestObjectPayloadImpl(from: decodedJWT)
+        print("ro.responseType: \(ro.responseType ?? "nil")")
         return (jwtString, ro)
     }
     else {
@@ -208,6 +213,13 @@ func processClientMetadata(
     using session: URLSession = URLSession.shared
 ) async throws -> RPRegistrationMetadataPayload {
 
+    // Check if using x509 scheme (HAIP profile) - client_metadata is optional
+    // OID4VP 1.0: client_id_scheme is deprecated, use client_id prefix instead
+    let clientIdScheme = requestObject?.clientIdScheme ?? authorizationRequest.clientIdScheme
+    let clientId = requestObject?.clientId ?? authorizationRequest.clientId
+    let isX509Scheme = clientIdScheme?.hasPrefix("x509") == true
+                    || clientId?.hasPrefix("x509") == true
+
     if let ro = requestObject {
         if let clientMetadata = ro.clientMetadata {
             return clientMetadata
@@ -217,6 +229,10 @@ func processClientMetadata(
             if let uri = clientMetadataUri, let requestUri = URL(string: uri) {
                 let json = try await fetchJson(from: requestUri, using: session)
                 return try RPRegistrationMetadataPayload(from: json)
+            }
+            else if isX509Scheme {
+                // For x509 schemes (HAIP profile), client_metadata is optional
+                return RPRegistrationMetadataPayload()
             }
             else {
                 throw AuthorizationError.invalidClientMetadata
@@ -233,6 +249,10 @@ func processClientMetadata(
                 let json = try await fetchJson(from: requestUri, using: session)
                 return try RPRegistrationMetadataPayload(from: json)
             }
+            else if isX509Scheme {
+                // For x509 schemes (HAIP profile), client_metadata is optional
+                return RPRegistrationMetadataPayload()
+            }
             else {
                 throw AuthorizationError.invalidClientMetadata
             }
@@ -241,55 +261,13 @@ func processClientMetadata(
     }
 }
 
-func processPresentationDefinition(
-    _ authorizationRequest: AuthorizationRequestPayload, _ requestObject: RequestObjectPayload?,
-    using session: URLSession = URLSession.shared
-) async throws -> PresentationDefinition? {
-
+func processDcqlQuery(
+    _ authorizationRequest: AuthorizationRequestPayload, _ requestObject: RequestObjectPayload?
+) -> DcqlQuery? {
     if let ro = requestObject {
-        if let presentationDefinition = ro.presentationDefinition {
-            return presentationDefinition
-        }
-        else {
-            let presentationDefinitionUri = ro.presentationDefinitionUri
-            if let uri = presentationDefinitionUri, let requestUri = URL(string: uri) {
-                do {
-                    let data = try await fetchData(from: requestUri, using: session)
-                    let decoder = JSONDecoder()
-                    decoder.keyDecodingStrategy = .convertFromSnakeCase
-                    return try decoder.decode(PresentationDefinition.self, from: data)
-                }
-                catch {
-                    throw AuthorizationError.invalidClientMetadata
-                }
-            }
-            else {
-                return nil
-            }
-        }
+        return ro.dcqlQuery
     }
-    else {
-        if let presentationDefinition = authorizationRequest.presentationDefinition {
-            return presentationDefinition
-        }
-        else {
-            let presentationDefinitionUri = authorizationRequest.presentationDefinitionUri
-            if let uri = presentationDefinitionUri, let requestUri = URL(string: uri) {
-                do {
-                    let data = try await fetchData(from: requestUri, using: session)
-                    let decoder = JSONDecoder()
-                    decoder.keyDecodingStrategy = .convertFromSnakeCase
-                    return try decoder.decode(PresentationDefinition.self, from: data)
-                }
-                catch {
-                    throw AuthorizationError.invalidClientMetadata
-                }
-            }
-            else {
-                return nil
-            }
-        }
-    }
+    return authorizationRequest.dcqlQuery
 }
 
 func parseAndResolve(from uri: String, using session: URLSession = URLSession.shared) async
@@ -314,9 +292,8 @@ func parseAndResolve(from uri: String, using session: URLSession = URLSession.sh
         let clientMetadata = try await processClientMetadata(
             authorizationRequest, _requestObject, using: session)
 
-        print("process presentation definition")
-        let presentationDefinition = try await processPresentationDefinition(
-            authorizationRequest, _requestObject, using: session)
+        print("process dcql query")
+        let dcqlQuery = processDcqlQuery(authorizationRequest, _requestObject)
 
         return .success(
             ProcessedRequestData(
@@ -324,7 +301,7 @@ func parseAndResolve(from uri: String, using session: URLSession = URLSession.sh
                 requestObjectJwt: _jwt ?? "",
                 requestObject: _requestObject,
                 clientMetadata: clientMetadata,
-                presentationDefinition: presentationDefinition,
+                dcqlQuery: dcqlQuery,
                 requestIsSigned: _requestObject != nil
             )
         )
@@ -345,7 +322,7 @@ struct ProcessedRequestData {
     var requestObjectJwt: String
     var requestObject: RequestObjectPayload?
     var clientMetadata: RPRegistrationMetadataPayload
-    var presentationDefinition: PresentationDefinition?
+    var dcqlQuery: DcqlQuery?
     var requestIsSigned: Bool
 }
 

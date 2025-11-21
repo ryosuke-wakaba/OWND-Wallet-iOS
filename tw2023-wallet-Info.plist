@@ -24,6 +24,16 @@
 				<string>openid4vp</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.ownd-project</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>haip-vp</string>
+			</array>
+		</dict>
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.3.0</string>

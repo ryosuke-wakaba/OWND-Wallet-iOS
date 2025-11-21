@@ -26,7 +26,7 @@ struct RecipientOrgInfo: View {
                         }
                     }
                     .frame(width: 70, height: 70)
-                    Text(clientInfo.certificateInfo!.organization ?? clientInfo.name).modifier(
+                    Text(clientInfo.certificateInfo?.organization ?? clientInfo.name).modifier(
                         TitleBlack())
                 }
                 if let issuer = clientInfo.certificateInfo?.issuer {

@@ -55,8 +55,8 @@ struct SharingRequest: View {
                                         Spacer()
                                     }
                                     // ------------ title section ------------
-                                    if let pd = viewModel.presentationDefinition,
-                                        let name = pd.name
+                                    if let query = viewModel.dcqlQuery,
+                                        let name = query.credentials.first?.id
                                     {
                                         Text(name)
                                             .modifier(Title3Black())
@@ -105,11 +105,11 @@ struct SharingRequest: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
                                     .padding(.top, 16)
 
-                                    if let presentationDefinition = viewModel.presentationDefinition
+                                    if let dcqlQuery = viewModel.dcqlQuery
                                     {
                                         ProvideAge(
                                             clientInfo: clientInfo,
-                                            presentationDefinition: presentationDefinition)
+                                            dcqlQuery: dcqlQuery)
                                         if viewModel.selectedCredential {
                                             // ------------ change link ------------
                                             StatusBox(displayText: $proofBy, status: .success)
@@ -148,7 +148,7 @@ struct SharingRequest: View {
                                     .padding(.vertical, 16)
 
                                     // ------------ sharing button section ------------
-                                    if viewModel.presentationDefinition == nil
+                                    if viewModel.dcqlQuery == nil
                                         || viewModel.selectedCredential
                                     {
                                         ActionButtonBlack(
@@ -230,9 +230,9 @@ struct SharingRequest: View {
                             authenticated = true
                             if let url = args.url {
                                 await viewModel.loadData(url)
-                                if viewModel.presentationDefinition != nil {
-                                    sharingRequestModel.presentationDefinition =
-                                        viewModel.presentationDefinition
+                                if viewModel.dcqlQuery != nil {
+                                    sharingRequestModel.dcqlQuery =
+                                        viewModel.dcqlQuery
                                 }
                                 showAlert = viewModel.showAlert
                                 alertTitle = viewModel.alertTitle

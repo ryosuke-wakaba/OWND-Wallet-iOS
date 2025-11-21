@@ -25,7 +25,7 @@ enum OpenIdProviderIllegalInputException: Error {
     case illegalResponseTypeInput
     case illegalResponseModeInput
     case illegalNonceInput
-    case illegalPresentationDefinitionInput
+    case illegalDcqlQueryInput
     case illegalRedirectUriInput
     case illegalDisclosureInput
     case illegalCredentialInput
@@ -37,7 +37,7 @@ enum OpenIdProviderIllegalStateException: Error {
     case illegalResponseModeState
     case illegalResponseTypeState
     case illegalNonceState
-    case illegalPresentationDefinitionState
+    case illegalDcqlQueryState
     case illegalRedirectUriState
     case illegalKeypairState
     case illegalKeyBindingState

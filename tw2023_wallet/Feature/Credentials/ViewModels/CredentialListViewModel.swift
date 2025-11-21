@@ -12,7 +12,7 @@ class CredentialListViewModel {
 
     private let credentialDataManager = CredentialDataManager(container: nil)
 
-    func loadData(presentationDefinition: PresentationDefinition? = nil) {
+    func loadData(dcqlQuery: DcqlQuery? = nil) {
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
             print("now previewing")
             return
@@ -32,8 +32,8 @@ class CredentialListViewModel {
             }
         }
 
-        if let pd = presentationDefinition {
-            dataModel.credentials = credentialList.filter { filterCredential($0, pd) }
+        if let query = dcqlQuery {
+            dataModel.credentials = credentialList.filter { filterCredential($0, query) }
         }
         else {
             dataModel.credentials = credentialList
@@ -45,36 +45,23 @@ class CredentialListViewModel {
     }
 
     func filterCredential(
-        _ credential: Credential, _ presentationDefinition: PresentationDefinition
+        _ credential: Credential, _ dcqlQuery: DcqlQuery
     ) -> Bool {
         let format = credential.format
         print("format: \(format)")
-        do {
-            let credentialFormat = CredentialFormat(formatString: format)
 
-            if credentialFormat?.isSDJWT == true {
-                let ret = presentationDefinition.firstMatchedInputDescriptor(
-                    sdJwt: credential.payload)
-                if let (_, disclosures) = ret {
-                    return 0
-                        < disclosures.filter { it in (it.isUserSelectable || it.isSubmit) }.count
-                }
-                return false
+        let credentialFormat = CredentialFormat(formatString: format)
+
+        if credentialFormat?.isSDJWT == true {
+            let match = dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload)
+            if let match = match {
+                return 0
+                    < match.disclosuresWithOptionality.filter { it in (it.isUserSelectable || it.isSubmit) }.count
             }
-            else if credentialFormat == .jwtVCJson {
-                let (_, payload, _) = try JWTUtil.decodeJwt(jwt: credential.payload)
-                print("satisfyConstrains?")
-                return presentationDefinition.satisfyConstrains(
-                    credential: payload)
-            }
-            else {
-                // その他のフォーマットに対する処理が必要な場合、ここに追加
-                return false
-            }
+            return false
         }
-        catch {
-            // JWTのデコードに失敗した場合の処理
-            print("JWT decoding failed for credential with format: \(format)")
+        else {
+            // その他のフォーマットに対する処理が必要な場合、ここに追加
             return false
         }
     }

@@ -12,7 +12,7 @@ class DetailPreviewModel: CredentialDetailViewModel {
         // nop
     }
     override func loadData(
-        credential: Credential, presentationDefinition: PresentationDefinition? = nil
+        credential: Credential, dcqlQuery: DcqlQuery? = nil
     ) async {
         // mock data for preview
         dataModel.isLoading = true
@@ -30,7 +30,7 @@ class DetailVPModePreviewModel: CredentialDetailViewModel {
         // nop
     }
     override func loadData(
-        credential: Credential, presentationDefinition: PresentationDefinition? = nil
+        credential: Credential, dcqlQuery: DcqlQuery? = nil
     ) async {
         // mock data for preview
         dataModel.isLoading = true
@@ -68,100 +68,54 @@ class DetailVPModePreviewModel: CredentialDetailViewModel {
         dataModel.isLoading = false
     }
 
-    func dummyPresentationDefinition1() -> PresentationDefinition {
+    func dummyDcqlQuery1() -> DcqlQuery {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let presentationJsonData = presentationJson1.data(using: .utf8)
-        let presentationDefinition = try! decoder.decode(
-            PresentationDefinition.self, from: presentationJsonData!)
-        return presentationDefinition
+        let dcqlQueryJsonData = dcqlQueryJson1.data(using: .utf8)
+        let dcqlQuery = try! decoder.decode(
+            DcqlQuery.self, from: dcqlQueryJsonData!)
+        return dcqlQuery
     }
 
-    func dummyPresentationDefinition2() -> PresentationDefinition {
+    func dummyDcqlQuery2() -> DcqlQuery {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let presentationJsonData = presentationJson2.data(using: .utf8)
-        let presentationDefinition = try! decoder.decode(
-            PresentationDefinition.self, from: presentationJsonData!)
-        return presentationDefinition
+        let dcqlQueryJsonData = dcqlQueryJson2.data(using: .utf8)
+        let dcqlQuery = try! decoder.decode(
+            DcqlQuery.self, from: dcqlQueryJsonData!)
+        return dcqlQuery
     }
 
-    let presentationJson1 = """
+    let dcqlQueryJson1 = """
           {
-            "id": "12345",
-            "inputDescriptors": [
+            "credentials": [
               {
-                "id": "input1",
-                "name": "First Input",
-                "purpose": "For identification",
-                "format": {
-                  "vc+sd-jwt": {}
+                "id": "age_verification",
+                "format": "vc+sd-jwt",
+                "meta": {
+                  "vct_values": ["AgeVerificationCredential"]
                 },
-                "group": [
-                  "A"
-                ],
-                "constraints": {
-                  "limitDisclosure": "required",
-                  "fields": [
-                    {
-                      "path": [
-                        "$.is_older_than_13"
-                      ],
-                      "filter": {
-                        "type": "boolean"
-                      }
-                    }
-                  ]
-                }
-              }
-            ],
-            "submissionRequirements": [
-              {
-                "name": "Over13 Proof",
-                "rule": "pick",
-                "count": 1,
-                "from": "A"
+                "claims": [
+                  {
+                    "path": ["is_older_than_13"]
+                  }
+                ]
               }
             ]
           }
         """
 
-    let presentationJson2 = """
+    let dcqlQueryJson2 = """
           {
-            "id": "12345",
-            "inputDescriptors": [
+            "credentials": [
               {
-                "id": "input1",
-                "name": "First Input",
-                "purpose": "For identification",
-                "format": {
-                  "vc+sd-jwt": {}
-                },
-                "group": [
-                  "A"
-                ],
-                "constraints": {
-                  "limitDisclosure": "required",
-                  "fields": [
-                    {
-                      "path": [
-                        "$.is_older_than_13"
-                      ],
-                      "filter": {
-                        "type": "boolean"
-                      },
-                      "optional": true
-                    }
-                  ]
-                }
-              }
-            ],
-            "submissionRequirements": [
-              {
-                "name": "Over13 Proof",
-                "rule": "pick",
-                "count": 1,
-                "from": "A"
+                "id": "age_verification_optional",
+                "format": "vc+sd-jwt",
+                "claims": [
+                  {
+                    "path": ["is_older_than_13"]
+                  }
+                ]
               }
             ]
           }

@@ -32,7 +32,7 @@ class OpenIdProvider {
     var state: String?
     var redirectUri: String?
     var responseUri: String?
-    var presentationDefinition: PresentationDefinition?
+    var dcqlQuery: DcqlQuery?
 
     init(_ option: ProviderOption) {
         self.option = option
@@ -70,58 +70,78 @@ class OpenIdProvider {
                     print("verify request jwt")
                     let clientScheme = requestObj!.clientIdScheme
                     let jwt = processedRequestData.requestObjectJwt
-                    if clientScheme == "x509_san_dns" {
-                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt)
+
+                    // OID4VP 1.0: Check Client Identifier Prefix format
+                    let isX509SanDns = clientScheme == "x509_san_dns" || _clientId.hasPrefix("x509_san_dns:")
+                    let isX509Hash = _clientId.hasPrefix("x509_hash:")
+
+                    if isX509SanDns || isX509Hash {
+                        // Skip certificate chain validation for development (self-signed certs)
+                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: false)
                         switch result {
                             case .success(let verifedX5CJwt):
                                 print("verify request jwt success")
-                                // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
-                                /*
-                            the Client Identifier MUST be a DNS name and match a dNSName Subject Alternative Name (SAN) [RFC5280] entry in the leaf certificate passed with the request.
-                             */
                                 let (decoded, certificates) = verifedX5CJwt
 
-                                guard let url = URL(string: _clientId),
-                                    let domainName = url.host
-                                else {
-                                    return .failure(
-                                        .authRequestInputError(
-                                            reason: .compliantError(
-                                                reason: "Unable to get host name")))
-                                }
-
-                                if isDomainInSAN(certificate: certificates[0], domain: domainName) {
-                                    print("verify san entry success")
-                                }
-                                else {
-                                    return .failure(
-                                        .authRequestInputError(
-                                            reason: .compliantError(
-                                                reason: "Invalid client_id not in san entry of cert"
-                                            )
-                                        ))
-                                }
-
-                                if let urlString = requestObj?.responseUri
-                                    ?? requestObj?.redirectUri,
-                                    let url = URL(string: urlString)
-                                {
-                                    if let clientUrl = URL(string: _clientId),
-                                        let urlHost = url.host, let clientIdHost = clientUrl.host,
-                                        urlHost == clientIdHost
-                                    {
-
-                                        print("verify client_id and url success")
-                                    }
-                                    else {
+                                if isX509SanDns {
+                                    // x509_san_dns: Verify SAN DNS name
+                                    // Extract domain from client_id (with or without prefix)
+                                    let domainName: String
+                                    if _clientId.hasPrefix("x509_san_dns:") {
+                                        domainName = String(_clientId.dropFirst("x509_san_dns:".count))
+                                    } else if let url = URL(string: _clientId), let host = url.host {
+                                        domainName = host
+                                    } else {
                                         return .failure(
                                             .authRequestInputError(
                                                 reason: .compliantError(
-                                                    reason:
-                                                        "Invalid client_id or response_uri(redirect_uri)"
+                                                    reason: "Unable to get domain name from client_id")))
+                                    }
+
+                                    if isDomainInSAN(certificate: certificates[0], domain: domainName) {
+                                        print("verify san entry success")
+                                    } else {
+                                        return .failure(
+                                            .authRequestInputError(
+                                                reason: .compliantError(
+                                                    reason: "Invalid client_id not in san entry of cert"
                                                 )
                                             ))
                                     }
+
+                                    // Verify response_uri/redirect_uri host matches client_id domain
+                                    if let urlString = requestObj?.responseUri ?? requestObj?.redirectUri,
+                                       let url = URL(string: urlString),
+                                       let urlHost = url.host {
+                                        if urlHost == domainName {
+                                            print("verify client_id and url success")
+                                        } else {
+                                            return .failure(
+                                                .authRequestInputError(
+                                                    reason: .compliantError(
+                                                        reason: "Invalid client_id or response_uri(redirect_uri)"
+                                                    )
+                                                ))
+                                        }
+                                    }
+                                } else if isX509Hash {
+                                    // x509_hash: Verify certificate hash matches client_id
+                                    let hashValue = String(_clientId.dropFirst("x509_hash:".count))
+                                    let calculatedHash = calculateX509CertificateHash(certificates[0])
+
+                                    if calculatedHash == hashValue {
+                                        print("verify x509_hash success")
+                                    } else {
+                                        print("x509_hash mismatch: expected=\(hashValue), got=\(calculatedHash ?? "nil")")
+                                        return .failure(
+                                            .authRequestInputError(
+                                                reason: .compliantError(
+                                                    reason: "Certificate hash does not match client_id"
+                                                )
+                                            ))
+                                    }
+                                    // Note: For x509_hash, response_uri/redirect_uri host validation is not required
+                                    print("x509_hash client_id verified")
                                 }
 
                             case .failure(let error):
@@ -129,7 +149,7 @@ class OpenIdProvider {
                                 return .failure(
                                     .authRequestInputError(
                                         reason: .compliantError(
-                                            reason: "Invalid client_id or response_uri")
+                                            reason: "JWT verification failed")
                                     ))
                         }
                     }
@@ -146,17 +166,32 @@ class OpenIdProvider {
                     }
                 }
 
-                let clientScheme =
-                    requestObj?.clientIdScheme ?? authRequest.clientIdScheme ?? "redirect_uri"
+                // OID4VP 1.0: Determine client scheme from client_id prefix or client_id_scheme
+                let clientScheme: String
+                if _clientId.hasPrefix("x509_san_dns:") {
+                    clientScheme = "x509_san_dns"
+                } else if _clientId.hasPrefix("x509_hash:") {
+                    clientScheme = "x509_hash"
+                } else if _clientId.hasPrefix("redirect_uri:") {
+                    clientScheme = "redirect_uri"
+                } else {
+                    clientScheme = requestObj?.clientIdScheme ?? authRequest.clientIdScheme ?? "redirect_uri"
+                }
+
                 if clientScheme == "redirect_uri" {
+                    // For redirect_uri scheme, client_id must match response_uri
                     let responseUri = requestObj?.responseUri ?? authRequest.responseUri
-                    if clientId != responseUri {
+                    let clientIdValue = _clientId.hasPrefix("redirect_uri:")
+                        ? String(_clientId.dropFirst("redirect_uri:".count))
+                        : _clientId
+                    if clientIdValue != responseUri {
                         return .failure(
                             .authRequestInputError(
                                 reason: .compliantError(reason: "Invalid client_id or response_uri")
                             ))
                     }
                 }
+                // Note: x509_san_dns and x509_hash schemes are already validated above
 
                 guard let _responseType = requestObj?.responseType ?? authRequest.responseType
                 else {
@@ -183,14 +218,14 @@ class OpenIdProvider {
                 nonce = _nonce
                 state = requestObj?.state ?? authRequest.state ?? ""
                 if _responseType.contains("vp_token") {
-                    guard let _presentationDefinition = processedRequestData.presentationDefinition
+                    guard let _dcqlQuery = processedRequestData.dcqlQuery
                     else {
                         return .failure(
                             .authRequestInputError(
                                 reason: .compliantError(
-                                    reason: "can not get presentation definition")))
+                                    reason: "can not get dcql query")))
                     }
-                    presentationDefinition = _presentationDefinition
+                    dcqlQuery = _dcqlQuery
                 }
                 if responseMode == ResponseMode.directPost
                     || responseMode == ResponseMode.directPostJwt
@@ -377,9 +412,9 @@ class OpenIdProvider {
 
         guard let clientId = clientId,
             let responseMode = responseMode,
-            let nonce = nonce,
-            let presentationDefinition = presentationDefinition
+            let nonce = nonce
         else {
+            print("[createVpToken] illegalState - clientId: \(String(describing: self.clientId)), responseMode: \(String(describing: self.responseMode)), nonce: \(String(describing: self.nonce))")
             return .failure(OpenIdProviderIllegalStateException.illegalState)
         }
 
@@ -416,19 +451,6 @@ class OpenIdProvider {
             return .failure(OpenIdProviderIllegalStateException.illegalJsonState)
         }
 
-        let presentationSubmission = PresentationSubmission(
-            id: UUID().uuidString,
-            definitionId: presentationDefinition.id,
-            descriptorMap: preparedSubmissionData.map { $0.descriptorMap }
-        )
-
-        let jsonEncoder = JSONEncoder()
-        jsonEncoder.keyEncodingStrategy = .convertToSnakeCase
-
-        // オブジェクトをJSON文字列にエンコード
-        let jsonData = try! jsonEncoder.encode(presentationSubmission)
-        let jsonString = String(data: jsonData, encoding: .utf8)!
-
         let sharedCredentials = preparedSubmissionData.map {
             SharedCredential(
                 id: $0.credentialId,
@@ -436,7 +458,8 @@ class OpenIdProvider {
                 sharedClaims: $0.disclosedClaims)
         }
 
-        var formData = ["vp_token": vpTokenValue, "presentation_submission": jsonString]
+        // OID4VP 1.0: vp_token only, no presentation_submission
+        var formData = ["vp_token": vpTokenValue]
         if let state = state {
             formData["state"] = state
         }

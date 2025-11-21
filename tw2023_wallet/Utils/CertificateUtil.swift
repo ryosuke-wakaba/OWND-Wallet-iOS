@@ -9,6 +9,7 @@ import ASN1Decoder
 import CryptoKit
 import Foundation
 import Security
+import SwiftASN1
 import X509
 
 class CertificateHandler: NSObject, URLSessionDelegate {
@@ -338,6 +339,32 @@ func generateCertificate(
     }
     catch {
         print("Error creating Certificate: \(error)")
+        return nil
+    }
+}
+
+/// Calculate SHA-256 hash of X.509 certificate (Base64URL encoded)
+/// Used for x509_hash Client Identifier Prefix in OID4VP 1.0
+func calculateX509CertificateHash(_ certificate: Certificate) -> String? {
+    do {
+        // Get DER-encoded certificate data
+        var serializer = DER.Serializer()
+        try serializer.serialize(certificate)
+        let derData = Data(serializer.serializedBytes)
+
+        // Calculate SHA-256 hash using CryptoKit
+        let hash = SHA256.hash(data: derData)
+
+        // Base64URL encode (no padding)
+        let base64 = Data(hash).base64EncodedString()
+        let base64Url = base64
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+
+        return base64Url
+    } catch {
+        print("Error calculating certificate hash: \(error)")
         return nil
     }
 }

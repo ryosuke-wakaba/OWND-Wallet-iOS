@@ -39,7 +39,9 @@ func sendFormData(
     var request: URLRequest
 
     switch responseMode {
-        case .directPost:
+        case .directPost, .directPostJwt:
+            // TODO: directPostJwt should encrypt/sign the response as JWT
+            // For now, treat it the same as directPost
             request = URLRequest(url: url)
             request.httpMethod = "POST"
 

@@ -8,7 +8,7 @@
 import Foundation
 
 class PreviewModel: CredentialListViewModel {
-    override func loadData(presentationDefinition: PresentationDefinition? = nil) {
+    override func loadData(dcqlQuery: DcqlQuery? = nil) {
         // mock data for preview
         dataModel.isLoading = true
         print("load dummy data..")

@@ -28,13 +28,13 @@ class CredentialDetailViewModel {
     var undisclosedClaims: [DisclosureWithOptionality] = []
 
     var dataModel: CredentialDetailModel = .init()
-    var inputDescriptor: InputDescriptor? = nil
+    var credentialQuery: DcqlCredentialQuery? = nil
 
     func loadData(credential: Credential) async {
-        await loadData(credential: credential, presentationDefinition: nil)
+        await loadData(credential: credential, dcqlQuery: nil)
     }
 
-    func loadData(credential: Credential, presentationDefinition: PresentationDefinition? = nil)
+    func loadData(credential: Credential, dcqlQuery: DcqlQuery? = nil)
         async
     {
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
@@ -45,14 +45,14 @@ class CredentialDetailViewModel {
         dataModel.isLoading = true
         print("load data..")
         dataModel.isLoading = false
-        if let pd = presentationDefinition {
+        if let query = dcqlQuery {
             switch credential.format {
                 case "vc+sd-jwt", "dc+sd-jwt":  // OID4VCI 1.0: Support both formats
-                    if let matched = pd.firstMatchedInputDescriptor(
+                    if let matched = query.firstMatchedCredentialQuery(
                         sdJwt: credential.payload)
                     {
-                        let (inputDescriptors, disclosuresWithOptionality) = matched
-                        self.inputDescriptor = inputDescriptors
+                        self.credentialQuery = matched.credentialQuery
+                        let disclosuresWithOptionality = matched.disclosuresWithOptionality
 
                         self.requiredClaims = disclosuresWithOptionality.filter { d in
                             d.isSubmit && !d.isUserSelectable
@@ -65,7 +65,7 @@ class CredentialDetailViewModel {
                         }
                     }
                 case "jwt_vc_json":
-                    inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定
+                    credentialQuery = query.credentials.first
                     self.undisclosedClaims = []
                     self.requiredClaims = jwtVcJsonClaimsTobeDisclosed(jwt: credential.payload).map
                     { it in
@@ -73,7 +73,7 @@ class CredentialDetailViewModel {
                             disclosure: it, isSubmit: true, isUserSelectable: false)
                     }
                 default:
-                    inputDescriptor = pd.inputDescriptors[0]  // 選択開示できないので先頭固定
+                    credentialQuery = query.credentials.first
             }
         }
         dataModel.hasLoadedData = true
@@ -93,7 +93,7 @@ class CredentialDetailViewModel {
             format: credential.format,
             types: types,
             credential: credential.payload,
-            inputDescriptor: self.inputDescriptor!,
+            credentialQuery: self.credentialQuery!,
             discloseClaims: discloseClaims
         )
         return submissionCredential

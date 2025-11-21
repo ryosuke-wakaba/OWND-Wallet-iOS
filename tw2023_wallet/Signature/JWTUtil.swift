@@ -148,6 +148,7 @@ enum JWTUtil {
         else {
             return .failure(.verificationFailed("Failed to decode JWT"))
         }
+        print("[verifyJwt] algorithm: \(algorithm), signatureAlg: \(signatureAlg)")
 
         guard let tbsContent = (parts[0] + "." + parts[1]).data(using: .ascii),
             let signature = parts[2].data(using: .ascii),
@@ -179,16 +180,23 @@ enum JWTUtil {
         VerifiedX5CJwt, JWTVerificationError
     > {
         guard let decodedJwt = try? decode(jwt: jwt) else {
+            print("[verifyJwtByX5C] Failed to decode JWT")
             return .failure(.verificationFailed("Unable to decode jwt"))
         }
+        print("[verifyJwtByX5C] JWT decoded, header keys: \(decodedJwt.header.keys)")
 
         guard let x5c = decodedJwt.header["x5c"] as? [String] else {
+            print("[verifyJwtByX5C] x5c not found in header")
             return .failure(.verificationFailed("Unable to get x5c property"))
         }
+        print("[verifyJwtByX5C] x5c found, count: \(x5c.count)")
+
         guard let certificates = try? SignatureUtil.convertPemToX509Certificates(pemChain: x5c)
         else {
+            print("[verifyJwtByX5C] Failed to convert x5c to certificates")
             return .failure(.verificationFailed("Unable to convert x5c"))
         }
+        print("[verifyJwtByX5C] Certificates converted: \(certificates.count)")
 
         let firstCert = certificates[0]
         let subjectPublicKeyInfoBytes = firstCert.publicKey.subjectPublicKeyInfoBytes
@@ -205,10 +213,13 @@ enum JWTUtil {
                     kSecAttrKeyClass: kSecAttrKeyClassPublic,
                 ] as CFDictionary, &error)
         else {
+            print("[verifyJwtByX5C] Failed to create SecKey: \(error?.takeRetainedValue().localizedDescription ?? "unknown")")
             return .failure(.verificationFailed("Unable to Convert Public Key"))
         }
+        print("[verifyJwtByX5C] SecKey created successfully")
 
         let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
+        print("[verifyJwtByX5C] JWT validation result: \(jwtValidation)")
         if case .success = jwtValidation {
             if verifyCertChain {
                 let chainValidaton = try! SignatureUtil.validateCertificateChain(

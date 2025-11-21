@@ -48,7 +48,7 @@ struct CredentialListForSharing: View {
             print("onAppear")
             Task {
                 if let model = sharingRequestModel {
-                    viewModel.loadData(presentationDefinition: model.presentationDefinition)
+                    viewModel.loadData(dcqlQuery: model.dcqlQuery)
                 }
                 else {
                     viewModel.loadData()

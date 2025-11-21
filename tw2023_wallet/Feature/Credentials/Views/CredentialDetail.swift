@@ -211,9 +211,9 @@ struct CredentialDetail: View {
         .onAppear {
             print("onAppear")
             Task {
-                if let model = sharingRequestModel, let pd = model.presentationDefinition {
+                if let model = sharingRequestModel, let query = model.dcqlQuery {
                     self.vpMode = true
-                    await viewModel.loadData(credential: credential, presentationDefinition: pd)
+                    await viewModel.loadData(credential: credential, dcqlQuery: query)
                     self.userSelectableClaims = viewModel.userSelectableClaims
                 }
                 else {
@@ -258,22 +258,22 @@ struct CredentialDetail: View {
     let modelData = ModelData()
     modelData.loadCredentials()
     let viewModel = DetailVPModePreviewModel()
-    let pd = viewModel.dummyPresentationDefinition1()
+    let query = viewModel.dummyDcqlQuery1()
     return CredentialDetail(
         viewModel: viewModel,
         credential: modelData.credentials[2],
         path: .constant([])
-    ).environment(SharingRequestModel(presentationDefinition: pd))
+    ).environment(SharingRequestModel(dcqlQuery: query))
 }
 
 #Preview("5. mode: vp-sharing with optional field") {
     let modelData = ModelData()
     modelData.loadCredentials()
     let viewModel = DetailVPModePreviewModel()
-    let pd = viewModel.dummyPresentationDefinition2()
+    let query = viewModel.dummyDcqlQuery2()
     return CredentialDetail(
         viewModel: viewModel,
         credential: modelData.credentials[2],
         path: .constant([])
-    ).environment(SharingRequestModel(presentationDefinition: pd))
+    ).environment(SharingRequestModel(dcqlQuery: query))
 }

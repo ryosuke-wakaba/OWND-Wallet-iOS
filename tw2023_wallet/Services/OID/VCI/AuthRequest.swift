@@ -55,8 +55,7 @@ protocol AuthorizationRequestCommonPayload {
     var clientMetadata: RPRegistrationMetadataPayload? { get }
     var clientMetadataUri: String? { get }
     var responseUri: String? { get }
-    var presentationDefinition: PresentationDefinition? { get }
-    var presentationDefinitionUri: String? { get }
+    var dcqlQuery: DcqlQuery? { get }
     var clientIdScheme: String? { get }
 }
 
@@ -108,8 +107,7 @@ struct RequestObjectPayloadImpl: RequestObjectPayload {
     var clientMetadata: RPRegistrationMetadataPayload?
     var clientMetadataUri: String?
     var responseUri: String?
-    var presentationDefinition: PresentationDefinition?
-    var presentationDefinitionUri: String?
+    var dcqlQuery: DcqlQuery?
     var clientIdScheme: String?
 }
 
@@ -138,8 +136,7 @@ struct AuthorizationRequestPayloadImpl: AuthorizationRequestPayload, Codable {
     var request: String?
     var requestUri: String?
     var responseUri: String?
-    var presentationDefinition: PresentationDefinition?
-    var presentationDefinitionUri: String?
+    var dcqlQuery: DcqlQuery?
     var clientIdScheme: String?
 }
 
