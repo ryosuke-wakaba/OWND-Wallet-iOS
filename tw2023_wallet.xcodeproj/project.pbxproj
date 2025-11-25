@@ -32,6 +32,7 @@
 		8B297C442B39778B00D2998D /* credential_supported_ldp_vc.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B297C432B39778B00D2998D /* credential_supported_ldp_vc.json */; };
 		8B297C452B39779000D2998D /* credential_supported_ldp_vc.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B297C432B39778B00D2998D /* credential_supported_ldp_vc.json */; };
 		8B297C4B2B39AB8900D2998D /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 8B297C4A2B39AB8900D2998D /* SwiftyJSON */; };
+		8B2AF5D12ED5A51F00F5FE17 /* DCQLMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */; };
 		8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */; };
 		8B4265982B57677600A07F2B /* SDJwtUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087132B3B0AB3004425DE /* SDJwtUtil.swift */; };
 		8B42659A2B576CA500A07F2B /* IssuerDetailPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */; };
@@ -333,6 +334,7 @@
 		8B297C3D2B39745400D2998D /* credential_supported_jwt_vc.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_supported_jwt_vc.json; sourceTree = "<group>"; };
 		8B297C402B39760600D2998D /* credential_supported_vc_sd_jwt.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_supported_vc_sd_jwt.json; sourceTree = "<group>"; };
 		8B297C432B39778B00D2998D /* credential_supported_ldp_vc.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_supported_ldp_vc.json; sourceTree = "<group>"; };
+		8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQLMatcherTests.swift; sourceTree = "<group>"; };
 		8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailViewModel.swift; sourceTree = "<group>"; };
 		8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailPreviewModel.swift; sourceTree = "<group>"; };
 		8B43AE282B3A4F650016CF83 /* credential_offer_filled.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_offer_filled.json; sourceTree = "<group>"; };
@@ -746,6 +748,7 @@
 		8B81E2AC2B33CC4300ED3B4E /* tw2023_walletTests */ = {
 			isa = PBXGroup;
 			children = (
+				8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */,
 				A8EF7F2E2C75D76100BA9D9C /* Models */,
 				A88779B92C33DBDA002EE9C2 /* Feature */,
 				A8AF22892C12A61E00D6EDA5 /* Helper */,
@@ -1857,6 +1860,7 @@
 				A83039BF2B4E4229004139A7 /* ZipUtilTest.swift in Sources */,
 				8B6C3B852B45082A00B5D784 /* OpenIdProvider.swift in Sources */,
 				A84AB6C12B4F726700E8C88B /* CredentialDataManagerTest.swift in Sources */,
+				8B2AF5D12ED5A51F00F5FE17 /* DCQLMatcherTests.swift in Sources */,
 				A83039BD2B4E4229004139A7 /* JWTTest.swift in Sources */,
 				8B6C3B892B481BEC00B5D784 /* VCIMetadataUtilTests.swift in Sources */,
 				8B0E0AA02B3D69240080F6A3 /* PairwiseAccount.swift in Sources */,

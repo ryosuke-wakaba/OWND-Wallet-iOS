@@ -77,11 +77,13 @@ class DCQLMatcher {
         allDisclosures: [Disclosure]
     ) -> [DisclosureWithOptionality]? {
         guard let claims = credentialQuery.claims else {
-            // No claims specified means all claims are acceptable
+            // OID4VP 1.0 Section 6.4.1: If claims is absent, the Verifier is requesting
+            // no claims that are selectively disclosable; the Wallet MUST return only
+            // the claims that are mandatory to present (SD-JWT and KB-JWT only).
             return allDisclosures.map { disclosure in
                 DisclosureWithOptionality(
                     disclosure: disclosure,
-                    isSubmit: true,
+                    isSubmit: false,  // Do not submit selectively disclosable claims
                     isUserSelectable: false
                 )
             }
