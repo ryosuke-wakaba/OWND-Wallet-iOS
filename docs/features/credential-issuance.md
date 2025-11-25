@@ -386,6 +386,130 @@ enum CredentialIssuanceError: Error {
 - 平均発行時間
 - エラー発生率（種類別）
 
+## Credential Query and Selective Disclosure
+
+発行されたクレデンシャルは、Verifierからの提示要求（OID4VP）に応じて選択・開示されます。
+
+### DCQL (Digital Credentials Query Language)
+
+OID4VP 1.0では、Verifierがクレデンシャルを要求する際にDCQLクエリを使用します。
+
+**クエリ構造**:
+```json
+{
+  "dcql_query": {
+    "credentials": [
+      {
+        "id": "credential_id",
+        "format": "dc+sd-jwt",
+        "meta": {
+          "vct_values": ["urn:example:credential:type"]
+        },
+        "claims": [
+          { "path": ["claim_name"] }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Credential Matching Logic
+
+**実装ファイル**: `tw2023_wallet/Services/OID/DCQLMatcher.swift`
+
+マッチング処理の流れ：
+
+1. **フォーマット確認** - `vc+sd-jwt` または `dc+sd-jwt` であることを確認
+2. **VCT照合** - クレデンシャルの `vct` が `meta.vct_values` に含まれるか確認
+3. **クレーム照合** - 要求されたすべてのクレームがクレデンシャルに存在するか確認
+
+```swift
+// DCQLMatcher.swift - マッチングの要点
+func matchCredential(query: DcqlQuery, sdJwt: String) -> DcqlCredentialMatch? {
+    // 1. SD-JWTからDisclosureを抽出
+    let allDisclosures = SDJwtUtil.decodeDisclosure(sdJwtParts.disclosures)
+
+    // 2. 各credential queryに対してマッチング
+    for credentialQuery in query.credentials {
+        // フォーマット確認
+        guard credentialQuery.format == "vc+sd-jwt" || credentialQuery.format == "dc+sd-jwt" else {
+            continue
+        }
+
+        // VCT照合
+        if let vctValues = credentialQuery.meta?.vctValues {
+            guard let vct = jwtPayload["vct"] as? String,
+                  vctValues.contains(vct) else {
+                continue
+            }
+        }
+
+        // クレーム照合
+        let matchedClaims = matchClaims(credentialQuery, sourcePayload, allDisclosures)
+        if matchedClaims != nil {
+            return DcqlCredentialMatch(credentialQuery, matchedClaims)
+        }
+    }
+    return nil
+}
+```
+
+### Selective Disclosure (選択的開示)
+
+SD-JWT形式のクレデンシャルでは、Verifierが要求したクレームのみを開示できます。
+
+**重要な実装ポイント**:
+
+```swift
+// DCQLMatcher.swift - クレーム照合ロジック
+private func matchClaims(
+    credentialQuery: DcqlCredentialQuery,
+    sourcePayload: [String: String],
+    allDisclosures: [Disclosure]
+) -> [DisclosureWithOptionality]? {
+    guard let claims = credentialQuery.claims else {
+        // クレーム指定なし = すべてのクレームを開示可能
+        return allDisclosures.map { DisclosureWithOptionality(disclosure: $0, isSubmit: true, isUserSelectable: false) }
+    }
+
+    // 要求されたクレームパスを収集
+    var requiredPaths = Set<String>()
+    for claim in claims {
+        if let lastPath = claim.path.last {
+            requiredPaths.insert(lastPath)
+        }
+    }
+
+    // 要求されたすべてのクレームがクレデンシャルに存在するか確認
+    let availableKeys = Set(sourcePayload.keys)
+    guard requiredPaths.isSubset(of: availableKeys) else {
+        return nil  // マッチ失敗
+    }
+
+    // Disclosureごとに開示フラグを設定
+    return allDisclosures.map { disclosure in
+        let isRequired = requiredPaths.contains(disclosure.key ?? "")
+        return DisclosureWithOptionality(
+            disclosure: disclosure,
+            isSubmit: isRequired,      // 要求されたクレームのみ開示
+            isUserSelectable: false
+        )
+    }
+}
+```
+
+### 注意事項
+
+1. **すべての要求クレームが必須**: 現在の実装では、DCQLクエリで指定されたすべてのクレームがクレデンシャルに存在する必要があります。1つでも欠けているとマッチングが失敗します。
+
+2. **発行時の考慮点**: クレデンシャル発行時に、Verifierが要求する可能性のあるすべてのクレームを含めることが重要です。
+
+3. **関連ファイル**:
+   - `tw2023_wallet/Services/OID/DCQL.swift` - DCQL型定義
+   - `tw2023_wallet/Services/OID/DCQLMatcher.swift` - マッチングロジック
+   - `tw2023_wallet/Services/OID/Provider/OpenIdProvider.swift` - OID4VPプロバイダー
+
 ## Known Issues
 
 1. Authorization Code Flowが未実装
