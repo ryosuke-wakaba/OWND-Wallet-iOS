@@ -82,12 +82,7 @@ struct JWEUtil {
         var iv = Data(count: 12)
         _ = iv.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 12, $0.baseAddress!) }
 
-        // Encrypt with AES-GCM
-        let symmetricKey = CryptoKit.SymmetricKey(data: derivedKey)
-        let nonce = try AES.GCM.Nonce(data: iv)
-        let sealedBox = try AES.GCM.seal(payloadData, using: symmetricKey, nonce: nonce)
-
-        // Build JWE Protected Header
+        // Build JWE Protected Header (must be built BEFORE encryption for AAD)
         let epkX = ephemeralPublicKey.x963Representation.dropFirst().prefix(32)
         let epkY = ephemeralPublicKey.x963Representation.dropFirst().dropFirst(32)
 
@@ -109,6 +104,14 @@ struct JWEUtil {
 
         let headerData = try JSONSerialization.data(withJSONObject: header)
         let protectedHeader = headerData.base64URLEncodedString()
+
+        // AAD is the ASCII bytes of the Protected Header (RFC 7516)
+        let aad = protectedHeader.data(using: .ascii)!
+
+        // Encrypt with AES-GCM using AAD
+        let symmetricKey = CryptoKit.SymmetricKey(data: derivedKey)
+        let nonce = try AES.GCM.Nonce(data: iv)
+        let sealedBox = try AES.GCM.seal(payloadData, using: symmetricKey, nonce: nonce, authenticating: aad)
 
         // For ECDH-ES, encrypted key is empty
         let encryptedKey = ""
@@ -152,14 +155,17 @@ struct JWEUtil {
         var keyLenBits = UInt32(keyLength * 8).bigEndian
         otherInfo.append(Data(bytes: &keyLenBits, count: 4))
 
-        // Use HKDF with SHA-256
-        let derivedKey = sharedSecret.hkdfDerivedSymmetricKey(
-            using: SHA256.self,
-            salt: Data(),
-            sharedInfo: otherInfo,
-            outputByteCount: keyLength
-        )
+        // Concat KDF: Single-step KDF using SHA-256 (RFC 7518 Section 4.6.2)
+        let sharedSecretData = sharedSecret.withUnsafeBytes { Data($0) }
+        var counter = UInt32(1).bigEndian
+        let counterData = Data(bytes: &counter, count: 4)
 
-        return derivedKey.withUnsafeBytes { Data($0) }
+        var hash = SHA256()
+        hash.update(data: counterData)
+        hash.update(data: sharedSecretData)
+        hash.update(data: otherInfo)
+        let digest = hash.finalize()
+
+        return Data(digest.prefix(keyLength))
     }
 }
