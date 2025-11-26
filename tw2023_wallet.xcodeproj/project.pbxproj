@@ -33,6 +33,7 @@
 		8B297C452B39779000D2998D /* credential_supported_ldp_vc.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B297C432B39778B00D2998D /* credential_supported_ldp_vc.json */; };
 		8B297C4B2B39AB8900D2998D /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 8B297C4A2B39AB8900D2998D /* SwiftyJSON */; };
 		8B2AF5D12ED5A51F00F5FE17 /* DCQLMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */; };
+		8B2AF5D32ED6E07600F5FE17 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D22ED6E07600F5FE17 /* PersistenceController.swift */; };
 		8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */; };
 		8B4265982B57677600A07F2B /* SDJwtUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087132B3B0AB3004425DE /* SDJwtUtil.swift */; };
 		8B42659A2B576CA500A07F2B /* IssuerDetailPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */; };
@@ -334,6 +335,7 @@
 		8B297C402B39760600D2998D /* credential_supported_vc_sd_jwt.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_supported_vc_sd_jwt.json; sourceTree = "<group>"; };
 		8B297C432B39778B00D2998D /* credential_supported_ldp_vc.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_supported_ldp_vc.json; sourceTree = "<group>"; };
 		8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQLMatcherTests.swift; sourceTree = "<group>"; };
+		8B2AF5D22ED6E07600F5FE17 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailViewModel.swift; sourceTree = "<group>"; };
 		8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailPreviewModel.swift; sourceTree = "<group>"; };
 		8B43AE282B3A4F650016CF83 /* credential_offer_filled.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_offer_filled.json; sourceTree = "<group>"; };
@@ -1133,6 +1135,7 @@
 		A84AB6CF2B4F7C4D00E8C88B /* datastore */ = {
 			isa = PBXGroup;
 			children = (
+				8B2AF5D22ED6E07600F5FE17 /* PersistenceController.swift */,
 				A891080B2B84785F0060DD71 /* credential_sharing_history.pb.swift */,
 				A84AB6F22B50111400E8C88B /* id_token_sharing_history.pb.swift */,
 				A84AB6EF2B4FC0C200E8C88B /* credential_data.pb.swift */,
@@ -1676,6 +1679,7 @@
 				8B80569F2B60E2FB009A87C8 /* PreferencesDataStore.swift in Sources */,
 				A82ECC802C23A6AB00B9784B /* UrlEncoder.swift in Sources */,
 				A84AB6F02B4FC0C200E8C88B /* credential_data.pb.swift in Sources */,
+				8B2AF5D32ED6E07600F5FE17 /* PersistenceController.swift in Sources */,
 				F699A8C42B3D6EE400F60B91 /* CredentialOfferModel.swift in Sources */,
 				F6A239A42B4E284C00B09F17 /* ClientInfo.swift in Sources */,
 				8BF1A1CA2ED07045008CE820 /* JWEUtil.swift in Sources */,
