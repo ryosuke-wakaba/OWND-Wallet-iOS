@@ -222,12 +222,34 @@ enum JWTUtil {
         print("[verifyJwtByX5C] JWT validation result: \(jwtValidation)")
         if case .success = jwtValidation {
             if verifyCertChain {
-                let chainValidaton = try! SignatureUtil.validateCertificateChain(
-                    certificates: certificates
-                )
-                if !chainValidaton {
+                // Convert X509.Certificate to SecCertificate for custom anchor validation
+                let secCertificates: [SecCertificate] = certificates.compactMap { cert in
+                    let pem = try? cert.serializeAsPEM()
+                    guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
+                    return SecCertificateCreateWithData(nil, derData as CFData)
+                }
+
+                guard secCertificates.count == certificates.count else {
+                    print("[verifyJwtByX5C] Failed to convert all certificates to SecCertificate")
+                    return .failure(.verificationFailed("Unable to convert certificates"))
+                }
+
+                // Use custom anchor validation (leaf from x5c, intermediate + root from TrustAnchorManager)
+                let chainValidation: Bool
+                do {
+                    chainValidation = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+                        leafCertificates: secCertificates
+                    )
+                } catch {
+                    print("[verifyJwtByX5C] Certificate chain validation error: \(error)")
+                    return .failure(.verificationFailed("Certificate chain validation error"))
+                }
+
+                if !chainValidation {
+                    print("[verifyJwtByX5C] Certificate chain validation failed")
                     return .failure(.verificationFailed("Unable to verify chain of trust"))
                 }
+                print("[verifyJwtByX5C] Certificate chain validation succeeded")
             }
             else {
                 print("Skip ValidateCertificateChain!!!")
@@ -269,8 +291,28 @@ enum JWTUtil {
             return .failure(.verificationFailed("Unable to Convert Public Key"))
         }
 
-        let chainValidaton = try! SignatureUtil.validateCertificateChain(certificates: certificates)
-        if !chainValidaton {
+        // Convert X509.Certificate to SecCertificate for custom anchor validation
+        let secCertificates: [SecCertificate] = certificates.compactMap { cert in
+            let pem = try? cert.serializeAsPEM()
+            guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
+            return SecCertificateCreateWithData(nil, derData as CFData)
+        }
+
+        guard secCertificates.count == certificates.count else {
+            return .failure(.verificationFailed("Unable to convert certificates"))
+        }
+
+        // Use custom anchor validation
+        let chainValidation: Bool
+        do {
+            chainValidation = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+                leafCertificates: secCertificates
+            )
+        } catch {
+            return .failure(.verificationFailed("Certificate chain validation error"))
+        }
+
+        if !chainValidation {
             return .failure(.verificationFailed("Unable to verify chain of trust"))
         }
 

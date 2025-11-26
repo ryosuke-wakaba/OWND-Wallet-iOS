@@ -375,4 +375,113 @@ enum SignatureUtil {
             return false
         }
     }
+
+    // MARK: - Custom Trust Anchor Validation
+
+    /// Validate certificate chain using custom trust anchors from TrustAnchorManager.
+    /// This method builds the chain by combining the leaf certificate (from x5c) with
+    /// built-in intermediate certificates.
+    ///
+    /// - Parameters:
+    ///   - leafCertificates: Certificates from x5c header (typically just the leaf)
+    ///   - useCustomAnchorsOnly: If true, only use custom anchors; if false, fall back to system CA
+    /// - Returns: true if chain is valid
+    static func validateCertificateChainWithCustomAnchors(
+        leafCertificates: [SecCertificate],
+        useCustomAnchorsOnly: Bool = true
+    ) throws -> Bool {
+        let manager = TrustAnchorManager.shared
+
+        // If no custom anchors available, fall back to system CA validation
+        guard manager.hasCustomAnchors else {
+            print("SignatureUtil: No custom anchors available, falling back to system CA")
+            let certs = leafCertificates as CFArray
+            return try validateTrust(certs)
+        }
+
+        // Build full chain: leaf + intermediates
+        var fullChain = leafCertificates
+        fullChain.append(contentsOf: manager.intermediateCertificates)
+
+        return try validateTrustWithCustomAnchors(
+            certificates: fullChain,
+            anchors: manager.anchorCertificates,
+            useCustomAnchorsOnly: useCustomAnchorsOnly
+        )
+    }
+
+    /// Validate certificate chain with explicit custom anchors and intermediates.
+    /// Useful for testing with programmatically generated certificates.
+    ///
+    /// - Parameters:
+    ///   - leafCertificates: Leaf certificate(s) from x5c
+    ///   - intermediateCertificates: Intermediate CA certificates
+    ///   - anchorCertificates: Root CA certificates (trust anchors)
+    ///   - useCustomAnchorsOnly: If true, only trust the provided anchors
+    /// - Returns: true if chain is valid
+    static func validateCertificateChainWithCustomAnchors(
+        leafCertificates: [SecCertificate],
+        intermediateCertificates: [SecCertificate],
+        anchorCertificates: [SecCertificate],
+        useCustomAnchorsOnly: Bool = true
+    ) throws -> Bool {
+        var fullChain = leafCertificates
+        fullChain.append(contentsOf: intermediateCertificates)
+
+        return try validateTrustWithCustomAnchors(
+            certificates: fullChain,
+            anchors: anchorCertificates,
+            useCustomAnchorsOnly: useCustomAnchorsOnly
+        )
+    }
+
+    /// Core trust validation with custom anchors
+    private static func validateTrustWithCustomAnchors(
+        certificates: [SecCertificate],
+        anchors: [SecCertificate],
+        useCustomAnchorsOnly: Bool
+    ) throws -> Bool {
+        var trust: SecTrust?
+        let policy = SecPolicyCreateBasicX509()
+        let certsArray = certificates as CFArray
+
+        let status = SecTrustCreateWithCertificates(certsArray, policy, &trust)
+        guard status == errSecSuccess, let trust = trust else {
+            print("SignatureUtil: Failed to create trust object")
+            return false
+        }
+
+        // Set custom anchor certificates
+        let anchorsArray = anchors as CFArray
+        let anchorStatus = SecTrustSetAnchorCertificates(trust, anchorsArray)
+        guard anchorStatus == errSecSuccess else {
+            print("SignatureUtil: Failed to set anchor certificates")
+            return false
+        }
+
+        // Control whether to use only custom anchors or also system CA
+        SecTrustSetAnchorCertificatesOnly(trust, useCustomAnchorsOnly)
+
+        // Evaluate trust
+        var error: CFError?
+        if SecTrustEvaluateWithError(trust, &error) {
+            var trustResult: SecTrustResultType = .invalid
+            let result = SecTrustGetTrustResult(trust, &trustResult)
+            guard result == errSecSuccess else {
+                print("SignatureUtil: Failed to get trust result")
+                return false
+            }
+
+            let isValid = trustResult == .unspecified || trustResult == .proceed
+            if !isValid {
+                print("SignatureUtil: Trust validation failed with result: \(trustResult.rawValue)")
+            }
+            return isValid
+        } else {
+            if let error = error {
+                print("SignatureUtil: Trust evaluation error: \(error)")
+            }
+            return false
+        }
+    }
 }

@@ -34,6 +34,10 @@
 		8B297C4B2B39AB8900D2998D /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 8B297C4A2B39AB8900D2998D /* SwiftyJSON */; };
 		8B2AF5D12ED5A51F00F5FE17 /* DCQLMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */; };
 		8B2AF5D32ED6E07600F5FE17 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D22ED6E07600F5FE17 /* PersistenceController.swift */; };
+		8B2AF5D52ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */; };
+		8B2AF5D62ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */; };
+		8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */; };
+		8B2AF5DA2ED6EC1F00F5FE17 /* X509ChainValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */; };
 		8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */; };
 		8B4265982B57677600A07F2B /* SDJwtUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087132B3B0AB3004425DE /* SDJwtUtil.swift */; };
 		8B42659A2B576CA500A07F2B /* IssuerDetailPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */; };
@@ -336,6 +340,9 @@
 		8B297C432B39778B00D2998D /* credential_supported_ldp_vc.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_supported_ldp_vc.json; sourceTree = "<group>"; };
 		8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQLMatcherTests.swift; sourceTree = "<group>"; };
 		8B2AF5D22ED6E07600F5FE17 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustAnchorManager.swift; sourceTree = "<group>"; };
+		8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustAnchorManagerTests.swift; sourceTree = "<group>"; };
+		8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X509ChainValidationTests.swift; sourceTree = "<group>"; };
 		8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailViewModel.swift; sourceTree = "<group>"; };
 		8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailPreviewModel.swift; sourceTree = "<group>"; };
 		8B43AE282B3A4F650016CF83 /* credential_offer_filled.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_offer_filled.json; sourceTree = "<group>"; };
@@ -1041,6 +1048,7 @@
 		A81087102B3B0694004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
+				8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */,
 				8BF1A1C82ED07045008CE820 /* JWEUtil.swift */,
 				A81087172B3BBA0C004425DE /* ES256K.swift */,
 				A810871F2B3D3277004425DE /* SignatureUtil.swift */,
@@ -1052,6 +1060,8 @@
 		A810871C2B3BC998004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
+				8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */,
+				8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */,
 				A810871D2B3BC9DF004425DE /* ES256KTest.swift */,
 				A81087212B3D33F5004425DE /* SignatureUitlTest.swift */,
 			);
@@ -1423,7 +1433,8 @@
 				8B81E2952B33CC4000ED3B4E /* Sources */,
 				8B81E2962B33CC4000ED3B4E /* Frameworks */,
 				8B81E2972B33CC4000ED3B4E /* Resources */,
-				A84AB6F12B4FFB7200E8C88B /* ShellScript */,
+				A84AB6F12B4FFB7200E8C88B /* Copy Certificates */,
+				8B2AF5ED2ED6F63400F5FE17 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -1628,7 +1639,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		A84AB6F12B4FFB7200E8C88B /* ShellScript */ = {
+		8B2AF5ED2ED6F63400F5FE17 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1643,7 +1654,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n";
+		};
+		A84AB6F12B4FFB7200E8C88B /* Copy Certificates */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Certificates";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = " # Copy certificates from certs-pub if they exist\n  echo \"SRCROOT: ${SRCROOT}\"\n  echo \"Looking for: ${SRCROOT}/Certificates\"\n  ls -la \"${SRCROOT}/Certificates\" || echo \"Directory not found\"\n  CERT_SOURCE=\"${SRCROOT}/Certificates\"\n  CERT_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Certificates\"\n\n  if [ -d \"$CERT_SOURCE\" ]; then\n      mkdir -p \"$CERT_DEST\"\n      cp -R \"$CERT_SOURCE\"/*.cer \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.pem \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.crt \"$CERT_DEST/\" 2>/dev/null || true\n      echo \"Certificates copied from $CERT_SOURCE to $CERT_DEST\"\n  else\n      echo \"No certificates directory found at $CERT_SOURCE (skipping)\"\n  fi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1745,6 +1774,7 @@
 				F6E0A0192B3FFE8C00C2B541 /* CredentialSubjectLow.swift in Sources */,
 				8B43AE342B3A81960016CF83 /* Enums.swift in Sources */,
 				F6EECE542B6B82DD00011E12 /* RecipientList.swift in Sources */,
+				8B2AF5D52ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */,
 				8B4CAB6E2B7F60440006FF4D /* FileDocument.swift in Sources */,
 				8B81E2E32B34330D00ED3B4E /* ModelData.swift in Sources */,
 				F657D5CB2B3C456600901A6A /* HistoryRow.swift in Sources */,
@@ -1855,7 +1885,10 @@
 				8B80569D2B5F7815009A87C8 /* SharingCredentialArgs.swift in Sources */,
 				8B43AE302B3A5B2C0016CF83 /* MockURLProtocol.swift in Sources */,
 				A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */,
+				8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */,
+				8B2AF5DA2ED6EC1F00F5FE17 /* X509ChainValidationTests.swift in Sources */,
 				8B43AE352B3A81960016CF83 /* Enums.swift in Sources */,
+				8B2AF5D62ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */,
 				A83039C12B4E4229004139A7 /* KeyPairUtilTest.swift in Sources */,
 				A83039BF2B4E4229004139A7 /* ZipUtilTest.swift in Sources */,
 				8B6C3B852B45082A00B5D784 /* OpenIdProvider.swift in Sources */,
@@ -2040,6 +2073,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"tw2023_wallet/Preview Content\"";
 				DEVELOPMENT_TEAM = UG8H4886PC;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "tw2023-wallet-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "OWND Wallet";
@@ -2076,6 +2110,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"tw2023_wallet/Preview Content\"";
 				DEVELOPMENT_TEAM = UG8H4886PC;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "tw2023-wallet-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "OWND Wallet";

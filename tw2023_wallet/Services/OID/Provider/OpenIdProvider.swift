@@ -76,8 +76,8 @@ class OpenIdProvider {
                     let isX509Hash = _clientId.hasPrefix("x509_hash:")
 
                     if isX509SanDns || isX509Hash {
-                        // Skip certificate chain validation for development (self-signed certs)
-                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: false)
+                        // Verify certificate chain using custom trust anchors (built-in intermediate + root)
+                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
                         switch result {
                             case .success(let verifedX5CJwt):
                                 print("verify request jwt success")

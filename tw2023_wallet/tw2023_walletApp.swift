@@ -35,6 +35,11 @@ struct tw2023_walletApp: App {
     private var authenticationManager = AuthenticationManager()
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        // Initialize TrustAnchorManager to load built-in certificates at startup
+        _ = TrustAnchorManager.shared
+    }
+
     var body: some Scene {
         WindowGroup {
             if self.authenticationManager.isUnlocked {
