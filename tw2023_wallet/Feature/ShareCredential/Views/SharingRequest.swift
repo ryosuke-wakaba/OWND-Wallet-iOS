@@ -22,10 +22,7 @@ struct SharingRequest: View {
 
     // Credential picker sheet
     @State private var showCredentialPicker = false
-    @State private var credentialListViewModel = CredentialListViewModel()
-    @State private var selectedCredentialDetailViewModel = CredentialDetailViewModel()
     @State private var displayCredential: Credential?
-    @State private var userSelectableClaims: [DisclosureWithOptionality] = []
     @State private var claimsLoaded = false
 
     var body: some View {
@@ -122,10 +119,7 @@ struct SharingRequest: View {
                                                     sharingRequestModel.data = nil
                                                     displayCredential = nil
                                                     claimsLoaded = false
-                                                    if let query = viewModel.dcqlQuery {
-                                                        credentialListViewModel = CredentialListViewModel()
-                                                        credentialListViewModel.loadData(dcqlQuery: query)
-                                                    }
+                                                    viewModel.loadFilteredCredentials()
                                                     showCredentialPicker = true
                                                 }
 
@@ -136,29 +130,18 @@ struct SharingRequest: View {
                                                     .padding(.vertical, 16)
                                                     .frame(maxWidth: .infinity, alignment: .leading)
                                                     .modifier(BodyGray())
-                                                ForEach(selectedCredentialDetailViewModel.requiredClaims, id: \.self.disclosure.id) { it in
+                                                ForEach(viewModel.requiredClaims, id: \.self.disclosure.id) { it in
                                                     DisclosureRow(submitDisclosure: .constant(it))
                                                 }
 
                                                 // undisclosed claims
-                                                if !selectedCredentialDetailViewModel.undisclosedClaims.isEmpty {
+                                                if !viewModel.undisclosedClaims.isEmpty {
                                                     Text("Not Sharing Contents of this certificate")
                                                         .padding(.vertical, 16)
                                                         .frame(maxWidth: .infinity, alignment: .leading)
                                                         .modifier(BodyGray())
-                                                    ForEach(selectedCredentialDetailViewModel.undisclosedClaims, id: \.self.disclosure.id) { it in
+                                                    ForEach(viewModel.undisclosedClaims, id: \.self.disclosure.id) { it in
                                                         DisclosureRow(submitDisclosure: .constant(it))
-                                                    }
-                                                }
-
-                                                // user selectable claims
-                                                if !userSelectableClaims.isEmpty {
-                                                    Text("optional_to_provide")
-                                                        .padding(.vertical, 16)
-                                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                                        .modifier(BodyGray())
-                                                    ForEach($userSelectableClaims, id: \.self.disclosure.id) { $claim in
-                                                        DisclosureRow(submitDisclosure: $claim)
                                                     }
                                                 }
                                             }
@@ -170,9 +153,7 @@ struct SharingRequest: View {
                                             ActionButtonWhite(
                                                 title: "select_a_certificate",
                                                 action: {
-                                                    if let query = viewModel.dcqlQuery {
-                                                        credentialListViewModel.loadData(dcqlQuery: query)
-                                                    }
+                                                    viewModel.loadFilteredCredentials()
                                                     showCredentialPicker = true
                                                 })
                                         }
@@ -292,7 +273,7 @@ struct SharingRequest: View {
             }
             .sheet(isPresented: $showCredentialPicker, onDismiss: nil) {
                 CredentialPickerSheet(
-                    credentials: credentialListViewModel.dataModel.credentials,
+                    credentials: viewModel.filteredCredentials,
                     onSelect: { credential in
                         selectCredential(credential)
                     }
@@ -303,41 +284,35 @@ struct SharingRequest: View {
 
     private func selectCredential(_ credential: Credential) {
         displayCredential = credential
-        Task {
-            if let query = viewModel.dcqlQuery {
-                // Reset the viewModel for fresh data
-                selectedCredentialDetailViewModel = CredentialDetailViewModel()
-                await selectedCredentialDetailViewModel.loadData(credential: credential, dcqlQuery: query)
-                userSelectableClaims = selectedCredentialDetailViewModel.userSelectableClaims
 
-                // Create submission credential
-                let claims = (selectedCredentialDetailViewModel.requiredClaims + userSelectableClaims)
-                    .filter { $0.isSubmit }
-                let submissionCredential = selectedCredentialDetailViewModel.createSubmissionCredential(
-                    credential: credential,
-                    discloseClaims: claims
-                )
-                sharingRequestModel.setSelectedCredentials(
-                    data: [submissionCredential],
-                    metadata: credential.metaData
-                )
+        // Classify claims using viewModel
+        viewModel.classifyClaims(credential: credential)
 
-                // Update UI state
-                viewModel.selectedCredential = true
-                if let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
-                    format: credential.format,
-                    types: try! VCIMetadataUtil.extractTypes(format: credential.format, credential: credential.payload),
-                    metadata: credential.metaData
-                ) {
-                    if let display = credentialSupported.display {
-                        proofBy = String(
-                            format: NSLocalizedString("proof_by", comment: ""),
-                            display[0].name)
-                    }
-                }
-                claimsLoaded = true
+        // Create submission credential
+        if let submissionCredential = viewModel.createSubmissionCredential(
+            credential: credential,
+            discloseClaims: viewModel.requiredClaims
+        ) {
+            sharingRequestModel.setSelectedCredentials(
+                data: [submissionCredential],
+                metadata: credential.metaData
+            )
+        }
+
+        // Update UI state
+        viewModel.selectedCredential = true
+        if let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
+            format: credential.format,
+            types: try! VCIMetadataUtil.extractTypes(format: credential.format, credential: credential.payload),
+            metadata: credential.metaData
+        ) {
+            if let display = credentialSupported.display {
+                proofBy = String(
+                    format: NSLocalizedString("proof_by", comment: ""),
+                    display[0].name)
             }
         }
+        claimsLoaded = true
     }
 }
 

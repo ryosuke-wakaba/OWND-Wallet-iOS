@@ -128,20 +128,6 @@ class SharingRequestLoadDataErrorPreviewModel: SharingRequestViewModel {
     }
 }
 
-class CredentialListVpModePreviewModel: CredentialListViewModel {
-    override func loadData(dcqlQuery: DcqlQuery? = nil) {
-        // mock data for preview
-        dataModel.isLoading = true
-        print("load dummy data..")
-        // try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
-        let modelData = ModelData()
-        modelData.loadCredentials()
-        self.dataModel.credentials = modelData.credentials
-        print("done")
-        dataModel.isLoading = false
-    }
-}
-
 let clientInfoJson = """
       {
         "name": "OWND Project",

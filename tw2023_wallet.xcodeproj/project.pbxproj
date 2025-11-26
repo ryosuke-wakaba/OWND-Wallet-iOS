@@ -122,7 +122,6 @@
 		8B8964AD2EC7150600DD917E /* CredentialIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */; };
 		8B8964AE2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */; };
 		8B91B1542B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */; };
-		8B91B1562B6BBBAC00A1AA1A /* CredentialListForSharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */; };
 		8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8B2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8C2C10045300B579A4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A89463E02B555C910069EF21 /* Constants.swift */; };
@@ -405,7 +404,6 @@
 		8B8964A02EC7150600DD917E /* ProofGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProofGenerationService.swift; sourceTree = "<group>"; };
 		8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenIssuanceService.swift; sourceTree = "<group>"; };
 		8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensOnFullScreen.swift; sourceTree = "<group>"; };
-		8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CredentialListForSharing.swift; sourceTree = "<group>"; };
 		8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JwtVpJsonGeneratorImpl.swift; sourceTree = "<group>"; };
 		8BAD97B82B831F6300B60358 /* BackupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupModel.swift; sourceTree = "<group>"; };
 		8BB2BA732B4BC46400C668BA /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
@@ -902,7 +900,6 @@
 		8B81E2FB2B35ACBE00ED3B4E /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				8B91B1552B6BBBAC00A1AA1A /* CredentialListForSharing.swift */,
 				F657D5CC2B3C457300901A6A /* DisclosureRow.swift */,
 				F657D5CA2B3C456600901A6A /* HistoryRow.swift */,
 				8B81E2D92B34209400ED3B4E /* CredentialDetail.swift */,
@@ -1723,7 +1720,6 @@
 				F6CC768F2B567AA800FA26A8 /* CameraPreview.swift in Sources */,
 				8BF1A1C22ED03FE9008CE820 /* DCQLMatcher.swift in Sources */,
 				8BF1A1C32ED03FE9008CE820 /* DCQL.swift in Sources */,
-				8B91B1562B6BBBAC00A1AA1A /* CredentialListForSharing.swift in Sources */,
 				8B43AE2C2B3A5A730016CF83 /* VCIMetadataClient.swift in Sources */,
 				A8C810452B82042300CF8CD6 /* SharingTo.swift in Sources */,
 				F6EECE502B6B814300011E12 /* RecipientListViewModel.swift in Sources */,

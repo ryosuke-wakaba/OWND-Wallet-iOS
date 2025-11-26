@@ -41,7 +41,7 @@ OID4VP (OpenID for Verifiable Presentations) 1.0 プロトコルを使用して�
    - OID4VP 1.0 Section 6.4.1 に準拠したクレーム選択
    - `claims` absent: 選択的開示クレームなし（必須クレームのみ）
    - `claims` present: 指定されたクレームのみ開示
-   - 必須/任意フィールドの区別
+   - DCQLクエリに基づく自動クレーム選択
 
 4. **VP Token Generation**
    - SD-JWT VC の選択的開示処理
@@ -95,23 +95,48 @@ OID4VP (OpenID for Verifiable Presentations) 1.0 プロトコルを使用して�
    - メインのリクエスト画面
    - Verifier情報の表示 (`RecipientOrgInfo`)
    - 要求される情報の概要 (`ProvideAge`, `ProvideID`)
-   - クレデンシャル選択状態の表示
+   - クレデンシャル選択（Bottom Sheet）
+   - 選択後のクレーム表示（提供項目/非提供項目）
    - Cancel / Provide Informationボタン
 
-2. **CredentialListForSharing** (`Feature/Credentials/Views/CredentialListForSharing.swift`)
-   - VP共有用のクレデンシャル選択画面
+2. **CredentialPickerSheet** (`Feature/ShareCredential/Views/SharingRequest.swift`内)
+   - Bottom Sheet UIでのクレデンシャル選択
+   - `.presentationDetents([.medium, .large])`で高さ制御
    - DCQLクエリにマッチしたクレデンシャルのリスト表示
+   - タップで選択、画面遷移なし
 
-3. **CredentialDetail** (`Feature/Credentials/Views/CredentialDetail.swift`)
-   - クレデンシャル詳細画面（VP Mode）
-   - 提供するクレーム（Sharing Contents of this certificate）
-   - 提供しないクレーム（Not Sharing Contents of this certificate）
-   - 任意選択クレーム（optional_to_provide）
-   - Select This Credentialボタン
-
-4. **RedirectView** (`Feature/ShareCredential/Views/RedirectView.swift`)
+3. **RedirectView** (`Feature/ShareCredential/Views/RedirectView.swift`)
    - VP送信成功後のリダイレクト処理
    - WebViewによるVerifierサイトへの遷移
+
+#### クレデンシャル選択フロー
+
+```
+SharingRequest → Bottom Sheet（証明書一覧）→ 選択 → SharingRequest内でクレーム表示
+```
+
+画面遷移なしで、Bottom Sheetから証明書を選択。選択後はSharingRequest画面内で以下を表示：
+- 提供するクレーム（Sharing Contents of this certificate）
+- 提供しないクレーム（Not Sharing Contents of this certificate）
+
+#### selectCredential処理フロー
+
+`SharingRequest.selectCredential(_:)` はクレデンシャル選択時の内部処理を担当：
+
+```
+1. displayCredential を設定
+       ↓
+2. viewModel.classifyClaims(credential:) でクレーム分類
+   - requiredClaims: 提供するクレーム
+   - undisclosedClaims: 非開示クレーム
+       ↓
+3. viewModel.createSubmissionCredential() で SubmissionCredential 作成
+   - requiredClaims を含める
+       ↓
+4. sharingRequestModel.setSelectedCredentials() で状態更新
+       ↓
+5. UI状態更新（selectedCredential, proofBy, claimsLoaded）
+```
 
 #### Supporting Components
 
@@ -123,9 +148,9 @@ OID4VP (OpenID for Verifiable Presentations) 1.0 プロトコルを使用して�
 
 #### ViewModels
 
-- **SharingRequestViewModel** (`Feature/ShareCredential/ViewModels/SharingRequestViewModel.swift`)
-- **CredentialDetailViewModel** (`Feature/Credentials/ViewModels/CredentialDetailViewModel.swift`)
-- **CredentialListViewModel** (`Feature/Credentials/ViewModels/CredentialListViewModel.swift`)
+- **SharingRequestViewModel** (`Feature/ShareCredential/ViewModels/SharingRequestViewModel.swift`) - VP提示のメインロジック
+
+> Note: VP関連ロジック（DCQLフィルタリング、クレーム分類、SubmissionCredential作成）はすべてSharingRequestViewModelに統合されています。CredentialListViewModelおよびCredentialDetailViewModelはVPフローでは使用されません。
 
 #### Models
 
@@ -225,6 +250,39 @@ struct ProcessedRequestData {
     var clientMetadata: RPRegistrationMetadataPayload
     var dcqlQuery: DcqlQuery?
     var requestIsSigned: Bool
+}
+```
+
+### SharingRequestViewModel
+
+**File**: `tw2023_wallet/Feature/ShareCredential/ViewModels/SharingRequestViewModel.swift`
+
+```swift
+@Observable
+class SharingRequestViewModel {
+    // Filtered credentials for VP credential picker
+    var filteredCredentials: [Credential] = []
+
+    // Credential claims classification for VP sharing
+    var requiredClaims: [DisclosureWithOptionality] = []
+    var undisclosedClaims: [DisclosureWithOptionality] = []
+
+    /// Load credentials filtered by DCQL query for VP credential picker
+    func loadFilteredCredentials()
+
+    /// Classify credential claims based on DCQL query
+    /// - Parameter credential: The credential to classify claims for
+    func classifyClaims(credential: Credential)
+
+    /// Create submission credential for VP token
+    /// - Parameters:
+    ///   - credential: Source credential
+    ///   - discloseClaims: Claims to disclose
+    /// - Returns: SubmissionCredential for VP token generation
+    func createSubmissionCredential(
+        credential: Credential,
+        discloseClaims: [DisclosureWithOptionality]
+    ) -> SubmissionCredential?
 }
 ```
 

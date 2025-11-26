@@ -12,7 +12,7 @@ class CredentialListViewModel {
 
     private let credentialDataManager = CredentialDataManager(container: nil)
 
-    func loadData(dcqlQuery: DcqlQuery? = nil) {
+    func loadData() {
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
             print("now previewing")
             return
@@ -23,47 +23,17 @@ class CredentialListViewModel {
 
         var credentialList: [Credential] = []
         for rawCredential in credentialDataManager.getAllCredentials() {
-            let converted = rawCredential.toCredential()
-            if converted != nil {
-                credentialList.append(converted!)
-            }
-            else {
+            if let converted = rawCredential.toCredential() {
+                credentialList.append(converted)
+            } else {
                 print("Malformed Credential Found")
             }
         }
 
-        if let query = dcqlQuery {
-            dataModel.credentials = credentialList.filter { filterCredential($0, query) }
-        }
-        else {
-            dataModel.credentials = credentialList
-        }
-
+        dataModel.credentials = credentialList
         dataModel.isLoading = false
         dataModel.hasLoadedData = true
         print("done")
-    }
-
-    func filterCredential(
-        _ credential: Credential, _ dcqlQuery: DcqlQuery
-    ) -> Bool {
-        let format = credential.format
-        print("format: \(format)")
-
-        let credentialFormat = CredentialFormat(formatString: format)
-
-        if credentialFormat?.isSDJWT == true {
-            let match = dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload)
-            if let match = match {
-                return 0
-                    < match.disclosuresWithOptionality.filter { it in (it.isUserSelectable || it.isSubmit) }.count
-            }
-            return false
-        }
-        else {
-            // その他のフォーマットに対する処理が必要な場合、ここに追加
-            return false
-        }
     }
 
     func deleteCredential(credential: Credential) {

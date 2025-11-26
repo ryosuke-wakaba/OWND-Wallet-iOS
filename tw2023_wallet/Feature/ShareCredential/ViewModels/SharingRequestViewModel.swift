@@ -36,6 +36,15 @@ class SharingRequestViewModel {
     var alertTitle = ""
     var alertMessage = ""
 
+    // Credential claims classification for VP sharing
+    var requiredClaims: [DisclosureWithOptionality] = []
+    var undisclosedClaims: [DisclosureWithOptionality] = []
+    private var credentialQuery: DcqlCredentialQuery? = nil
+
+    // Filtered credentials for VP credential picker
+    var filteredCredentials: [Credential] = []
+    private let credentialDataManager = CredentialDataManager(container: nil)
+
     func accessPairwiseAccountManager() async -> Bool {
         do {
             let dataStore = PreferencesDataStore.shared
@@ -300,4 +309,113 @@ class SharingRequestViewModel {
         case keyPairError
         case responseError
     }
+
+    // MARK: - Credential Claims Classification
+
+    /// Classify credential claims based on DCQL query
+    func classifyClaims(credential: Credential) {
+        guard let query = dcqlQuery else { return }
+
+        // Reset previous classification
+        requiredClaims = []
+        undisclosedClaims = []
+        credentialQuery = nil
+
+        switch credential.format {
+            case "vc+sd-jwt", "dc+sd-jwt":
+                if let matched = query.firstMatchedCredentialQuery(sdJwt: credential.payload) {
+                    credentialQuery = matched.credentialQuery
+                    let disclosuresWithOptionality = matched.disclosuresWithOptionality
+
+                    // Claims to submit (required or user selectable)
+                    requiredClaims = disclosuresWithOptionality.filter { d in
+                        d.isSubmit || d.isUserSelectable
+                    }
+                    // Claims not to submit
+                    undisclosedClaims = disclosuresWithOptionality.filter { d in
+                        !d.isSubmit && !d.isUserSelectable
+                    }
+                }
+            case "jwt_vc_json":
+                credentialQuery = query.credentials.first
+                undisclosedClaims = []
+                requiredClaims = jwtVcJsonClaimsTobeDisclosed(jwt: credential.payload).map { it in
+                    return DisclosureWithOptionality(
+                        disclosure: it, isSubmit: true, isUserSelectable: false)
+                }
+            default:
+                credentialQuery = query.credentials.first
+        }
+    }
+
+    /// Create submission credential for VP token
+    func createSubmissionCredential(
+        credential: Credential,
+        discloseClaims: [DisclosureWithOptionality]
+    ) -> SubmissionCredential? {
+        guard let credentialQuery = credentialQuery else { return nil }
+
+        let types = try! VCIMetadataUtil.extractTypes(
+            format: credential.format, credential: credential.payload)
+        return SubmissionCredential(
+            id: credential.id,
+            format: credential.format,
+            types: types,
+            credential: credential.payload,
+            credentialQuery: credentialQuery,
+            discloseClaims: discloseClaims
+        )
+    }
+
+    // MARK: - Credential Loading for VP Picker
+
+    /// Load credentials filtered by DCQL query for VP credential picker
+    func loadFilteredCredentials() {
+        guard let query = dcqlQuery else {
+            filteredCredentials = []
+            return
+        }
+
+        var credentialList: [Credential] = []
+        for rawCredential in credentialDataManager.getAllCredentials() {
+            if let converted = rawCredential.toCredential() {
+                credentialList.append(converted)
+            } else {
+                print("Malformed Credential Found")
+            }
+        }
+
+        filteredCredentials = credentialList.filter { filterCredentialByDcql($0, query) }
+    }
+
+    /// Filter credential by DCQL query
+    private func filterCredentialByDcql(_ credential: Credential, _ dcqlQuery: DcqlQuery) -> Bool {
+        let format = credential.format
+        let credentialFormat = CredentialFormat(formatString: format)
+
+        if credentialFormat?.isSDJWT == true {
+            if let match = dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload) {
+                return match.disclosuresWithOptionality.contains { $0.isUserSelectable || $0.isSubmit }
+            }
+            return false
+        } else {
+            // TODO: Support other formats if needed
+            return false
+        }
+    }
+}
+
+// MARK: - Helper Functions
+
+private func jwtVcJsonClaimsTobeDisclosed(jwt: String) -> [Disclosure] {
+    if let (_, body, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+        let vc = body["vc"] as? [String: Any],
+        let credentialSubject = vc["credentialSubject"] as? [String: Any]
+    {
+        let disclosures = credentialSubject.map { key, value in
+            return Disclosure(disclosure: nil, key: key, value: value as? String)
+        }
+        return disclosures
+    }
+    return []
 }
