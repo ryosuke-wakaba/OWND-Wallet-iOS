@@ -43,6 +43,10 @@ func convertDisclosureValue(value: Any) -> String {
     if let boolValue = value as? Bool {
         return boolValue ? "Yes" : "No"
     }
+    else if let arrayValue = value as? [Any] {
+        // Convert array elements to strings and join with comma
+        return arrayValue.map { convertDisclosureValue(value: $0) }.joined(separator: ", ")
+    }
     else {
         return String(describing: value)
     }
