@@ -7,15 +7,8 @@
 
 import SwiftUI
 
-enum SharingScreen {
-    case sharingRequest
-    case credentialList
-    case credentialDetail
-}
-
 struct SharingRequest: View {
     @Environment(\.presentationMode) var presentationMode
-    //    @Environment(SharingCredentialArgs.self) var args
     @Environment(SharingRequestModel.self) var sharingRequestModel
     @State var viewModel: SharingRequestViewModel = SharingRequestViewModel()
     var args: SharingCredentialArgs
@@ -25,11 +18,18 @@ struct SharingRequest: View {
     @State var alertTitle = ""
     @State var alertMessage = ""
 
-    @State private var path: [ScreensOnFullScreen] = []
     @State var proofBy = ""
 
+    // Credential picker sheet
+    @State private var showCredentialPicker = false
+    @State private var credentialListViewModel = CredentialListViewModel()
+    @State private var selectedCredentialDetailViewModel = CredentialDetailViewModel()
+    @State private var displayCredential: Credential?
+    @State private var userSelectableClaims: [DisclosureWithOptionality] = []
+    @State private var claimsLoaded = false
+
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack {
             GeometryReader { _ in
                 Group {
                     if viewModel.isLoading {
@@ -111,7 +111,7 @@ struct SharingRequest: View {
                                             clientInfo: clientInfo,
                                             dcqlQuery: dcqlQuery)
                                         if viewModel.selectedCredential {
-                                            // ------------ change link ------------
+                                            // ------------ selected credential info ------------
                                             StatusBox(displayText: $proofBy, status: .success)
                                             Text("change_credential")
                                                 .modifier(BodyBlack())
@@ -120,8 +120,48 @@ struct SharingRequest: View {
                                                 .onTapGesture {
                                                     viewModel.selectedCredential = false
                                                     sharingRequestModel.data = nil
-                                                    path.append(ScreensOnFullScreen.credentialList)
+                                                    displayCredential = nil
+                                                    claimsLoaded = false
+                                                    if let query = viewModel.dcqlQuery {
+                                                        credentialListViewModel = CredentialListViewModel()
+                                                        credentialListViewModel.loadData(dcqlQuery: query)
+                                                    }
+                                                    showCredentialPicker = true
                                                 }
+
+                                            // ------------ claims display section ------------
+                                            if claimsLoaded {
+                                                // required claims
+                                                Text("Sharing Contents of this certificate")
+                                                    .padding(.vertical, 16)
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                    .modifier(BodyGray())
+                                                ForEach(selectedCredentialDetailViewModel.requiredClaims, id: \.self.disclosure.id) { it in
+                                                    DisclosureRow(submitDisclosure: .constant(it))
+                                                }
+
+                                                // undisclosed claims
+                                                if !selectedCredentialDetailViewModel.undisclosedClaims.isEmpty {
+                                                    Text("Not Sharing Contents of this certificate")
+                                                        .padding(.vertical, 16)
+                                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                                        .modifier(BodyGray())
+                                                    ForEach(selectedCredentialDetailViewModel.undisclosedClaims, id: \.self.disclosure.id) { it in
+                                                        DisclosureRow(submitDisclosure: .constant(it))
+                                                    }
+                                                }
+
+                                                // user selectable claims
+                                                if !userSelectableClaims.isEmpty {
+                                                    Text("optional_to_provide")
+                                                        .padding(.vertical, 16)
+                                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                                        .modifier(BodyGray())
+                                                    ForEach($userSelectableClaims, id: \.self.disclosure.id) { $claim in
+                                                        DisclosureRow(submitDisclosure: $claim)
+                                                    }
+                                                }
+                                            }
                                         }
                                         else {
                                             StatusBox(
@@ -130,7 +170,10 @@ struct SharingRequest: View {
                                             ActionButtonWhite(
                                                 title: "select_a_certificate",
                                                 action: {
-                                                    path.append(ScreensOnFullScreen.credentialList)
+                                                    if let query = viewModel.dcqlQuery {
+                                                        credentialListViewModel.loadData(dcqlQuery: query)
+                                                    }
+                                                    showCredentialPicker = true
                                                 })
                                         }
                                     }
@@ -211,18 +254,6 @@ struct SharingRequest: View {
                     print("client info changed: \(clientInfo)")
                 }
             }
-            .navigationDestination(for: ScreensOnFullScreen.self) { screen in
-                switch screen {
-                    case .credentialList:
-                        CredentialListForSharing()
-                    case .credentialDetail(let credential):
-                        CredentialDetail(credential: credential, path: $path)
-                    case .issuerDetail(let credential):
-                        IssuerDetail(credential: credential)
-                    default:
-                        EmptyView()
-                }
-            }
             .onAppear {
                 Task {
                     print("accessPairwiseAccountManager")
@@ -259,9 +290,113 @@ struct SharingRequest: View {
                     }
                 )
             }
+            .sheet(isPresented: $showCredentialPicker, onDismiss: nil) {
+                CredentialPickerSheet(
+                    credentials: credentialListViewModel.dataModel.credentials,
+                    onSelect: { credential in
+                        selectCredential(credential)
+                    }
+                )
+            }
+        }
+    }
+
+    private func selectCredential(_ credential: Credential) {
+        displayCredential = credential
+        Task {
+            if let query = viewModel.dcqlQuery {
+                // Reset the viewModel for fresh data
+                selectedCredentialDetailViewModel = CredentialDetailViewModel()
+                await selectedCredentialDetailViewModel.loadData(credential: credential, dcqlQuery: query)
+                userSelectableClaims = selectedCredentialDetailViewModel.userSelectableClaims
+
+                // Create submission credential
+                let claims = (selectedCredentialDetailViewModel.requiredClaims + userSelectableClaims)
+                    .filter { $0.isSubmit }
+                let submissionCredential = selectedCredentialDetailViewModel.createSubmissionCredential(
+                    credential: credential,
+                    discloseClaims: claims
+                )
+                sharingRequestModel.setSelectedCredentials(
+                    data: [submissionCredential],
+                    metadata: credential.metaData
+                )
+
+                // Update UI state
+                viewModel.selectedCredential = true
+                if let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
+                    format: credential.format,
+                    types: try! VCIMetadataUtil.extractTypes(format: credential.format, credential: credential.payload),
+                    metadata: credential.metaData
+                ) {
+                    if let display = credentialSupported.display {
+                        proofBy = String(
+                            format: NSLocalizedString("proof_by", comment: ""),
+                            display[0].name)
+                    }
+                }
+                claimsLoaded = true
+            }
         }
     }
 }
+
+// MARK: - Credential Picker Sheet
+
+struct CredentialPickerSheet: View {
+    @Environment(\.dismiss) var dismiss
+    var credentials: [Credential]
+    var onSelect: (Credential) -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if credentials.isEmpty {
+                    VStack {
+                        Spacer()
+                        Text("no_certificate")
+                            .modifier(BodyGray())
+                        Spacer()
+                    }
+                }
+                else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(credentials) { credential in
+                                VStack(alignment: .leading) {
+                                    Text(LocalizedStringKey(credential.credentialType))
+                                        .font(.headline)
+                                        .padding(.leading, 16)
+                                    CredentialRow(credential: credential)
+                                        .aspectRatio(1.6, contentMode: .fit)
+                                        .frame(maxWidth: .infinity)
+                                        .onTapGesture {
+                                            onSelect(credential)
+                                            dismiss()
+                                        }
+                                }
+                            }
+                        }
+                        .padding(.vertical, 16)
+                    }
+                }
+            }
+            .navigationTitle("select_a_certificate")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Previews
 
 #Preview("ID Token Sharing") {
     let args = SharingCredentialArgs()

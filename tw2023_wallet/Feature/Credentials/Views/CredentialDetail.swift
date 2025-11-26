@@ -9,21 +9,13 @@ import SwiftUI
 
 struct CredentialDetail: View {
     @Environment(\.presentationMode) var presentationMode
-    @Environment(SharingRequestModel.self) var sharingRequestModel: SharingRequestModel?
     var credential: Credential
     var viewModel: CredentialDetailViewModel
     var deleteAction: (() -> Void)?
 
     @State private var showingQRCodeModal: Bool = false
     @State private var showAlert = false
-    @State private var userSelectableClaims: [DisclosureWithOptionality] = []
-    @State private var dataLoaded: Bool = false
     @Binding var path: [ScreensOnFullScreen]
-
-    /// VP mode is determined by whether sharingRequestModel has a dcqlQuery
-    private var vpMode: Bool {
-        sharingRequestModel?.dcqlQuery != nil
-    }
 
     init(
         viewModel: CredentialDetailViewModel = CredentialDetailViewModel(),
@@ -65,105 +57,48 @@ struct CredentialDetail: View {
                             .padding(.vertical, 8)
 
                         // ------------------------- QR code section -------------------------
-                        if !vpMode {
-                            // QR表示画面のリンク
-                            if CredentialFormat(formatString: self.credential.format) == .jwtVCJson {
-                                Text("display_qr_code")
-                                    .underline()
-                                    .modifier(BodyGray())
-                                    .padding(.vertical, 8)
-                                    .onTapGesture {
-                                        self.showingQRCodeModal = true
-                                    }
-                                    .padding(.vertical, 8)
-                            }
+                        // QR表示画面のリンク
+                        if CredentialFormat(formatString: self.credential.format) == .jwtVCJson {
+                            Text("display_qr_code")
+                                .underline()
+                                .modifier(BodyGray())
+                                .padding(.vertical, 8)
+                                .onTapGesture {
+                                    self.showingQRCodeModal = true
+                                }
+                                .padding(.vertical, 8)
                         }
 
                         // ------------------------- claims section -------------------------
-                        if !vpMode {
-                            Text("Contents of this certificate")
-                                .padding(.vertical, 16)
-                                .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
-                                .modifier(BodyGray())
+                        Text("Contents of this certificate")
+                            .padding(.vertical, 16)
+                            .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
+                            .modifier(BodyGray())
 
-                            if let disclosureDict = credential.disclosure {
-                                ForEach(disclosureDict.sorted(by: { $0.key < $1.key }), id: \.key) {
-                                    key, value in
-                                    let submitDisclosure = DisclosureWithOptionality(
-                                        disclosure: Disclosure(
-                                            disclosure: nil,
-                                            key: key,
-                                            value: value),
-                                        isSubmit: false, isUserSelectable: false)
-                                    DisclosureRow(submitDisclosure: .constant(submitDisclosure))
-                                }
-                            }
-                        }
-                        else if dataLoaded {
-                            // required claims
-                            Text("Sharing Contents of this certificate")
-                                .padding(.vertical, 16)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .modifier(BodyGray())
-                            ForEach(viewModel.requiredClaims, id: \.self.disclosure.id) { it in
-                                DisclosureRow(submitDisclosure: .constant(it))
-                            }
-
-                            // undisclosed claims
-                            Text("Not Sharing Contents of this certificate")
-                                .padding(.vertical, 16)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .modifier(BodyGray())
-                            ForEach(viewModel.undisclosedClaims, id: \.self.disclosure.id) { it in
-                                DisclosureRow(submitDisclosure: .constant(it))
-                            }
-
-                            // Claims that can be disclosed or not at the user's will.
-                            Text("optional_to_provide")
-                                .padding(.vertical, 16)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .modifier(BodyGray())
-                            ForEach($userSelectableClaims, id: \.self.disclosure.id) { $claim in
-                                DisclosureRow(submitDisclosure: $claim)
+                        if let disclosureDict = credential.disclosure {
+                            ForEach(disclosureDict.sorted(by: { $0.key < $1.key }), id: \.key) {
+                                key, value in
+                                let submitDisclosure = DisclosureWithOptionality(
+                                    disclosure: Disclosure(
+                                        disclosure: nil,
+                                        key: key,
+                                        value: value),
+                                    isSubmit: false, isUserSelectable: false)
+                                DisclosureRow(submitDisclosure: .constant(submitDisclosure))
                             }
                         }
 
                         // ------------------------- history section -------------------------
-                        if !vpMode {
-                            Text("History of information provided")
-                                .padding(.vertical, 16)
-                                .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
-                                .modifier(BodyGray())
-                            LazyVStack(spacing: 16) {
-                                ForEach(self.viewModel.dataModel.sharingHistories, id: \.createdAt)
-                                { history in
-                                    HistoryRow(history: history)
-                                        .padding(.vertical, 6)
-                                }
-                            }
-                        }
-
-                        // ------------------------- button section -------------------------
-                        if vpMode {
-                            ActionButtonBlack(
-                                title: "Select This Credential",
-                                action: {
-                                    let claims = (viewModel.requiredClaims + userSelectableClaims)
-                                        .filter { it in
-                                            it.isSubmit
-                                        }
-                                    let submissionCredential = viewModel.createSubmissionCredential(
-                                        credential: credential,
-                                        discloseClaims: claims
-                                    )
-                                    sharingRequestModel?.setSelectedCredentials(
-                                        data: [submissionCredential],
-                                        metadata: credential.metaData
-                                    )
-                                    path.removeLast(2)
-                                }
-                            )
+                        Text("History of information provided")
                             .padding(.vertical, 16)
+                            .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
+                            .modifier(BodyGray())
+                        LazyVStack(spacing: 16) {
+                            ForEach(self.viewModel.dataModel.sharingHistories, id: \.createdAt)
+                            { history in
+                                HistoryRow(history: history)
+                                    .padding(.vertical, 6)
+                            }
                         }
                     }
                     .padding(.horizontal, 16)  // 左右に16dpのパディング
@@ -210,14 +145,7 @@ struct CredentialDetail: View {
             }
         }
         .task {
-            if let query = sharingRequestModel?.dcqlQuery {
-                await viewModel.loadData(credential: credential, dcqlQuery: query)
-                self.userSelectableClaims = viewModel.userSelectableClaims
-            }
-            else {
-                await viewModel.loadData(credential: credential)
-            }
-            self.dataLoaded = true
+            await viewModel.loadData(credential: credential)
         }
     }
 }
@@ -244,24 +172,4 @@ struct CredentialDetail: View {
         credential: PreviewSampleData.sampleJwtVcJsonCredential(),
         path: .constant([])
     )
-}
-
-#Preview("4. mode: vp-sharing") {
-    let viewModel = DetailVPModePreviewModel()
-    let query = viewModel.dummyDcqlQuery1()
-    return CredentialDetail(
-        viewModel: viewModel,
-        credential: PreviewSampleData.sampleJwtVcJsonCredential(),
-        path: .constant([])
-    ).environment(SharingRequestModel(dcqlQuery: query))
-}
-
-#Preview("5. mode: vp-sharing with optional field") {
-    let viewModel = DetailVPModePreviewModel()
-    let query = viewModel.dummyDcqlQuery2()
-    return CredentialDetail(
-        viewModel: viewModel,
-        credential: PreviewSampleData.sampleJwtVcJsonCredential(),
-        path: .constant([])
-    ).environment(SharingRequestModel(dcqlQuery: query))
 }
