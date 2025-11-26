@@ -9,13 +9,15 @@ import Foundation
 
 class PreviewModel: CredentialListViewModel {
     override func loadData(dcqlQuery: DcqlQuery? = nil) {
-        // mock data for preview
+        // mock data for preview (without bundle access)
         dataModel.isLoading = true
         print("load dummy data..")
-        // try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
-        let modelData = ModelData()
-        modelData.loadCredentials()
-        self.dataModel.credentials = modelData.credentials
+        // Use PreviewSampleData to avoid bundle access issues in SwiftUI previews
+        self.dataModel.credentials = [
+            PreviewSampleData.sampleSdJwtCredentialWithImage(),
+            PreviewSampleData.sampleSdJwtCredentialWithColor(),
+            PreviewSampleData.sampleJwtVcJsonCredential()
+        ]
         print("done")
         dataModel.isLoading = false
     }

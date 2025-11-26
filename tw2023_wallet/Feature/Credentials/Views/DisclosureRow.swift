@@ -39,17 +39,14 @@ struct DisclosureRow: View {
 }
 
 #Preview("1 required") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
-    let disclosure = modelData.credentials.first?.disclosure?.first
-    return DisclosureRow(
+    DisclosureRow(
         submitDisclosure:
             .constant(
                 DisclosureWithOptionality(
                     disclosure: Disclosure(
                         disclosure: nil,
-                        key: disclosure?.key,
-                        value: disclosure?.value
+                        key: "name",
+                        value: "Yamada Taro"
                     ),
                     isSubmit: true,
                     isUserSelectable: false
@@ -57,15 +54,15 @@ struct DisclosureRow: View {
 }
 
 #Preview("2. optional off") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
-    let disclosure = modelData.credentials.first?.disclosure?.first
-    return DisclosureRow(
+    DisclosureRow(
         submitDisclosure:
             .constant(
                 DisclosureWithOptionality(
                     disclosure: Disclosure(
-                        disclosure: nil, key: disclosure?.key, value: disclosure?.value),
+                        disclosure: nil,
+                        key: "birth_of_date",
+                        value: "2000-10-20"
+                    ),
                     isSubmit: false,
                     isUserSelectable: true
                 ))
@@ -73,15 +70,15 @@ struct DisclosureRow: View {
 }
 
 #Preview("2. optional on") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
-    let disclosure = modelData.credentials.first?.disclosure?.first
-    return DisclosureRow(
+    DisclosureRow(
         submitDisclosure:
             .constant(
                 DisclosureWithOptionality(
                     disclosure: Disclosure(
-                        disclosure: nil, key: disclosure?.key, value: disclosure?.value),
+                        disclosure: nil,
+                        key: "is_older_than_18",
+                        value: "True"
+                    ),
                     isSubmit: true,
                     isUserSelectable: true
                 ))

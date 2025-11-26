@@ -14,12 +14,17 @@ struct CredentialDetail: View {
     var viewModel: CredentialDetailViewModel
     var deleteAction: (() -> Void)?
 
-    @State var vpMode: Bool = false
     @State private var showingQRCodeModal: Bool = false
     @State private var navigateToIssuerDetail: Bool = false
     @State private var showAlert = false
     @State private var userSelectableClaims: [DisclosureWithOptionality] = []
+    @State private var dataLoaded: Bool = false
     @Binding var path: [ScreensOnFullScreen]
+
+    /// VP mode is determined by whether sharingRequestModel has a dcqlQuery
+    private var vpMode: Bool {
+        sharingRequestModel?.dcqlQuery != nil
+    }
 
     init(
         viewModel: CredentialDetailViewModel = CredentialDetailViewModel(),
@@ -95,7 +100,7 @@ struct CredentialDetail: View {
                                 }
                             }
                         }
-                        else {
+                        else if dataLoaded {
                             // required claims
                             Text("Sharing Contents of this certificate")
                                 .padding(.vertical, 16)
@@ -208,72 +213,59 @@ struct CredentialDetail: View {
                 }
             }
         }
-        .onAppear {
-            print("onAppear")
-            Task {
-                if let model = sharingRequestModel, let query = model.dcqlQuery {
-                    self.vpMode = true
-                    await viewModel.loadData(credential: credential, dcqlQuery: query)
-                    self.userSelectableClaims = viewModel.userSelectableClaims
-                }
-                else {
-                    await viewModel.loadData(credential: credential)
-                }
+        .task {
+            if let query = sharingRequestModel?.dcqlQuery {
+                await viewModel.loadData(credential: credential, dcqlQuery: query)
+                self.userSelectableClaims = viewModel.userSelectableClaims
             }
+            else {
+                await viewModel.loadData(credential: credential)
+            }
+            self.dataLoaded = true
         }
     }
 }
 
 #Preview("1. format: sd-jwt, card: image") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
-    return CredentialDetail(
+    CredentialDetail(
         viewModel: DetailPreviewModel(),
-        credential: modelData.credentials[0],
+        credential: PreviewSampleData.sampleSdJwtCredentialWithImage(),
         path: .constant([])
     )
 }
 
 #Preview("2. format: sd-jwt, card: bg-color") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
-    return CredentialDetail(
+    CredentialDetail(
         viewModel: DetailPreviewModel(),
-        credential: modelData.credentials[1],
+        credential: PreviewSampleData.sampleSdJwtCredentialWithColor(),
         path: .constant([])
     )
 }
 
 #Preview("3. format: jwt-vc-json") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
-    return CredentialDetail(
+    CredentialDetail(
         viewModel: DetailPreviewModel(),
-        credential: modelData.credentials[2],
+        credential: PreviewSampleData.sampleJwtVcJsonCredential(),
         path: .constant([])
     )
 }
 
 #Preview("4. mode: vp-sharing") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
     let viewModel = DetailVPModePreviewModel()
     let query = viewModel.dummyDcqlQuery1()
     return CredentialDetail(
         viewModel: viewModel,
-        credential: modelData.credentials[2],
+        credential: PreviewSampleData.sampleJwtVcJsonCredential(),
         path: .constant([])
     ).environment(SharingRequestModel(dcqlQuery: query))
 }
 
 #Preview("5. mode: vp-sharing with optional field") {
-    let modelData = ModelData()
-    modelData.loadCredentials()
     let viewModel = DetailVPModePreviewModel()
     let query = viewModel.dummyDcqlQuery2()
     return CredentialDetail(
         viewModel: viewModel,
-        credential: modelData.credentials[2],
+        credential: PreviewSampleData.sampleJwtVcJsonCredential(),
         path: .constant([])
     ).environment(SharingRequestModel(dcqlQuery: query))
 }
