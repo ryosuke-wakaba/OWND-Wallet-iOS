@@ -15,7 +15,6 @@ struct CredentialDetail: View {
     var deleteAction: (() -> Void)?
 
     @State private var showingQRCodeModal: Bool = false
-    @State private var navigateToIssuerDetail: Bool = false
     @State private var showAlert = false
     @State private var userSelectableClaims: [DisclosureWithOptionality] = []
     @State private var dataLoaded: Bool = false
@@ -61,7 +60,7 @@ struct CredentialDetail: View {
                             .underline()
                             .modifier(BodyGray())
                             .onTapGesture {
-                                self.navigateToIssuerDetail = true
+                                path.append(.issuerDetail(credential))
                             }
                             .padding(.vertical, 8)
 
@@ -172,9 +171,6 @@ struct CredentialDetail: View {
                 }
                 .navigationTitle(LocalizedStringKey(self.credential.credentialType))
                 .navigationBarTitleDisplayMode(.inline)
-                .navigationDestination(isPresented: $navigateToIssuerDetail) {
-                    IssuerDetail(credential: credential)
-                }
                 .sheet(
                     isPresented: $showingQRCodeModal,
                     content: {

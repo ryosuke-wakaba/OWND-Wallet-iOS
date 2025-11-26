@@ -26,54 +26,52 @@ struct IssuerDetail: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    let displayName = issuerMetadata?.display?[0].name ?? "Unknown Issuer Name"
-                    Text(displayName).modifier(TitleBlack())
-                        .frame(height: 60)
-                }
-                .padding(.top, 16)
-
-                if let verifierCertificate = viewModel.certInfo {
-                    if let issuerCertificate = verifierCertificate.issuer {
-                        HStack {
-                            Image("verifier_mark")
-                            Text("verified by \(issuerCertificate.organization ?? "")").modifier(
-                                SubHeadLineGray())
-                        }
-                        .padding(.leading, 16)
-                        .padding(.bottom, 16)
-                        .multilineTextAlignment(.center)
-                    }
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("cert_location").modifier(SubHeadLineGray())
-                        HStack {
-                            Text(verifierCertificate.street ?? "")
-                            Text(verifierCertificate.locality ?? "")
-                            Text(verifierCertificate.state ?? "")
-                        }.modifier(BodyBlack())
-                    }
-                    .padding(.vertical, 6)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("cert_country").modifier(SubHeadLineGray())
-                        Text(verifierCertificate.country ?? "").modifier(BodyBlack())
-                    }
-                    .padding(.vertical, 6)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("cert_domain").modifier(SubHeadLineGray())
-                        Text("https://\(verifierCertificate.domain ?? "")/").modifier(BodyBlack())
-                    }
-                    .padding(.vertical, 6)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                let displayName = issuerMetadata?.display?[0].name ?? "Unknown Issuer Name"
+                Text(displayName).modifier(TitleBlack())
+                    .frame(height: 60)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.horizontal, showTitle ? 16 : 0)
-            .navigationBarTitle(
-                showTitle ? "issuing_authority_information" : "", displayMode: .inline)
+            .padding(.top, 16)
+
+            if let verifierCertificate = viewModel.certInfo {
+                if let issuerCertificate = verifierCertificate.issuer {
+                    HStack {
+                        Image("verifier_mark")
+                        Text("verified by \(issuerCertificate.organization ?? "")").modifier(
+                            SubHeadLineGray())
+                    }
+                    .padding(.leading, 16)
+                    .padding(.bottom, 16)
+                    .multilineTextAlignment(.center)
+                }
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("cert_location").modifier(SubHeadLineGray())
+                    HStack {
+                        Text(verifierCertificate.street ?? "")
+                        Text(verifierCertificate.locality ?? "")
+                        Text(verifierCertificate.state ?? "")
+                    }.modifier(BodyBlack())
+                }
+                .padding(.vertical, 6)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("cert_country").modifier(SubHeadLineGray())
+                    Text(verifierCertificate.country ?? "").modifier(BodyBlack())
+                }
+                .padding(.vertical, 6)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("cert_domain").modifier(SubHeadLineGray())
+                    Text("https://\(verifierCertificate.domain ?? "")/").modifier(BodyBlack())
+                }
+                .padding(.vertical, 6)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal, showTitle ? 16 : 0)
+        .navigationBarTitle(
+            showTitle ? "issuing_authority_information" : "", displayMode: .inline)
         .onAppear {
             Task {
                 await viewModel.loadData(
@@ -85,24 +83,19 @@ struct IssuerDetail: View {
 }
 
 #Preview("verified issuer") {
-    let modelData = ModelData()
-    modelData.loadIssuerMetaDataList()
-    modelData.loadCredentials()
-    return IssuerDetail(
-        viewModel: IssuerDetailPreviewModel(),
-        issuerMetadata: modelData.issuerMetaDataList[0]
-    )
+    NavigationStack {
+        IssuerDetail(
+            viewModel: IssuerDetailPreviewModel(),
+            issuerMetadata: PreviewSampleData.sampleMetadata()
+        )
+    }
 }
 
 #Preview("unverified issuer") {
-    let modelData = ModelData()
-    modelData.loadIssuerMetaDataList()
-    modelData.loadCredentials()
-
-    return Group {
+    NavigationStack {
         IssuerDetail(
             viewModel: IssuerDetailPreviewModel2(),
-            issuerMetadata: modelData.issuerMetaDataList[1]
+            issuerMetadata: PreviewSampleData.sampleMetadata()
         )
     }
 }

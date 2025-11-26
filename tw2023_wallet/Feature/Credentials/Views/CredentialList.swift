@@ -24,7 +24,7 @@ struct CredentialList: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $dummyPath) {
             Group {
                 if viewModel.dataModel.isLoading {
                     ProgressView()
@@ -100,6 +100,14 @@ struct CredentialList: View {
             .navigationBarBackButtonHidden(true)
             .fullScreenCover(isPresented: $navigateToAddCertificates, onDismiss: onDismiss) {
                 AddCertificates()
+            }
+            .navigationDestination(for: ScreensOnFullScreen.self) { screen in
+                switch screen {
+                    case .issuerDetail(let credential):
+                        IssuerDetail(credential: credential)
+                    default:
+                        EmptyView()
+                }
             }
         }
         .onAppear {

@@ -217,6 +217,8 @@ struct SharingRequest: View {
                         CredentialListForSharing()
                     case .credentialDetail(let credential):
                         CredentialDetail(credential: credential, path: $path)
+                    case .issuerDetail(let credential):
+                        IssuerDetail(credential: credential)
                     default:
                         EmptyView()
                 }
