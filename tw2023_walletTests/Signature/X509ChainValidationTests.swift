@@ -81,7 +81,9 @@ final class X509ChainValidationTests: XCTestCase {
             CountryName("JP")
         }
 
-        let now = Date()
+        // Use a time window that is definitely valid (1 hour ago to 1 year from now)
+        let notBefore = Date().addingTimeInterval(-60 * 60)
+        let notAfter = Date().addingTimeInterval(60 * 60 * 24 * 365)
 
         let extensions = try Certificate.Extensions {
             Critical(
@@ -96,8 +98,8 @@ final class X509ChainValidationTests: XCTestCase {
             version: .v3,
             serialNumber: Certificate.SerialNumber(),
             publicKey: publicKey,
-            notValidBefore: now,
-            notValidAfter: now.addingTimeInterval(60 * 60 * 24 * 365),
+            notValidBefore: notBefore,
+            notValidAfter: notAfter,
             issuer: name,
             subject: name,
             signatureAlgorithm: .ecdsaWithSHA256,
@@ -121,7 +123,9 @@ final class X509ChainValidationTests: XCTestCase {
             CountryName("JP")
         }
 
-        let now = Date()
+        // Use a time window that is definitely valid (1 hour ago to 1 year from now)
+        let notBefore = Date().addingTimeInterval(-60 * 60)
+        let notAfter = Date().addingTimeInterval(60 * 60 * 24 * 365)
 
         let extensions = try Certificate.Extensions {
             Critical(
@@ -136,8 +140,8 @@ final class X509ChainValidationTests: XCTestCase {
             version: .v3,
             serialNumber: Certificate.SerialNumber(),
             publicKey: publicKey,
-            notValidBefore: now,
-            notValidAfter: now.addingTimeInterval(60 * 60 * 24 * 365),
+            notValidBefore: notBefore,
+            notValidAfter: notAfter,
             issuer: issuerCertificate.subject,
             subject: subjectName,
             signatureAlgorithm: .ecdsaWithSHA256,
@@ -161,7 +165,9 @@ final class X509ChainValidationTests: XCTestCase {
             CountryName("JP")
         }
 
-        let now = Date()
+        // Use a time window that is definitely valid (1 hour ago to 1 year from now)
+        let notBefore = Date().addingTimeInterval(-60 * 60)
+        let notAfter = Date().addingTimeInterval(60 * 60 * 24 * 365)
 
         let extensions = try Certificate.Extensions {
             Critical(
@@ -177,8 +183,8 @@ final class X509ChainValidationTests: XCTestCase {
             version: .v3,
             serialNumber: Certificate.SerialNumber(),
             publicKey: publicKey,
-            notValidBefore: now,
-            notValidAfter: now.addingTimeInterval(60 * 60 * 24 * 365),
+            notValidBefore: notBefore,
+            notValidAfter: notAfter,
             issuer: issuerCertificate.subject,
             subject: subjectName,
             signatureAlgorithm: .ecdsaWithSHA256,

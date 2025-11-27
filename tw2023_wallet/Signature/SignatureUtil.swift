@@ -327,53 +327,21 @@ enum SignatureUtil {
             return false
         }
 
-        let certs =
-            derCertificates.compactMap { $0 }.map {
-                SecCertificateCreateWithData(nil, $0 as CFData)
-            } as CFArray
+        let certs: [SecCertificate] = derCertificates.compactMap { $0 }.compactMap {
+            SecCertificateCreateWithData(nil, $0 as CFData)
+        }
 
-        return try validateTrust(certs)
+        return try validateTrust(certs, customAnchors: nil, useCustomAnchorsOnly: false)
     }
 
     static func validateCertificateChain(certificates: [Certificate]) throws -> Bool {
-        let certs =
-            certificates.map {
-                let pem = try! $0.serializeAsPEM()
-                return SecCertificateCreateWithData(nil, Data(pem.derBytes) as CFData)
-            } as CFArray
-
-        return try validateTrust(certs)
-    }
-
-    private static func validateTrust(_ certs: CFArray) throws -> Bool {
-        var trust: SecTrust?
-        let policy = SecPolicyCreateSSL(true, nil)
-        SecTrustCreateWithCertificates(certs, policy, &trust)
-
-        guard let trust = trust else {
-            return false
+        let certs: [SecCertificate] = certificates.compactMap {
+            let pem = try? $0.serializeAsPEM()
+            guard let derBytes = pem?.derBytes else { return nil }
+            return SecCertificateCreateWithData(nil, Data(derBytes) as CFData)
         }
 
-        var error: CFError?
-        if SecTrustEvaluateWithError(trust, &error) {
-            guard error == nil else {
-                return false
-            }
-
-            var trustResult: SecTrustResultType = .invalid
-            let result = SecTrustGetTrustResult(trust, &trustResult)
-            guard result == errSecSuccess else {
-                return false
-            }
-
-            return trustResult == .unspecified || trustResult == .proceed
-        }
-        else {
-            if let error = error {
-                print("\(String(describing: error))")
-            }
-            return false
-        }
+        return try validateTrust(certs, customAnchors: nil, useCustomAnchorsOnly: false)
     }
 
     // MARK: - Custom Trust Anchor Validation
@@ -395,17 +363,20 @@ enum SignatureUtil {
         // If no custom anchors available, fall back to system CA validation
         guard manager.hasCustomAnchors else {
             print("SignatureUtil: No custom anchors available, falling back to system CA")
-            let certs = leafCertificates as CFArray
-            return try validateTrust(certs)
+            return try validateTrust(
+                leafCertificates,
+                customAnchors: nil,
+                useCustomAnchorsOnly: false
+            )
         }
 
         // Build full chain: leaf + intermediates
         var fullChain = leafCertificates
         fullChain.append(contentsOf: manager.intermediateCertificates)
 
-        return try validateTrustWithCustomAnchors(
-            certificates: fullChain,
-            anchors: manager.anchorCertificates,
+        return try validateTrust(
+            fullChain,
+            customAnchors: manager.anchorCertificates,
             useCustomAnchorsOnly: useCustomAnchorsOnly
         )
     }
@@ -428,17 +399,22 @@ enum SignatureUtil {
         var fullChain = leafCertificates
         fullChain.append(contentsOf: intermediateCertificates)
 
-        return try validateTrustWithCustomAnchors(
-            certificates: fullChain,
-            anchors: anchorCertificates,
+        return try validateTrust(
+            fullChain,
+            customAnchors: anchorCertificates,
             useCustomAnchorsOnly: useCustomAnchorsOnly
         )
     }
 
-    /// Core trust validation with custom anchors
-    private static func validateTrustWithCustomAnchors(
-        certificates: [SecCertificate],
-        anchors: [SecCertificate],
+    /// Core trust validation with optional custom anchors
+    /// - Parameters:
+    ///   - certificates: Certificate chain to validate
+    ///   - customAnchors: Optional custom anchor certificates (root CAs). If nil, uses system CA.
+    ///   - useCustomAnchorsOnly: If true and customAnchors is set, only trust custom anchors
+    /// - Returns: true if chain is valid
+    private static func validateTrust(
+        _ certificates: [SecCertificate],
+        customAnchors: [SecCertificate]?,
         useCustomAnchorsOnly: Bool
     ) throws -> Bool {
         var trust: SecTrust?
@@ -451,16 +427,16 @@ enum SignatureUtil {
             return false
         }
 
-        // Set custom anchor certificates
-        let anchorsArray = anchors as CFArray
-        let anchorStatus = SecTrustSetAnchorCertificates(trust, anchorsArray)
-        guard anchorStatus == errSecSuccess else {
-            print("SignatureUtil: Failed to set anchor certificates")
-            return false
+        // Set custom anchor certificates if provided
+        if let anchors = customAnchors {
+            let anchorsArray = anchors as CFArray
+            let anchorStatus = SecTrustSetAnchorCertificates(trust, anchorsArray)
+            guard anchorStatus == errSecSuccess else {
+                print("SignatureUtil: Failed to set anchor certificates")
+                return false
+            }
+            SecTrustSetAnchorCertificatesOnly(trust, useCustomAnchorsOnly)
         }
-
-        // Control whether to use only custom anchors or also system CA
-        SecTrustSetAnchorCertificatesOnly(trust, useCustomAnchorsOnly)
 
         // Evaluate trust
         var error: CFError?

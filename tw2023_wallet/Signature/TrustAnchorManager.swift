@@ -174,6 +174,7 @@ class TrustAnchorManager {
 
     /// Clear all loaded certificates (useful for testing)
     func clear() {
+        print("TrustAnchorManager: Clearing all certificates (anchors: \(anchorCertificates.count), intermediates: \(intermediateCertificates.count))")
         anchorCertificates = []
         intermediateCertificates = []
         isLoaded = false
