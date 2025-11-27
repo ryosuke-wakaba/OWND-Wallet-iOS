@@ -238,6 +238,75 @@ final class X509ChainValidationTests: XCTestCase {
         XCTAssertTrue(isValid, "Certificate chain should be valid")
     }
 
+    func testValidCertificateChainWithTwoTrustChains() throws {
+        // Create second trust chain: Root B -> Intermediate B -> Leaf B
+        let rootBKey = P256.Signing.PrivateKey()
+        let intermediateBKey = P256.Signing.PrivateKey()
+        let leafBKey = P256.Signing.PrivateKey()
+
+        let rootBCert = try generateRootCACertificate(
+            privateKey: rootBKey,
+            commonName: "Test Root CA B"
+        )
+
+        let intermediateBCert = try generateIntermediateCACertificate(
+            subjectPrivateKey: intermediateBKey,
+            issuerPrivateKey: rootBKey,
+            issuerCertificate: rootBCert,
+            commonName: "Test Intermediate CA B"
+        )
+
+        let leafBCert = try generateLeafCertificate(
+            subjectPrivateKey: leafBKey,
+            issuerPrivateKey: intermediateBKey,
+            issuerCertificate: intermediateBCert,
+            commonName: "testB.example.com"
+        )
+
+        // Setup TrustAnchorManager with both chains
+        let manager = TrustAnchorManager.shared
+        manager.clear()
+
+        // Add both root certificates as anchors
+        let rootADerData = try rootCertificate.serializeAsPEM().derBytes
+        _ = manager.addAnchorCertificate(derData: Data(rootADerData))
+
+        let rootBDerData = try rootBCert.serializeAsPEM().derBytes
+        _ = manager.addAnchorCertificate(derData: Data(rootBDerData))
+
+        // Add both intermediate certificates
+        let intermediateADerData = try intermediateCertificate.serializeAsPEM().derBytes
+        _ = manager.addIntermediateCertificate(derData: Data(intermediateADerData))
+
+        let intermediateBDerData = try intermediateBCert.serializeAsPEM().derBytes
+        _ = manager.addIntermediateCertificate(derData: Data(intermediateBDerData))
+
+        XCTAssertEqual(manager.anchorCertificates.count, 2, "Should have 2 root certificates")
+        XCTAssertEqual(manager.intermediateCertificates.count, 2, "Should have 2 intermediate certificates")
+
+        // Validate chain A (leaf from chain A)
+        guard let leafASecCert = certificateToSecCertificate(leafCertificate) else {
+            XCTFail("Failed to convert leaf A certificate")
+            return
+        }
+
+        let isValidA = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+            leafCertificates: [leafASecCert]
+        )
+        XCTAssertTrue(isValidA, "Certificate chain A should be valid")
+
+        // Validate chain B (leaf from chain B)
+        guard let leafBSecCert = certificateToSecCertificate(leafBCert) else {
+            XCTFail("Failed to convert leaf B certificate")
+            return
+        }
+
+        let isValidB = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+            leafCertificates: [leafBSecCert]
+        )
+        XCTAssertTrue(isValidB, "Certificate chain B should be valid")
+    }
+
     func testCertificateChainWithExplicitAnchors() throws {
         // Convert all certificates to SecCertificate
         guard let leafSecCert = certificateToSecCertificate(leafCertificate),
