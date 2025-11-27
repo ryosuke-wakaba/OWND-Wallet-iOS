@@ -111,14 +111,16 @@ class IssuerDetailViewModel {
         guard let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) else {
             return
         }
-        if try SignatureUtil.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts) {
+        let validationResult = SignatureUtil.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts)
+        switch validationResult {
+        case .success:
             let pemCertificateInData = pemCertificate.data(using: .ascii)
             certInfo =
                 pemCertificateInData != nil
                 ? x509Certificate2CertificateInfo(pemData: pemCertificateInData!) : nil
-        }
-        else {
+        case .failure(let error):
             // TODO: 検証に失敗した場合の見せ方は要検討
+            print("Certificate validation failed: \(error.errorDescription ?? "unknown")")
         }
     }
 }

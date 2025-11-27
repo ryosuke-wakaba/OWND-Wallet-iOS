@@ -146,10 +146,17 @@ class OpenIdProvider {
 
                             case .failure(let error):
                                 print("\(error)")
+                                // Extract detailed error message for certificate validation failures
+                                let errorMessage: String
+                                if case .certificateValidationFailed(let certError) = error {
+                                    errorMessage = certError.errorDescription ?? "Certificate validation failed"
+                                } else {
+                                    errorMessage = "JWT verification failed"
+                                }
                                 return .failure(
                                     .authRequestInputError(
                                         reason: .compliantError(
-                                            reason: "JWT verification failed")
+                                            reason: errorMessage)
                                     ))
                         }
                     }

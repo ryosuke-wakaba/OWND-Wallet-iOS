@@ -27,7 +27,9 @@ class SharingRequestPreviewModel: SharingRequestViewModel {
             let (cert, derCertificates) = extractFirstCertSubject(url: clientId)
             var b = false
             if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
-                b = (try? SignatureUtil.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts)) ?? false
+                if case .success = SignatureUtil.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts) {
+                    b = true
+                }
             }
             if let cert = cert {
                 print("country:\(cert.country ?? "")")

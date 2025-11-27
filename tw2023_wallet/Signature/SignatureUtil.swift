@@ -45,6 +45,42 @@ enum SignatureUtilError: Error {
     case X509CertificateConversionError
 }
 
+/// 証明書チェーン検証エラー
+enum CertificateValidationError: LocalizedError {
+    case trustCreationFailed
+    case anchorSettingFailed
+    case untrustedRoot(certificateName: String)
+    case certificateExpired(certificateName: String)
+    case certificateRevoked(certificateName: String)
+    case certificateNotYetValid(certificateName: String)
+    case invalidCertificate(certificateName: String, reason: String)
+    case chainIncomplete
+    case unknownError(description: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .trustCreationFailed:
+            return "証明書の検証準備に失敗しました"
+        case .anchorSettingFailed:
+            return "信頼アンカーの設定に失敗しました"
+        case .untrustedRoot(let name):
+            return "証明書「\(name)」のルートCAは信頼されていません"
+        case .certificateExpired(let name):
+            return "証明書「\(name)」の有効期限が切れています"
+        case .certificateRevoked(let name):
+            return "証明書「\(name)」は失効しています"
+        case .certificateNotYetValid(let name):
+            return "証明書「\(name)」はまだ有効ではありません"
+        case .invalidCertificate(let name, let reason):
+            return "証明書「\(name)」が無効です: \(reason)"
+        case .chainIncomplete:
+            return "証明書チェーンが不完全です"
+        case .unknownError(let description):
+            return "証明書検証エラー: \(description)"
+        }
+    }
+}
+
 let x509CertPreamble = "-----BEGIN CERTIFICATE-----\n"
 let x509CertPostamble = "\n-----END CERTIFICATE-----"
 
@@ -336,17 +372,17 @@ enum SignatureUtil {
     /// - Parameters:
     ///   - leafCertificates: Certificates from x5c header (typically just the leaf)
     ///   - useCustomAnchorsOnly: If true, only use custom anchors; if false, use custom anchors + system CA
-    /// - Returns: true if chain is valid
+    /// - Returns: Result with success or detailed validation error
     static func validateCertificateChainWithCustomAnchors(
         leafCertificates: [SecCertificate],
         useCustomAnchorsOnly: Bool = false
-    ) throws -> Bool {
+    ) -> Result<Void, CertificateValidationError> {
         let manager = TrustAnchorManager.shared
 
         // If no custom anchors available, fall back to system CA validation
         guard manager.hasCustomAnchors else {
             print("SignatureUtil: No custom anchors available, falling back to system CA")
-            return try validateTrust(
+            return validateTrust(
                 leafCertificates,
                 customAnchors: nil,
                 useCustomAnchorsOnly: false
@@ -357,7 +393,7 @@ enum SignatureUtil {
         var fullChain = leafCertificates
         fullChain.append(contentsOf: manager.intermediateCertificates)
 
-        return try validateTrust(
+        return validateTrust(
             fullChain,
             customAnchors: manager.anchorCertificates,
             useCustomAnchorsOnly: useCustomAnchorsOnly
@@ -369,12 +405,12 @@ enum SignatureUtil {
     ///   - certificates: Certificate chain to validate
     ///   - customAnchors: Optional custom anchor certificates (root CAs). If nil, uses system CA.
     ///   - useCustomAnchorsOnly: If true and customAnchors is set, only trust custom anchors
-    /// - Returns: true if chain is valid
+    /// - Returns: Result with success or detailed error
     private static func validateTrust(
         _ certificates: [SecCertificate],
         customAnchors: [SecCertificate]?,
         useCustomAnchorsOnly: Bool
-    ) throws -> Bool {
+    ) -> Result<Void, CertificateValidationError> {
         var trust: SecTrust?
         let policy = SecPolicyCreateBasicX509()
         let certsArray = certificates as CFArray
@@ -382,7 +418,7 @@ enum SignatureUtil {
         let status = SecTrustCreateWithCertificates(certsArray, policy, &trust)
         guard status == errSecSuccess, let trust = trust else {
             print("SignatureUtil: Failed to create trust object")
-            return false
+            return .failure(.trustCreationFailed)
         }
 
         // Set custom anchor certificates if provided
@@ -391,7 +427,7 @@ enum SignatureUtil {
             let anchorStatus = SecTrustSetAnchorCertificates(trust, anchorsArray)
             guard anchorStatus == errSecSuccess else {
                 print("SignatureUtil: Failed to set anchor certificates")
-                return false
+                return .failure(.anchorSettingFailed)
             }
             SecTrustSetAnchorCertificatesOnly(trust, useCustomAnchorsOnly)
         }
@@ -403,19 +439,57 @@ enum SignatureUtil {
             let result = SecTrustGetTrustResult(trust, &trustResult)
             guard result == errSecSuccess else {
                 print("SignatureUtil: Failed to get trust result")
-                return false
+                return .failure(.unknownError(description: "Failed to get trust result"))
             }
 
             let isValid = trustResult == .unspecified || trustResult == .proceed
             if !isValid {
                 print("SignatureUtil: Trust validation failed with result: \(trustResult.rawValue)")
+                return .failure(.chainIncomplete)
             }
-            return isValid
+            return .success(())
         } else {
-            if let error = error {
-                print("SignatureUtil: Trust evaluation error: \(error)")
-            }
-            return false
+            let validationError = parseSecTrustError(error, certificates: certificates)
+            print("SignatureUtil: Trust evaluation error: \(validationError.errorDescription ?? "unknown")")
+            return .failure(validationError)
+        }
+    }
+
+    /// Parse SecTrust CFError to CertificateValidationError
+    private static func parseSecTrustError(
+        _ cfError: CFError?,
+        certificates: [SecCertificate]
+    ) -> CertificateValidationError {
+        guard let cfError = cfError else {
+            return .unknownError(description: "Unknown error")
+        }
+
+        let nsError = cfError as Error as NSError
+        let code = nsError.code
+
+        // Get certificate name from the first certificate
+        let certName: String
+        if let firstCert = certificates.first {
+            certName = SecCertificateCopySubjectSummary(firstCert) as String? ?? "Unknown"
+        } else {
+            certName = "Unknown"
+        }
+
+        // Map OSStatus codes to specific errors
+        // Reference: Security.framework SecBase.h
+        switch Int32(code) {
+        case -67818: // errSecCertificateExpired
+            return .certificateExpired(certificateName: certName)
+        case -67819: // errSecCertificateNotValidYet
+            return .certificateNotYetValid(certificateName: certName)
+        case -67820: // errSecCertificateRevoked
+            return .certificateRevoked(certificateName: certName)
+        case -67843: // errSecNotTrusted
+            return .untrustedRoot(certificateName: certName)
+        default:
+            // Try to extract description from error
+            let description = nsError.localizedDescription
+            return .unknownError(description: description)
         }
     }
 }

@@ -118,8 +118,10 @@ class SharingRequestViewModel {
                         // verify ov of rp
                         print("verify cert chain")
                         if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
-                            verified = (try? SignatureUtil.validateCertificateChainWithCustomAnchors(
-                                leafCertificates: secCerts)) ?? false
+                            if case .success = SignatureUtil.validateCertificateChainWithCustomAnchors(
+                                leafCertificates: secCerts) {
+                                verified = true
+                            }
                         }
                         print("verified: \(verified)")
                     }
@@ -151,7 +153,17 @@ class SharingRequestViewModel {
                         case .authRequestInputError(let subError):
                             print(subError)
                             alertTitle = "Found wrong input. It needs to confirm client system."
-                            alertMessage = subError.localizedDescription
+                            // Extract reason string from error case
+                            switch subError {
+                            case .compliantError(let reason):
+                                alertMessage = reason
+                            case .missingParameter(let reason):
+                                alertMessage = reason
+                            case .resourceNotFound(let reason):
+                                alertMessage = reason
+                            case .invalidJwt:
+                                alertMessage = "Invalid JWT"
+                            }
                         case .authRequestClientError(let subError):
                             print(subError)
                             switch subError {

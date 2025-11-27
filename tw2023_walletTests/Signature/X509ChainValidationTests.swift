@@ -231,11 +231,16 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // Validate chain with only leaf certificate (intermediate and root from TrustAnchorManager)
-        let isValid = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
             leafCertificates: [leafSecCert]
         )
 
-        XCTAssertTrue(isValid, "Certificate chain should be valid")
+        switch result {
+        case .success:
+            break // Test passes
+        case .failure(let error):
+            XCTFail("Certificate chain should be valid, but got error: \(error.errorDescription ?? "unknown")")
+        }
     }
 
     func testValidCertificateChainWithTwoTrustChains() throws {
@@ -290,10 +295,15 @@ final class X509ChainValidationTests: XCTestCase {
             return
         }
 
-        let isValidA = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let resultA = SignatureUtil.validateCertificateChainWithCustomAnchors(
             leafCertificates: [leafASecCert]
         )
-        XCTAssertTrue(isValidA, "Certificate chain A should be valid")
+        switch resultA {
+        case .success:
+            break // Test passes
+        case .failure(let error):
+            XCTFail("Certificate chain A should be valid, but got error: \(error.errorDescription ?? "unknown")")
+        }
 
         // Validate chain B (leaf from chain B)
         guard let leafBSecCert = certificateToSecCertificate(leafBCert) else {
@@ -301,10 +311,15 @@ final class X509ChainValidationTests: XCTestCase {
             return
         }
 
-        let isValidB = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let resultB = SignatureUtil.validateCertificateChainWithCustomAnchors(
             leafCertificates: [leafBSecCert]
         )
-        XCTAssertTrue(isValidB, "Certificate chain B should be valid")
+        switch resultB {
+        case .success:
+            break // Test passes
+        case .failure(let error):
+            XCTFail("Certificate chain B should be valid, but got error: \(error.errorDescription ?? "unknown")")
+        }
     }
 
     func testInvalidChainWithMissingIntermediate() throws {
@@ -322,12 +337,16 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // This should fail because intermediate is missing
-        let isValid = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
             leafCertificates: [leafSecCert]
         )
 
-        XCTAssertFalse(
-            isValid, "Certificate chain should be invalid without intermediate certificate")
+        switch result {
+        case .success:
+            XCTFail("Certificate chain should be invalid without intermediate certificate")
+        case .failure:
+            break // Test passes - expected to fail
+        }
     }
 
     func testInvalidChainWithUnknownRoot() throws {
@@ -352,11 +371,22 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // This should fail because the root CA is not trusted
-        let isValid = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
             leafCertificates: [unknownLeafSecCert]
         )
 
-        XCTAssertFalse(isValid, "Certificate chain should be invalid with unknown root")
+        switch result {
+        case .success:
+            XCTFail("Certificate chain should be invalid with unknown root")
+        case .failure(let error):
+            // Verify we get the expected error type
+            if case .untrustedRoot = error {
+                break // Test passes - expected to fail with untrustedRoot
+            } else {
+                // Other failure types are also acceptable as long as it fails
+                break
+            }
+        }
     }
 
     // MARK: - JWT with x5c Header Tests

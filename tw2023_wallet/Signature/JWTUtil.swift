@@ -23,6 +23,7 @@ enum JWTVerificationError: Error {
     case unsupportedAlgorithm
     case invalidPublicKeyType
     case verificationFailed(String)
+    case certificateValidationFailed(CertificateValidationError)
 }
 
 // See https://swiftpackageindex.com/apple/swift-asn1/main/documentation/swiftasn1/decodingasn1#Final-Result
@@ -235,21 +236,17 @@ enum JWTUtil {
                 }
 
                 // Use custom anchor validation (leaf from x5c, intermediate + root from TrustAnchorManager)
-                let chainValidation: Bool
-                do {
-                    chainValidation = try SignatureUtil.validateCertificateChainWithCustomAnchors(
-                        leafCertificates: secCertificates
-                    )
-                } catch {
-                    print("[verifyJwtByX5C] Certificate chain validation error: \(error)")
-                    return .failure(.verificationFailed("Certificate chain validation error"))
-                }
+                let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
+                    leafCertificates: secCertificates
+                )
 
-                if !chainValidation {
-                    print("[verifyJwtByX5C] Certificate chain validation failed")
-                    return .failure(.verificationFailed("Unable to verify chain of trust"))
+                switch chainValidation {
+                case .success:
+                    print("[verifyJwtByX5C] Certificate chain validation succeeded")
+                case .failure(let certError):
+                    print("[verifyJwtByX5C] Certificate chain validation failed: \(certError.errorDescription ?? "unknown")")
+                    return .failure(.certificateValidationFailed(certError))
                 }
-                print("[verifyJwtByX5C] Certificate chain validation succeeded")
             }
             else {
                 print("Skip ValidateCertificateChain!!!")
@@ -303,17 +300,15 @@ enum JWTUtil {
         }
 
         // Use custom anchor validation
-        let chainValidation: Bool
-        do {
-            chainValidation = try SignatureUtil.validateCertificateChainWithCustomAnchors(
-                leafCertificates: secCertificates
-            )
-        } catch {
-            return .failure(.verificationFailed("Certificate chain validation error"))
-        }
+        let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
+            leafCertificates: secCertificates
+        )
 
-        if !chainValidation {
-            return .failure(.verificationFailed("Unable to verify chain of trust"))
+        switch chainValidation {
+        case .success:
+            break
+        case .failure(let certError):
+            return .failure(.certificateValidationFailed(certError))
         }
 
         let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
