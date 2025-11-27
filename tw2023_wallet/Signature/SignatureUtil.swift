@@ -280,71 +280,54 @@ enum SignatureUtil {
         task.resume()
     }
 
-    // static func validateCertificateChain(certificates: [Certificate]) throws -> Bool {
-    //    static func validateCertificateChain(certificates: [Data]) throws -> Bool {
-    //
-    //        let certs = certificates.map{
-    ////            let pem = try! $0.serializeAsPEM()
-    ////            return SecCertificateCreateWithData(nil, Data(pem.derBytes) as CFData)
-    //            // $0 is DER format data
-    //            return SecCertificateCreateWithData(nil, $0 as CFData)
-    //        } as CFArray
-    //
-    //        // SecTrustを作成し、証明書をセット
-    //        var trust: SecTrust?
-    //        var policy: SecPolicy?
-    //
-    //        policy = SecPolicyCreateSSL(true, nil)
-    //        SecTrustCreateWithCertificates(certs, policy, &trust)
-    //
-    //        if trust == nil {
-    //            return false
-    //        }
-    //
-    //        var error: CFError?
-    //        var trustResult: SecTrustResultType = .invalid
-    //        if SecTrustEvaluateWithError(trust!, &error) {
-    //            if let error = error {
-    //                return false
-    //            }
-    //            var result: OSStatus = SecTrustGetTrustResult(trust!, &trustResult)
-    //            if result != errSecSuccess {
-    //                return false
-    //            }
-    //        } else {
-    //            return false
-    //        }
-    //
-    //        if trustResult == .unspecified || trustResult == .proceed {
-    //            return true
-    //        } else {
-    //            return false
-    //        }
-    //    }
-    static func validateCertificateChain(derCertificates: [Data?]) throws -> Bool {
-        // Check if any of the certificates in the array is nil
-        if derCertificates.contains(where: { $0 == nil }) {
-            return false
-        }
+    // MARK: - Certificate Conversion Helpers
 
-        let certs: [SecCertificate] = derCertificates.compactMap { $0 }.compactMap {
+    /// Convert DER data array to SecCertificate array
+    /// - Parameter derData: Array of DER-encoded certificate data
+    /// - Returns: Array of SecCertificate, or nil if any conversion fails
+    static func derDataToSecCertificates(_ derData: [Data]) -> [SecCertificate]? {
+        let certs: [SecCertificate] = derData.compactMap {
             SecCertificateCreateWithData(nil, $0 as CFData)
         }
 
-        return try validateTrust(certs, customAnchors: nil, useCustomAnchorsOnly: false)
+        // Ensure all certificates were converted successfully
+        guard certs.count == derData.count else { return nil }
+        return certs
     }
 
-    static func validateCertificateChain(certificates: [Certificate]) throws -> Bool {
-        let certs: [SecCertificate] = certificates.compactMap {
-            let pem = try? $0.serializeAsPEM()
-            guard let derBytes = pem?.derBytes else { return nil }
-            return SecCertificateCreateWithData(nil, Data(derBytes) as CFData)
+    /// Convert optional DER data array to SecCertificate array
+    /// - Parameter derData: Array of optional DER-encoded certificate data (nil elements will cause failure)
+    /// - Returns: Array of SecCertificate, or nil if any conversion fails or any element is nil
+    static func derDataToSecCertificates(_ derData: [Data?]) -> [SecCertificate]? {
+        // Check if any of the certificates in the array is nil
+        if derData.contains(where: { $0 == nil }) {
+            return nil
         }
 
-        return try validateTrust(certs, customAnchors: nil, useCustomAnchorsOnly: false)
+        let certs: [SecCertificate] = derData.compactMap { $0 }.compactMap {
+            SecCertificateCreateWithData(nil, $0 as CFData)
+        }
+
+        // Ensure all certificates were converted successfully
+        guard certs.count == derData.count else { return nil }
+        return certs
     }
 
-    // MARK: - Custom Trust Anchor Validation
+    /// Convert X509.Certificate array to SecCertificate array
+    /// - Parameter certificates: Array of X509.Certificate objects
+    /// - Returns: Array of SecCertificate, or nil if any conversion fails
+    static func certificatesToSecCertificates(_ certificates: [Certificate]) -> [SecCertificate]? {
+        let certs: [SecCertificate] = certificates.compactMap { cert in
+            guard let pem = try? cert.serializeAsPEM() else { return nil }
+            return SecCertificateCreateWithData(nil, Data(pem.derBytes) as CFData)
+        }
+
+        // Ensure all certificates were converted successfully
+        guard certs.count == certificates.count else { return nil }
+        return certs
+    }
+
+    // MARK: - Certificate Chain Validation
 
     /// Validate certificate chain using custom trust anchors from TrustAnchorManager.
     /// This method builds the chain by combining the leaf certificate (from x5c) with
@@ -352,11 +335,11 @@ enum SignatureUtil {
     ///
     /// - Parameters:
     ///   - leafCertificates: Certificates from x5c header (typically just the leaf)
-    ///   - useCustomAnchorsOnly: If true, only use custom anchors; if false, fall back to system CA
+    ///   - useCustomAnchorsOnly: If true, only use custom anchors; if false, use custom anchors + system CA
     /// - Returns: true if chain is valid
     static func validateCertificateChainWithCustomAnchors(
         leafCertificates: [SecCertificate],
-        useCustomAnchorsOnly: Bool = true
+        useCustomAnchorsOnly: Bool = false
     ) throws -> Bool {
         let manager = TrustAnchorManager.shared
 
@@ -377,31 +360,6 @@ enum SignatureUtil {
         return try validateTrust(
             fullChain,
             customAnchors: manager.anchorCertificates,
-            useCustomAnchorsOnly: useCustomAnchorsOnly
-        )
-    }
-
-    /// Validate certificate chain with explicit custom anchors and intermediates.
-    /// Useful for testing with programmatically generated certificates.
-    ///
-    /// - Parameters:
-    ///   - leafCertificates: Leaf certificate(s) from x5c
-    ///   - intermediateCertificates: Intermediate CA certificates
-    ///   - anchorCertificates: Root CA certificates (trust anchors)
-    ///   - useCustomAnchorsOnly: If true, only trust the provided anchors
-    /// - Returns: true if chain is valid
-    static func validateCertificateChainWithCustomAnchors(
-        leafCertificates: [SecCertificate],
-        intermediateCertificates: [SecCertificate],
-        anchorCertificates: [SecCertificate],
-        useCustomAnchorsOnly: Bool = true
-    ) throws -> Bool {
-        var fullChain = leafCertificates
-        fullChain.append(contentsOf: intermediateCertificates)
-
-        return try validateTrust(
-            fullChain,
-            customAnchors: anchorCertificates,
             useCustomAnchorsOnly: useCustomAnchorsOnly
         )
     }

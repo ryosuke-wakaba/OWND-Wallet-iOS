@@ -217,3 +217,73 @@ tw2023_wallet/Resources/Certificates/*.pem
 - [x] Phase 4: テストコード作成
   - `TrustAnchorManagerTests.swift` 作成
   - `X509ChainValidationTests.swift` 作成
+- [x] Phase 5: validate関数の統合
+  - 全ての証明書チェーン検証を`validateCertificateChainWithCustomAnchors`に統合
+
+## Phase 5: validate関数の統合
+
+### 目的
+
+複数存在する`validateCertificateChain`系メソッドを`validateCertificateChainWithCustomAnchors`に統一し、コードの一貫性と保守性を向上させる。
+
+### 現状
+
+| メソッド | 使用箇所 |
+|---------|---------|
+| `validateCertificateChain(derCertificates:)` | SharingRequestPreviewModel, SharingRequestViewModel |
+| `validateCertificateChain(certificates:)` | IssuerDetailViewModel, SignatureUitlTest |
+| `validateCertificateChainWithCustomAnchors(leafCertificates:)` | JWTUtil.verifyJwtByX5C |
+
+### 対応方針
+
+1. **旧メソッドの削除**: `validateCertificateChain(derCertificates:)`, `validateCertificateChain(certificates:)` を削除
+2. **入力型変換ヘルパーの追加**: SignatureUtilに変換メソッドを追加
+3. **呼び出し元の更新**: 3箇所の本番コード + 1箇所のテストコードを修正
+
+### 変更ファイル
+
+| ファイル | 変更内容 |
+|---------|---------|
+| `SignatureUtil.swift` | 旧メソッド削除、ヘルパー追加 |
+| `SharingRequestPreviewModel.swift` | 新メソッド呼び出しに変更 |
+| `SharingRequestViewModel.swift` | 新メソッド呼び出しに変更 |
+| `IssuerDetailViewModel.swift` | 新メソッド呼び出しに変更 |
+| `SignatureUitlTest.swift` | 新メソッド呼び出しに変更 |
+
+### 実装詳細
+
+```swift
+// SignatureUtil.swift に追加するヘルパー
+
+/// Convert DER data array to SecCertificate array
+static func derDataToSecCertificates(_ derData: [Data?]) -> [SecCertificate]? {
+    let certs: [SecCertificate] = derData.compactMap { data in
+        guard let data = data else { return nil }
+        return SecCertificateCreateWithData(nil, data as CFData)
+    }
+    guard certs.count == derData.count else { return nil }
+    return certs
+}
+
+/// Convert X509.Certificate array to SecCertificate array
+static func certificatesToSecCertificates(_ certificates: [Certificate]) -> [SecCertificate]? {
+    let certs: [SecCertificate] = certificates.compactMap { cert in
+        guard let pem = try? cert.serializeAsPEM() else { return nil }
+        return SecCertificateCreateWithData(nil, Data(pem.derBytes) as CFData)
+    }
+    guard certs.count == certificates.count else { return nil }
+    return certs
+}
+```
+
+### 追加変更: 明示的アンカー版の削除
+
+Phase 5完了後、以下の追加変更を実施：
+
+1. **削除**: `validateCertificateChainWithCustomAnchors(leafCertificates:intermediateCertificates:anchorCertificates:)`
+   - テスト専用メソッドだったが、TrustAnchorManagerで代替可能
+   - コードパスの削減により保守性向上
+
+2. **削除**: `testCertificateChainWithExplicitAnchors` テストケース
+   - 削除されたメソッドのテストだったため不要
+   - `testValidCertificateChainWithCustomAnchors` で同等の機能をカバー

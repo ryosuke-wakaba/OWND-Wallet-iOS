@@ -108,7 +108,10 @@ class IssuerDetailViewModel {
         // SignatureUtilを使用して証明書チェーンの検証
         let pemCertificate = certificates[0].0
         let derCertificates = certificates.map { $0.1 }
-        if try SignatureUtil.validateCertificateChain(derCertificates: derCertificates) {
+        guard let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) else {
+            return
+        }
+        if try SignatureUtil.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts) {
             let pemCertificateInData = pemCertificate.data(using: .ascii)
             certInfo =
                 pemCertificateInData != nil

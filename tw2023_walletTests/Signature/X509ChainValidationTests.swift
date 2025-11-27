@@ -307,26 +307,6 @@ final class X509ChainValidationTests: XCTestCase {
         XCTAssertTrue(isValidB, "Certificate chain B should be valid")
     }
 
-    func testCertificateChainWithExplicitAnchors() throws {
-        // Convert all certificates to SecCertificate
-        guard let leafSecCert = certificateToSecCertificate(leafCertificate),
-            let intermediateSecCert = certificateToSecCertificate(intermediateCertificate),
-            let rootSecCert = certificateToSecCertificate(rootCertificate)
-        else {
-            XCTFail("Failed to convert certificates")
-            return
-        }
-
-        // Validate chain with explicit anchors
-        let isValid = try SignatureUtil.validateCertificateChainWithCustomAnchors(
-            leafCertificates: [leafSecCert],
-            intermediateCertificates: [intermediateSecCert],
-            anchorCertificates: [rootSecCert]
-        )
-
-        XCTAssertTrue(isValid, "Certificate chain should be valid with explicit anchors")
-    }
-
     func testInvalidChainWithMissingIntermediate() throws {
         // Clear TrustAnchorManager and only add root (no intermediate)
         let manager = TrustAnchorManager.shared

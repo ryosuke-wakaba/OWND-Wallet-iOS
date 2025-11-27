@@ -117,9 +117,10 @@ class SharingRequestViewModel {
                         cert = extractedCert
                         // verify ov of rp
                         print("verify cert chain")
-                        let b = try? SignatureUtil.validateCertificateChain(
-                            derCertificates: derCertificates)
-                        verified = b ?? false
+                        if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
+                            verified = (try? SignatureUtil.validateCertificateChainWithCustomAnchors(
+                                leafCertificates: secCerts)) ?? false
+                        }
                         print("verified: \(verified)")
                     }
 
