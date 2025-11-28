@@ -7,6 +7,8 @@
 
 import CoreData
 import LocalAuthentication
+import SDWebImage
+import SDWebImageSVGCoder
 import SwiftUI
 
 func createCredentialOfferArgs(value: String) -> CredentialOfferArgs {
@@ -38,6 +40,9 @@ struct tw2023_walletApp: App {
     init() {
         // Initialize TrustAnchorManager to load built-in certificates at startup
         _ = TrustAnchorManager.shared
+
+        // Register SVGCoder for SVG image support
+        SDImageCodersManager.shared.addCoder(SDImageSVGCoder.shared)
     }
 
     var body: some Scene {

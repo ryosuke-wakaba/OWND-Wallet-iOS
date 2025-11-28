@@ -38,6 +38,8 @@
 		8B2AF5D62ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */; };
 		8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */; };
 		8B2AF5DA2ED6EC1F00F5FE17 /* X509ChainValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */; };
+		8B2AF5F02ED9809300F5FE17 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8B2AF5EF2ED9809300F5FE17 /* SDWebImageSwiftUI */; };
+		8B2AF5F32ED980F800F5FE17 /* SDWebImageSVGCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 8B2AF5F22ED980F800F5FE17 /* SDWebImageSVGCoder */; };
 		8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */; };
 		8B4265982B57677600A07F2B /* SDJwtUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087132B3B0AB3004425DE /* SDJwtUtil.swift */; };
 		8B42659A2B576CA500A07F2B /* IssuerDetailPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */; };
@@ -565,11 +567,13 @@
 				A89297572B3AA1EB007315BE /* Gzip in Frameworks */,
 				A8137C482B484454008CA5AC /* JWTDecode in Frameworks */,
 				A89297622B3AF26F007315BE /* SwiftASN1 in Frameworks */,
+				8B2AF5F32ED980F800F5FE17 /* SDWebImageSVGCoder in Frameworks */,
 				A83039D52B4E7449004139A7 /* SwiftProtobuf in Frameworks */,
 				A81087252B3D66A1004425DE /* X509 in Frameworks */,
 				A89297652B3AF487007315BE /* ASN1Decoder in Frameworks */,
 				8B7F89212B8D7507005DA52B /* Zip in Frameworks */,
 				8B297C4B2B39AB8900D2998D /* SwiftyJSON in Frameworks */,
+				8B2AF5F02ED9809300F5FE17 /* SDWebImageSwiftUI in Frameworks */,
 				8B0E0A942B3BC36E0080F6A3 /* web3swift in Frameworks */,
 				8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */,
 				F6A239AC2B4E709200B09F17 /* IGIdenticon in Frameworks */,
@@ -1454,6 +1458,8 @@
 				F6A239AB2B4E709200B09F17 /* IGIdenticon */,
 				8B7F89202B8D7507005DA52B /* Zip */,
 				A857C2592C0DD3200059A82F /* swift-format */,
+				8B2AF5EF2ED9809300F5FE17 /* SDWebImageSwiftUI */,
+				8B2AF5F22ED980F800F5FE17 /* SDWebImageSVGCoder */,
 			);
 			productName = tw2023_wallet;
 			productReference = 8B81E2992B33CC4000ED3B4E /* tw2023_wallet.app */;
@@ -1544,6 +1550,8 @@
 				F6A239AA2B4E709200B09F17 /* XCRemoteSwiftPackageReference "IGIdenticon" */,
 				8B7F891F2B8D7507005DA52B /* XCRemoteSwiftPackageReference "Zip" */,
 				A857C2582C0DD3200059A82F /* XCRemoteSwiftPackageReference "swift-format" */,
+				8B2AF5EE2ED9809200F5FE17 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */,
+				8B2AF5F12ED980F800F5FE17 /* XCRemoteSwiftPackageReference "SDWebImageSVGCoder" */,
 			);
 			productRefGroup = 8B81E29A2B33CC4000ED3B4E /* Products */;
 			projectDirPath = "";
@@ -2270,6 +2278,22 @@
 				minimumVersion = 5.0.1;
 			};
 		};
+		8B2AF5EE2ED9809200F5FE17 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SDWebImage/SDWebImageSwiftUI";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.1.4;
+			};
+		};
+		8B2AF5F12ED980F800F5FE17 /* XCRemoteSwiftPackageReference "SDWebImageSVGCoder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SDWebImage/SDWebImageSVGCoder";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.0;
+			};
+		};
 		8B7F891F2B8D7507005DA52B /* XCRemoteSwiftPackageReference "Zip" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/marmelroy/Zip";
@@ -2362,6 +2386,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 8B297C492B39AB8900D2998D /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
 			productName = SwiftyJSON;
+		};
+		8B2AF5EF2ED9809300F5FE17 /* SDWebImageSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B2AF5EE2ED9809200F5FE17 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */;
+			productName = SDWebImageSwiftUI;
+		};
+		8B2AF5F22ED980F800F5FE17 /* SDWebImageSVGCoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B2AF5F12ED980F800F5FE17 /* XCRemoteSwiftPackageReference "SDWebImageSVGCoder" */;
+			productName = SDWebImageSVGCoder;
 		};
 		8B7F89202B8D7507005DA52B /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;

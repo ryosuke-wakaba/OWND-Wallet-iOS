@@ -5,22 +5,19 @@
 //  Created by SadamuMatsuoka on 2023/12/30.
 //
 
+import SDWebImageSwiftUI
 import SwiftUI
 
 enum ImageLoader {
     static func loadImage(from urlString: String?) -> AnyView? {
         if let urlString = urlString, let url = URL(string: urlString) {
             return AnyView(
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                        case .success(let image):
-                            image.resizable()
-                        case .empty, .failure:
-                            EmptyView()
-                        @unknown default:
-                            EmptyView()
-                    }
-                })
+                WebImage(url: url) { image in
+                    image.resizable()
+                } placeholder: {
+                    EmptyView()
+                }
+            )
         }
         else {
             return nil
