@@ -11,8 +11,13 @@ typealias KeyPair = (publicKey: SecKey, privateKey: SecKey)
 typealias KeyPairData = (publicKey: (Data, Data), privateKey: Data)
 
 protocol KeyBinding {
-    func generateJwt(sdJwt: String, selectedDisclosures: [Disclosure], aud: String, nonce: String)
-        throws -> String
+    func generateJwt(
+        sdJwt: String,
+        selectedDisclosures: [Disclosure],
+        aud: String,
+        nonce: String,
+        sdAlg: String
+    ) throws -> String
 }
 
 protocol JwtVpJsonGenerator {

@@ -82,4 +82,50 @@ class SDJwtUtilTests: XCTestCase {
         XCTAssertTrue(headerJSON.keys.contains("alg"), "JSON does not contain 'alg'")
         XCTAssertTrue(headerJSON.keys.contains("x5c"), "JSON does not contain 'x5c'")
     }
+
+    // MARK: - getSdAlg tests
+
+    func testGetSdAlg_Default() {
+        // sdJwtWithDisclosureWithoutKBJ_instance does not have _sd_alg in payload
+        // Should return default "sha-256"
+        let sdAlg = SDJwtUtil.getSdAlg(sdJwtWithDisclosureWithoutKBJ_instance)
+        XCTAssertEqual(sdAlg, "sha-256", "Should return default sha-256 when _sd_alg is not present")
+    }
+
+    func testGetSdAlg_WithExplicitSha256() {
+        // Create a test SD-JWT with _sd_alg: "sha-256" in payload
+        // Header: {"alg":"ES256","typ":"JWT"}
+        // Payload: {"_sd_alg":"sha-256","sub":"test"}
+        let header = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9"
+        let payload = "eyJfc2RfYWxnIjoic2hhLTI1NiIsInN1YiI6InRlc3QifQ"
+        let signature = "test_signature"
+        let sdJwt = "\(header).\(payload).\(signature)~"
+
+        let sdAlg = SDJwtUtil.getSdAlg(sdJwt)
+        XCTAssertEqual(sdAlg, "sha-256", "Should return sha-256 from payload")
+    }
+
+    func testGetSdAlg_WithSha384() {
+        // Create a test SD-JWT with _sd_alg: "sha-384" in payload
+        // Payload: {"_sd_alg":"sha-384","sub":"test"}
+        let header = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9"
+        let payload = "eyJfc2RfYWxnIjoic2hhLTM4NCIsInN1YiI6InRlc3QifQ"
+        let signature = "test_signature"
+        let sdJwt = "\(header).\(payload).\(signature)~"
+
+        let sdAlg = SDJwtUtil.getSdAlg(sdJwt)
+        XCTAssertEqual(sdAlg, "sha-384", "Should return sha-384 from payload")
+    }
+
+    func testGetSdAlg_InvalidJwt() {
+        // Invalid SD-JWT should return default
+        let invalidSdJwt = "invalid~"
+        let sdAlg = SDJwtUtil.getSdAlg(invalidSdJwt)
+        XCTAssertEqual(sdAlg, "sha-256", "Should return default sha-256 for invalid JWT")
+    }
+
+    func testGetSdAlg_EmptyString() {
+        let sdAlg = SDJwtUtil.getSdAlg("")
+        XCTAssertEqual(sdAlg, "sha-256", "Should return default sha-256 for empty string")
+    }
 }

@@ -66,8 +66,15 @@ struct SubmissionCredential: Codable, Equatable {
         let selectedDisclosures = discloseClaims.map { $0.disclosure }
         print(String(describing: credentialQuery))
 
+        // Get _sd_alg from SD-JWT payload (defaults to "sha-256")
+        let sdAlg = SDJwtUtil.getSdAlg(credential)
+
         let keyBindingJwt = try kb.generateJwt(
-            sdJwt: credential, selectedDisclosures: selectedDisclosures, aud: clientId, nonce: nonce
+            sdJwt: credential,
+            selectedDisclosures: selectedDisclosures,
+            aud: clientId,
+            nonce: nonce,
+            sdAlg: sdAlg
         )
 
         let parts = credential.split(separator: "~").map(String.init)

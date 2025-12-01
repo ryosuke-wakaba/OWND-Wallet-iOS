@@ -10,6 +10,7 @@ import Foundation
 
 enum KeyBindingImplError: Error {
     case UnexpectedDisclosureValue
+    case UnsupportedHashAlgorithm(String)
 }
 
 class KeyBindingImpl: KeyBinding {
@@ -18,9 +19,18 @@ class KeyBindingImpl: KeyBinding {
     init(keyAlias: String) {
         self.keyAlias = keyAlias
     }
-    func generateJwt(sdJwt: String, selectedDisclosures: [Disclosure], aud: String, nonce: String)
-        throws -> String
-    {
+    func generateJwt(
+        sdJwt: String,
+        selectedDisclosures: [Disclosure],
+        aud: String,
+        nonce: String,
+        sdAlg: String
+    ) throws -> String {
+        // Validate _sd_alg - currently only sha-256 is supported
+        guard sdAlg.lowercased() == "sha-256" else {
+            throw KeyBindingImplError.UnsupportedHashAlgorithm(sdAlg)
+        }
+
         let parts = sdJwt.split(separator: "~").map(String.init)
         let issuerSignedJwt = parts[0]
 

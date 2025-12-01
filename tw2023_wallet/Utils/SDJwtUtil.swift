@@ -140,6 +140,33 @@ struct SDJwtUtil {
         return headerJSON
     }
 
+    /// Get the _sd_alg value from SD-JWT payload
+    /// - Parameter sdJwt: SD-JWT string
+    /// - Returns: _sd_alg value (defaults to "sha-256" if not present)
+    static func getSdAlg(_ sdJwt: String) -> String {
+        let parts = sdJwt.split(separator: "~").map { String($0) }
+        guard let issuerJwt = parts.first else {
+            return "sha-256"
+        }
+
+        let jwtParts = issuerJwt.split(separator: ".").map { String($0) }
+        guard jwtParts.count >= 2 else {
+            return "sha-256"
+        }
+
+        let payloadBase64 = jwtParts[1]
+        guard let payloadData = Data(base64Encoded: base64urlToBase64(base64url: payloadBase64)),
+              let payloadString = String(data: payloadData, encoding: .utf8),
+              let payloadJson = try? JSONSerialization.jsonObject(
+                  with: payloadString.data(using: .utf8)!) as? [String: Any],
+              let sdAlg = payloadJson["_sd_alg"] as? String
+        else {
+            return "sha-256"  // Default per SD-JWT spec
+        }
+
+        return sdAlg
+    }
+
     static func extractX5cValues(_ header: [String: Any]) -> [String]? {
         guard let x5cJsonArray = header["x5c"] as? [String] else { return nil }
         return x5cJsonArray
