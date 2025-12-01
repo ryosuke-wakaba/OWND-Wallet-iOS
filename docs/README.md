@@ -37,6 +37,11 @@ OWND Wallet iOSの設計・開発・運用に関するドキュメントです�
 - [Credential Management](./features/credential-management.md) - クレデンシャル管理
 - [Settings](./features/settings.md) - 設定機能
 
+### Tests（テスト仕様）
+テストコードの一覧と内容
+
+- [OID4VP Tests](./tests/oid4vp-tests.md) - OID4VP関連テストコード一覧
+
 ## ドキュメントファーストワークフロー
 
 新機能や大きな変更を実装する際の推奨フロー：

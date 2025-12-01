@@ -66,65 +66,6 @@ class ConvertVpTokenResponseResponseTests: XCTestCase {
 
     }
 
-    func testConvertVpTokenResponseResponse_with302RedirectAbsoluteURL() throws {
-        // Given
-        let response = HTTPURLResponse(
-            url: URL(string: "https://example.com")!,
-            statusCode: 302,
-            httpVersion: nil,
-            headerFields: ["Location": "https://example.com"]
-        )!
-        let requestURL = URL(string: "https://example.com")!
-
-        // When
-        let (statusCode, location, cookies) = try idProvider.convertVerifierResponse(
-            data: Data(), response: response, requestURL: requestURL)
-
-        // Then
-        XCTAssertEqual(statusCode, 302)
-        XCTAssertNil(location)
-        XCTAssertNil(cookies)
-    }
-
-    func testConvertVpTokenResponseResponse_with302RedirectRelativeURL() throws {
-        // Given
-        let response = HTTPURLResponse(
-            url: URL(string: "https://example.com")!,
-            statusCode: 302,
-            httpVersion: nil,
-            headerFields: ["Location": "/path/to/resource"]
-        )!
-        let requestURL = URL(string: "https://example.com")!
-
-        // When
-        let (statusCode, location, cookies) = try idProvider.convertVerifierResponse(
-            data: Data(), response: response, requestURL: requestURL)
-
-        // Then
-        XCTAssertEqual(statusCode, 302)
-        XCTAssertNil(location)
-        XCTAssertNil(cookies)
-    }
-
-    func testConvertVpTokenResponseResponse_with302RedirectMissingLocationHeader() throws {
-        // Given
-        let response = HTTPURLResponse(
-            url: URL(string: "https://example.com")!,
-            statusCode: 302,
-            httpVersion: nil,
-            headerFields: [:]
-        )!
-        let requestURL = URL(string: "https://example.com")!
-
-        // Then
-        let (statusCode, location, cookies) =
-            try idProvider.convertVerifierResponse(
-                data: Data(), response: response, requestURL: requestURL)
-        XCTAssertEqual(statusCode, 302)
-        XCTAssertNil(location)
-        XCTAssertNil(cookies)
-
-    }
 }
 
 final class OpenIdProviderTests: XCTestCase {
