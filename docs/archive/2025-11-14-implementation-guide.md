@@ -1,5 +1,14 @@
 # Credential Issuance リファクタリング実装ガイド
 
+## ステータス
+
+**アーカイブ済み** (2025-12-02)
+
+Phase 1 および Phase 2.1 の実装は完了。残りのフェーズは実施しない。
+詳細は [credential-issuance-refactoring.md](./credential-issuance-refactoring.md) を参照。
+
+---
+
 ## 概要
 
 このドキュメントは、[Credential Issuanceリファクタリング計画](./credential-issuance-refactoring.md)の具体的な実装方法を示すガイドです。各フェーズの実装例とベストプラクティスを含みます。
