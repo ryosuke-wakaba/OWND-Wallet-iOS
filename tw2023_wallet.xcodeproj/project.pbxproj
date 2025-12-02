@@ -65,6 +65,7 @@
 		8B4CAB692B7F4DA00006FF4D /* RestoreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4CAB682B7F4DA00006FF4D /* RestoreViewModel.swift */; };
 		8B4CAB6B2B7F4DCC0006FF4D /* RestorePreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4CAB6A2B7F4DCC0006FF4D /* RestorePreviewModel.swift */; };
 		8B4CAB6E2B7F60440006FF4D /* FileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4CAB6D2B7F60440006FF4D /* FileDocument.swift */; };
+		8B5370942EDEB9D800E87858 /* X509HashValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5370932EDEB9D800E87858 /* X509HashValidationTests.swift */; };
 		8B56254B2B7073CB00D6D28B /* RedirectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B56254A2B7073CB00D6D28B /* RedirectView.swift */; };
 		8B5C65912B515BC300D72289 /* JWTUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWTUtil.swift */; };
 		8B5C65922B515BFA00D72289 /* SignatureUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871F2B3D3277004425DE /* SignatureUtil.swift */; };
@@ -362,6 +363,7 @@
 		8B4CAB682B7F4DA00006FF4D /* RestoreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreViewModel.swift; sourceTree = "<group>"; };
 		8B4CAB6A2B7F4DCC0006FF4D /* RestorePreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestorePreviewModel.swift; sourceTree = "<group>"; };
 		8B4CAB6D2B7F60440006FF4D /* FileDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDocument.swift; sourceTree = "<group>"; };
+		8B5370932EDEB9D800E87858 /* X509HashValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X509HashValidationTests.swift; sourceTree = "<group>"; };
 		8B56254A2B7073CB00D6D28B /* RedirectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedirectView.swift; sourceTree = "<group>"; };
 		8B5C65942B5237C200D72289 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 		8B5C65972B5251C000D72289 /* KeyBindingImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBindingImpl.swift; sourceTree = "<group>"; };
@@ -1064,6 +1066,7 @@
 		A810871C2B3BC998004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
+				8B5370932EDEB9D800E87858 /* X509HashValidationTests.swift */,
 				8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */,
 				8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */,
 				A810871D2B3BC9DF004425DE /* ES256KTest.swift */,
@@ -1882,6 +1885,7 @@
 				8BB2BA7A2B4BC95700C668BA /* AuthenticationView.swift in Sources */,
 				8B5C659F2B552C2700D72289 /* VerificationArgs.swift in Sources */,
 				8BB2BA752B4BC46400C668BA /* BiometricAuth.swift in Sources */,
+				8B5370942EDEB9D800E87858 /* X509HashValidationTests.swift in Sources */,
 				8B0E0AAA2B3EEFC20080F6A3 /* AuthRequest.swift in Sources */,
 				8B89648B2EC70A4700DD917E /* CredentialFormats.swift in Sources */,
 				8B5C65932B515C2000D72289 /* KeyPairUtil.swift in Sources */,

@@ -126,18 +126,20 @@ class OpenIdProvider {
                                     }
                                 } else if isX509Hash {
                                     // x509_hash: Verify certificate hash matches client_id
-                                    let hashValue = String(_clientId.dropFirst("x509_hash:".count))
-                                    let calculatedHash = calculateX509CertificateHash(certificates[0])
+                                    let validationResult = validateX509HashClientId(
+                                        clientId: _clientId,
+                                        certificates: certificates
+                                    )
 
-                                    if calculatedHash == hashValue {
+                                    switch validationResult {
+                                    case .success:
                                         print("verify x509_hash success")
-                                    } else {
-                                        print("x509_hash mismatch: expected=\(hashValue), got=\(calculatedHash ?? "nil")")
+                                    default:
+                                        let errorMessage = validationResult.errorMessage ?? "x509_hash validation failed"
+                                        print("x509_hash validation failed: \(errorMessage)")
                                         return .failure(
                                             .authRequestInputError(
-                                                reason: .compliantError(
-                                                    reason: "Certificate hash does not match client_id"
-                                                )
+                                                reason: .compliantError(reason: errorMessage)
                                             ))
                                     }
                                     // Note: For x509_hash, response_uri/redirect_uri host validation is not required

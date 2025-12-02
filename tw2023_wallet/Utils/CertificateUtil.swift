@@ -394,3 +394,66 @@ func isDomainInSAN(certificate: Certificate, domain: String) -> Bool {
         return false
     }
 }
+
+// MARK: - x509_hash Client ID Validation
+
+/// Result of x509_hash client_id validation
+enum X509HashValidationResult {
+    case success
+    case invalidPrefix
+    case noCertificates
+    case hashCalculationFailed
+    case hashMismatch(expected: String, actual: String)
+
+    var errorMessage: String? {
+        switch self {
+        case .success:
+            return nil
+        case .invalidPrefix:
+            return "client_id does not have x509_hash prefix"
+        case .noCertificates:
+            return "No certificates provided for validation"
+        case .hashCalculationFailed:
+            return "Failed to calculate certificate hash"
+        case .hashMismatch(let expected, let actual):
+            return "Certificate hash does not match client_id: expected \(expected), got \(actual)"
+        }
+    }
+
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+}
+
+/// Validates x509_hash Client Identifier Prefix per OID4VP 1.0 specification
+/// - Parameters:
+///   - clientId: The client_id with x509_hash prefix (e.g., "x509_hash:Uvo3Htu...")
+///   - certificates: Certificate chain from JWT x5c header (first certificate is leaf)
+/// - Returns: Validation result indicating success or specific failure reason
+func validateX509HashClientId(clientId: String, certificates: [Certificate]) -> X509HashValidationResult {
+    // Check prefix
+    guard clientId.hasPrefix("x509_hash:") else {
+        return .invalidPrefix
+    }
+
+    // Check certificates exist
+    guard !certificates.isEmpty else {
+        return .noCertificates
+    }
+
+    // Extract expected hash from client_id
+    let expectedHash = String(clientId.dropFirst("x509_hash:".count))
+
+    // Calculate actual hash from leaf certificate
+    guard let actualHash = calculateX509CertificateHash(certificates[0]) else {
+        return .hashCalculationFailed
+    }
+
+    // Compare hashes
+    if actualHash == expectedHash {
+        return .success
+    } else {
+        return .hashMismatch(expected: expectedHash, actual: actualHash)
+    }
+}

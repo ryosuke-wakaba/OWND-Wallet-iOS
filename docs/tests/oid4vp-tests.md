@@ -17,6 +17,7 @@ OID4VP（OpenID for Verifiable Presentations）1.0プロトコルの実装に対
 | WebViewTests.swift | リダイレクト処理 | tw2023_walletTests/Feature/ShareCredential/Views/ |
 | TrustAnchorManagerTests.swift | X.509信頼アンカー管理 | tw2023_walletTests/Signature/ |
 | X509ChainValidationTests.swift | X.509証明書チェーン検証 | tw2023_walletTests/Signature/ |
+| X509HashValidationTests.swift | x509_hash Client ID検証 | tw2023_walletTests/Signature/ |
 | SDJwtUtilTest.swift | SD-JWT処理・_sd_alg抽出 | tw2023_walletTests/Utils/ |
 | JWTTest.swift | JWT処理・x5c検証 | tw2023_walletTests/Utils/ |
 | KeyBindingTests.swift | KB-JWT生成・_sd_alg対応 | tw2023_walletTests/ |
@@ -249,7 +250,88 @@ Root CA (self-signed)
 
 ---
 
-## 8. SDJwtUtilTest.swift
+## 8. X509HashValidationTests.swift
+
+**パス**: `tw2023_walletTests/Signature/X509HashValidationTests.swift`
+
+**対応実装**:
+- `tw2023_wallet/Utils/CertificateUtil.swift` - `validateX509HashClientId()`, `calculateX509CertificateHash()`, `isDomainInSAN()`
+- `tw2023_wallet/Services/OID/Provider/OpenIdProvider.swift` - 上記関数を使用したclient_id検証
+
+**概要**: OID4VP 1.0の`x509_hash` Client Identifier Prefix検証をテストします。プロダクトコードの`validateX509HashClientId()`関数を直接テストし、X.509証明書のSHA-256ハッシュ計算とclient_idとの照合を検証します。
+
+### テストケース
+
+#### calculateX509CertificateHash関数テスト
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testCalculateX509CertificateHash_ReturnsValidBase64UrlString` | Base64URL形式検証 | ハッシュがBase64URL形式（`[A-Za-z0-9_-]+`）であること |
+| `testCalculateX509CertificateHash_ReturnsCorrectLength` | ハッシュ長検証 | SHA-256のBase64URL長が43文字であること |
+| `testCalculateX509CertificateHash_IsDeterministic` | 決定性検証 | 同じ証明書から同じハッシュが生成されること |
+| `testCalculateX509CertificateHash_DifferentCertificatesProduceDifferentHashes` | 一意性検証 | 異なる証明書から異なるハッシュが生成されること |
+| `testCalculateX509CertificateHash_NoBase64Padding` | パディング除去検証 | Base64URLにパディング（`=`）が含まれないこと |
+| `testCalculateX509CertificateHash_NoStandardBase64Characters` | URL安全文字検証 | 標準Base64文字（`+`, `/`）が含まれないこと |
+
+#### x509_hash Client ID検証テスト
+
+プロダクトコード`CertificateUtil.swift`の`validateX509HashClientId()`関数を直接テストします。この関数は`OpenIdProvider.swift`から呼び出されます。
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testValidateX509Hash_ValidClientId` | 正常系：有効なclient_id | 正しい証明書ハッシュを持つclient_idで検証が成功すること |
+| `testValidateX509Hash_WrongHash` | 異常系：別証明書のハッシュ | 異なる証明書（中間CA）のハッシュで検証が失敗すること |
+| `testValidateX509Hash_TamperedHash` | 異常系：改ざんされたハッシュ | 1文字改ざんしたハッシュで検証が失敗すること |
+| `testValidateX509Hash_WrongPrefix` | 異常系：不正なプレフィックス | `x509_san_dns:`やプレフィックスなしで検証が失敗すること |
+| `testValidateX509Hash_EmptyCertificates` | 異常系：証明書なし | 証明書リストが空の場合に検証が失敗すること |
+
+#### JWT x5cヘッダー統合テスト
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testJwtX5cIntegration_ValidClientId` | 正常系：JWT証明書とclient_id一致 | JWTのx5c証明書ハッシュとclient_idが一致する場合に検証成功 |
+| `testJwtX5cIntegration_AttackerCertificate` | 攻撃検出：証明書すり替え | 攻撃者が自身の証明書でJWTを署名し、正規のclient_idを使用した場合に検出できること |
+
+#### isDomainInSAN関数テスト（x509_san_dns検証用）
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testIsDomainInSAN_MatchingDomain` | 正常系：SAN一致 | 証明書のSANにドメインが含まれることを検証 |
+| `testIsDomainInSAN_NonMatchingDomain` | 異常系：SAN不一致 | SANに含まれないドメインを正しく拒否すること |
+| `testIsDomainInSAN_SubdomainMismatch` | 異常系：サブドメイン | SANエントリのサブドメインがマッチしないこと |
+| `testIsDomainInSAN_ParentDomainMismatch` | 異常系：親ドメイン | SANエントリの親ドメインがマッチしないこと |
+
+### X509HashValidationResult（検証結果型）
+
+`validateX509HashClientId()`関数は`X509HashValidationResult`列挙型を返します：
+
+| ケース | 説明 |
+|-------|------|
+| `.success` | 検証成功 |
+| `.invalidPrefix` | `x509_hash:`プレフィックスがない |
+| `.noCertificates` | 証明書が提供されていない |
+| `.hashCalculationFailed` | ハッシュ計算に失敗 |
+| `.hashMismatch(expected, actual)` | ハッシュ不一致（期待値と実際の値を含む） |
+
+### OID4VP 1.0 x509_hash仕様
+
+**ハッシュ計算方法**:
+```
+base64url(SHA-256(DER-encoded-X.509-certificate))
+```
+
+**検証フロー**:
+1. Request ObjectのJWTからx5cヘッダーを取得
+2. リーフ証明書のDERエンコードデータを取得
+3. SHA-256ハッシュを計算
+4. Base64URLエンコード（パディングなし）
+5. `validateX509HashClientId()`でclient_idのハッシュ部分と比較
+
+**参考仕様**: [OpenID for Verifiable Presentations 1.0 - Section 5.9](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.9)
+
+---
+
+## 9. SDJwtUtilTest.swift
 
 **パス**: `tw2023_walletTests/Utils/SDJwtUtilTest.swift`
 
@@ -293,7 +375,7 @@ Root CA (self-signed)
 
 ---
 
-## 9. JWTTest.swift
+## 10. JWTTest.swift
 
 **パス**: `tw2023_walletTests/Utils/JWTTest.swift`
 
@@ -318,7 +400,7 @@ Root CA (self-signed)
 
 ---
 
-## 10. KeyBindingTests.swift
+## 11. KeyBindingTests.swift
 
 **パス**: `tw2023_walletTests/KeyBindingTests.swift`
 
@@ -367,6 +449,8 @@ OID4VP機能とテストの対応関係：
 | 共有履歴保存 | ModelDataTests.swift | ✅ |
 | X.509信頼アンカー管理 | TrustAnchorManagerTests.swift | ✅ |
 | X.509証明書チェーン検証 | X509ChainValidationTests.swift | ✅ |
+| x509_hash Client ID検証 | X509HashValidationTests.swift | ✅ |
+| x509_san_dns Client ID検証 | X509HashValidationTests.swift | ✅ |
 | SD-JWT解析 | SDJwtUtilTest.swift | ✅ |
 | SD-JWT _sd_alg抽出 | SDJwtUtilTest.swift | ✅ |
 | KB-JWT生成（_sd_alg対応） | KeyBindingTests.swift | ✅ |
@@ -384,7 +468,9 @@ OID4VP機能とテストの対応関係：
 | VP Token暗号化（JWE: ECDH-ES + A128GCM） | ✅ | - | オプション | JWEUtil.swift（HAIP準拠） |
 | Direct Post | ✅ | - | 必須 | ProviderUtils.swift |
 | Direct Post JWT | ✅ | - | オプション | ProviderUtils.swift（HAIP準拠） |
-| Client ID Scheme検証 | ✅ | - | 必須 | x509_san_dns, x509_hash, redirect_uri対応 |
+| Client ID Scheme検証（x509_hash） | ✅ | ✅ | 必須 | X509HashValidationTests.swift |
+| Client ID Scheme検証（x509_san_dns） | ✅ | ✅ | 必須 | X509HashValidationTests.swift |
+| Client ID Scheme検証（redirect_uri） | ✅ | - | 必須 | OpenIdProvider.swift |
 | VCT値マッチング | ✅ | ✅ | オプション | DCQLMatcherTests.swift |
 | claim_sets対応 | ❌ | - | オプション | 未実装（優先度低） |
 | values制限対応 | ❌ | - | オプション | 未実装（優先度低） |
@@ -400,7 +486,9 @@ OID4VP機能とテストの対応関係：
 - [ ] VP Token生成（JWT-VC-JSON） - `JwtVpJsonGeneratorImpl.swift`
 - [ ] VP Token暗号化（JWE） - `JWEUtil.swift`
 - [ ] Direct Post / Direct Post JWT - `ProviderUtils.swift`
-- [ ] Client ID Scheme検証 - `OpenIdProvider.swift`
+- [ ] Client ID Scheme検証（redirect_uri） - `OpenIdProvider.swift`
+- [x] Client ID Scheme検証（x509_hash） - `X509HashValidationTests.swift`で対応済み
+- [x] Client ID Scheme検証（x509_san_dns） - `X509HashValidationTests.swift`で対応済み
 
 ### 未実装機能（オプション）
 
