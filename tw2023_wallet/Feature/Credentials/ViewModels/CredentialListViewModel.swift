@@ -36,10 +36,14 @@ class CredentialListViewModel {
         print("done")
     }
 
+    func reloadData() {
+        dataModel.hasLoadedData = false
+        loadData()
+    }
+
     func deleteCredential(credential: Credential) {
         print("delete: \(credential.id), \(credential.format)")
         credentialDataManager.deleteCredentialById(id: credential.id)
-        dataModel.hasLoadedData = false
-        loadData()
+        reloadData()
     }
 }

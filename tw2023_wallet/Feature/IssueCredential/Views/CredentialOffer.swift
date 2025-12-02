@@ -9,9 +9,9 @@ import SwiftUI
 
 struct CredentialOfferView: View {
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     @Environment(CredentialOfferArgs.self) var args
     @StateObject var viewModel: CredentialOfferViewModel = .init()
-    @State private var navigateToHome = false
     @State private var navigateToPinInput = false
     @State private var showErrorDialog = false
 
@@ -24,11 +24,11 @@ struct CredentialOfferView: View {
                 Task {
                     do {
                         try await viewModel.sendRequest(txCode: nil)
+                        dismiss()  // 発行成功時にfullScreenCoverを閉じる
                     }
                     catch {
                         showErrorDialog = true
                     }
-                    navigateToHome = true
                 }
             }
         }
@@ -150,15 +150,11 @@ struct CredentialOfferView: View {
                     )
                     .padding(.vertical, 16)
                     .navigationDestination(
-                        isPresented: $navigateToHome,
-                        destination: {
-                            Home()
-                        }
-                    )
-                    .navigationDestination(
                         isPresented: $navigateToPinInput,
                         destination: {
-                            PinCodeInput(viewModel: self.viewModel)
+                            PinCodeInput(viewModel: self.viewModel, onSuccess: {
+                                dismiss()  // PIN入力後の発行成功時にfullScreenCoverを閉じる
+                            })
                         }
                     )
                 }
