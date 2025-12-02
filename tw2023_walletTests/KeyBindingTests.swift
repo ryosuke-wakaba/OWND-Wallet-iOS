@@ -55,28 +55,6 @@ final class KeyBindingTests: XCTestCase {
         }
     }
 
-    func testGenerateJwtWithSha256Explicit() throws {
-        let sdJwt = "sdJwtSample"
-        let selectedDisclosures = [
-            Disclosure(disclosure: "disclosureSample", key: "keySample", value: "valueSample")
-        ]
-        let aud = "audSample"
-        let nonce = "nonceSample"
-
-        let keyBinding = KeyBindingImpl(keyAlias: keyAlias)
-
-        // Test with explicit "sha-256" (lowercase)
-        let jwt = try keyBinding.generateJwt(
-            sdJwt: sdJwt,
-            selectedDisclosures: selectedDisclosures,
-            aud: aud,
-            nonce: nonce,
-            sdAlg: "sha-256"
-        )
-
-        XCTAssertFalse(jwt.isEmpty, "JWT should be generated")
-    }
-
     func testGenerateJwtWithSha256UpperCase() throws {
         let sdJwt = "sdJwtSample"
         let selectedDisclosures = [
@@ -87,16 +65,23 @@ final class KeyBindingTests: XCTestCase {
 
         let keyBinding = KeyBindingImpl(keyAlias: keyAlias)
 
-        // Test with "SHA-256" (uppercase) - should be accepted (case-insensitive comparison)
-        let jwt = try keyBinding.generateJwt(
-            sdJwt: sdJwt,
-            selectedDisclosures: selectedDisclosures,
-            aud: aud,
-            nonce: nonce,
-            sdAlg: "SHA-256"
-        )
-
-        XCTAssertFalse(jwt.isEmpty, "JWT should be generated with uppercase SHA-256")
+        // Test with "SHA-256" (uppercase) - should throw error per SD-JWT spec (case-sensitive)
+        // IANA registry defines "sha-256" (lowercase), not "SHA-256"
+        XCTAssertThrowsError(
+            try keyBinding.generateJwt(
+                sdJwt: sdJwt,
+                selectedDisclosures: selectedDisclosures,
+                aud: aud,
+                nonce: nonce,
+                sdAlg: "SHA-256"
+            )
+        ) { error in
+            guard case KeyBindingImplError.UnsupportedHashAlgorithm(let alg) = error else {
+                XCTFail("Expected UnsupportedHashAlgorithm error")
+                return
+            }
+            XCTAssertEqual(alg, "SHA-256")
+        }
     }
 
     func testGenerateJwtWithUnsupportedAlgorithm() throws {

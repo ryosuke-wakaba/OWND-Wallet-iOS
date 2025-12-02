@@ -27,7 +27,8 @@ class KeyBindingImpl: KeyBinding {
         sdAlg: String
     ) throws -> String {
         // Validate _sd_alg - currently only sha-256 is supported
-        guard sdAlg.lowercased() == "sha-256" else {
+        // Per SD-JWT spec, _sd_alg is case-sensitive and must match IANA registry exactly
+        guard sdAlg == "sha-256" else {
             throw KeyBindingImplError.UnsupportedHashAlgorithm(sdAlg)
         }
 

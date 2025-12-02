@@ -17,8 +17,9 @@ OID4VP（OpenID for Verifiable Presentations）1.0プロトコルの実装に対
 | WebViewTests.swift | リダイレクト処理 | tw2023_walletTests/Feature/ShareCredential/Views/ |
 | TrustAnchorManagerTests.swift | X.509信頼アンカー管理 | tw2023_walletTests/Signature/ |
 | X509ChainValidationTests.swift | X.509証明書チェーン検証 | tw2023_walletTests/Signature/ |
-| SDJwtUtilTest.swift | SD-JWT処理 | tw2023_walletTests/Utils/ |
+| SDJwtUtilTest.swift | SD-JWT処理・_sd_alg抽出 | tw2023_walletTests/Utils/ |
 | JWTTest.swift | JWT処理・x5c検証 | tw2023_walletTests/Utils/ |
+| KeyBindingTests.swift | KB-JWT生成・_sd_alg対応 | tw2023_walletTests/ |
 
 ---
 
@@ -263,6 +264,23 @@ Root CA (self-signed)
 | `testDevideSDJwtSignedJwtExtraction` | SD-JWT分割 | Issuer Signed JWT、Disclosure、KB-JWTを正しく分割すること |
 | `testDecodeDisclosure` | Disclosure解読 | Disclosureを正しくデコードし、クレーム名を抽出すること |
 | `testgetDecodedJwtHeader` | JWTヘッダーデコード | SD-JWTのヘッダーを正しくデコードすること（alg, x5c確認） |
+| `testGetSdAlg_Default` | `_sd_alg`デフォルト値 | `_sd_alg`省略時に`sha-256`が返されること |
+| `testGetSdAlg_WithExplicitSha256` | `_sd_alg`明示指定 | `_sd_alg: "sha-256"`が正しく読み取られること |
+| `testGetSdAlg_WithSha384` | `_sd_alg`値抽出 | `_sd_alg: "sha-384"`が正しく読み取られること（値の抽出確認） |
+| `testGetSdAlg_InvalidJwt` | 不正JWT時のデフォルト | 不正なJWT形式でもデフォルト`sha-256`が返されること |
+| `testGetSdAlg_EmptyString` | 空文字列入力 | 空文字列入力でもデフォルト`sha-256`が返されること |
+
+### _sd_alg クレーム（SD-JWT draft-22）
+
+`_sd_alg`はSD-JWTペイロードに含まれるハッシュアルゴリズム指定クレームです。
+
+| 値 | 説明 |
+|----|------|
+| `sha-256` | デフォルト値（省略時も同等） |
+| `sha-384` | オプション |
+| `sha-512` | オプション |
+
+**参考**: [SD-JWT Section 5.1.2 - Hash Function Claim](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt#section-5.1.2)
 
 ### SD-JWTフォーマット
 
@@ -300,6 +318,37 @@ Root CA (self-signed)
 
 ---
 
+## 10. KeyBindingTests.swift
+
+**パス**: `tw2023_walletTests/KeyBindingTests.swift`
+
+**対応実装**: `tw2023_wallet/Services/OID/Provider/KeyBindingImpl.swift`
+
+**概要**: Key Binding JWT（KB-JWT）の生成をテストします。SD-JWTのVP Token提示時に必要なKey Bindingの署名生成と`_sd_alg`対応を検証します。
+
+### テストケース
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testGenerateJwtSignature` | JWT署名生成・検証 | KB-JWTが正しく署名され、公開鍵で検証できること（`sdAlg: "sha-256"`） |
+| `testGenerateJwtWithSha256UpperCase` | 大文字SHA-256拒否 | `sdAlg: "SHA-256"`（大文字）で`UnsupportedHashAlgorithm`エラーが発生すること（case-sensitive） |
+| `testGenerateJwtWithUnsupportedAlgorithm` | サポート外アルゴリズム | `sha-512`等のサポート外アルゴリズムで`UnsupportedHashAlgorithm`エラーが発生すること |
+
+### _sd_alg対応（SD-JWT draft-22）
+
+KB-JWT生成時の`_sd_hash`計算は、SD-JWTペイロードの`_sd_alg`クレームで指定されたハッシュアルゴリズムを使用する必要があります。
+
+| アルゴリズム | サポート状況 | 備考 |
+|------------|:----------:|------|
+| `sha-256` | ✅ | 必須、デフォルト（IANA登録値） |
+| `SHA-256` | ❌ | エラー（case-sensitive、IANAレジストリに存在しない） |
+| `sha-384` | ❌ | エラー（将来対応予定） |
+| `sha-512` | ❌ | エラー（将来対応予定） |
+
+**参考**: [SD-JWT Section 7.1 - Creating a Key Binding JWT](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt#section-7.1)
+
+---
+
 ## テスト機能マッピング
 
 OID4VP機能とテストの対応関係：
@@ -319,6 +368,8 @@ OID4VP機能とテストの対応関係：
 | X.509信頼アンカー管理 | TrustAnchorManagerTests.swift | ✅ |
 | X.509証明書チェーン検証 | X509ChainValidationTests.swift | ✅ |
 | SD-JWT解析 | SDJwtUtilTest.swift | ✅ |
+| SD-JWT _sd_alg抽出 | SDJwtUtilTest.swift | ✅ |
+| KB-JWT生成（_sd_alg対応） | KeyBindingTests.swift | ✅ |
 | JWT署名・検証（x5c含む） | JWTTest.swift | ✅ |
 
 ---
