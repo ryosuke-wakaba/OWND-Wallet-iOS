@@ -9,7 +9,7 @@ import SwiftUI
 
 struct WalkThrough4: View {
     @Environment(\.presentationMode) var presentationMode
-    @State private var navigateToCredentialList = false  // 追加
+    @AppStorage("isNotFirstLaunch") private var isNotFirstLaunch = false
     @State private var navigateToRestore = false
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfUse = false
@@ -100,14 +100,10 @@ struct WalkThrough4: View {
                     ActionButtonBlack(
                         title: "begin_anew",
                         action: {
-                            self.navigateToCredentialList = true
-                            UserDefaults.standard.set(true, forKey: "isNotFirstLaunch")
+                            isNotFirstLaunch = true  // ContentViewが自動的に再評価されHome()を表示
                         }
                     )
                     .padding(.vertical, 16)
-                    .navigationDestination(isPresented: $navigateToCredentialList) {
-                        Home()
-                    }
                     Button(action: {
                         self.navigateToRestore = true
                     }) {
