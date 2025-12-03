@@ -38,7 +38,9 @@ class QRReaderViewModel: ObservableObject {
             sharingCredentialArgs = args
             scanResultType = .openID4VP
         }
-        else if code.starts(with: "openid4vp://") || code.starts(with: "haip-vp://") {
+        else if code.starts(with: "openid4vp://") || code.starts(with: "haip-vp://")
+            || code.starts(with: "eudi-openid4vp://")
+        {
             let args = SharingCredentialArgs()
             args.url = code
             sharingCredentialArgs = args

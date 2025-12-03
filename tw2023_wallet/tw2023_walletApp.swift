@@ -118,7 +118,7 @@ struct tw2023_walletApp: App {
 
     private func handleIncomingURL(_ url: URL) {
         print("handling url : \(url)")
-        if url.scheme == "openid4vp" || url.scheme == "haip-vp" {
+        if url.scheme == "openid4vp" || url.scheme == "haip-vp" || url.scheme == "eudi-openid4vp" {
             handleVp(url)
         }
         else if url.scheme == "openid-credential-offer" {
