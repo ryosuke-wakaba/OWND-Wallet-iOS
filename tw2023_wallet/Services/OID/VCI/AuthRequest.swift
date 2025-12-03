@@ -59,6 +59,21 @@ protocol AuthorizationRequestCommonPayload {
     var clientIdScheme: String? { get }
 }
 
+/// VP format algorithm values per OID4VP 1.0 Section 11.1
+struct VpFormatAlgorithms: Codable {
+    var sdJwtAlgValues: [String]?
+    var kbJwtAlgValues: [String]?
+    var algValues: [String]?
+    var proofType: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case sdJwtAlgValues = "sd-jwt_alg_values"
+        case kbJwtAlgValues = "kb-jwt_alg_values"
+        case algValues = "alg_values"
+        case proofType = "proof_type"
+    }
+}
+
 struct RPRegistrationMetadataPayload: Codable {
     var scopesSupported: [Scope]?
     var subjectTypesSupported: [SubjectType]?
@@ -69,14 +84,13 @@ struct RPRegistrationMetadataPayload: Codable {
     var requestObjectEncryptionEncValuesSupported: [String]?
     var clientId: String?
     var clientName: String?
-    var vpFormats: [String: [String: [String]]]?
     var logoUri: String?
     var policyUri: String?
     var tosUri: String?
     var clientPurpose: String?
     var jwks: ClientJWKSet?
     var jwksUri: String?
-    var vpFormatsSupported: Format?
+    var vpFormatsSupported: [String: VpFormatAlgorithms]?
     var authorizationEncryptedResponseAlg: String?
     var authorizationEncryptedResponseEnc: String?
 }
