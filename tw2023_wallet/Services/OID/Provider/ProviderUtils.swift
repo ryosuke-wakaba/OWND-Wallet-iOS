@@ -87,7 +87,7 @@ func sendFormData(
                 break
             }
 
-            // Build payload to encrypt (vp_token only, state is sent separately)
+            // Build payload to encrypt (vp_token and state inside JWE per OID4VP spec)
             var encryptPayload: [String: Any] = [:]
             if let vpToken = formData["vp_token"] {
                 // Parse vp_token JSON string back to object
@@ -98,16 +98,18 @@ func sendFormData(
                     encryptPayload["vp_token"] = vpToken
                 }
             }
+            // Include state in encrypted payload (not in form body)
+            if let state = formData["state"] {
+                encryptPayload["state"] = state
+                print("[directPostJwt] Including state in encrypted payload: '\(state)'")
+            }
 
             // Encrypt payload
             let jwe = try JWEUtil.encrypt(payload: encryptPayload, recipientPublicKey: encryptionKey)
             print("JWE encrypted response created")
 
-            // Build form data: response=<JWE>&state=<state>
-            var encryptedFormData: [String: String] = ["response": jwe]
-            if let state = formData["state"] {
-                encryptedFormData["state"] = state
-            }
+            // Build form data: response=<JWE> only (state is inside JWE)
+            let encryptedFormData: [String: String] = ["response": jwe]
 
             let formBody = encryptedFormData.map { key, value in
                 let encodedKey =
@@ -126,12 +128,38 @@ func sendFormData(
             throw OpenIdProviderIllegalStateException.illegalResponseModeState
     }
 
+    // Debug logging for request
+    print("[sendFormData] ===== REQUEST =====")
+    print("[sendFormData] URL: \(url.absoluteString)")
+    print("[sendFormData] Method: \(request.httpMethod ?? "N/A")")
+    print("[sendFormData] Headers:")
+    request.allHTTPHeaderFields?.forEach { key, value in
+        print("[sendFormData]   \(key): \(value)")
+    }
+    if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
+        print("[sendFormData] Body (first 2000 chars):")
+        print("[sendFormData]   \(String(bodyString.prefix(2000)))")
+    }
+    print("[sendFormData] ====================")
+
     do {
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
         }
+
+        // Debug logging for response
+        print("[sendFormData] ===== RESPONSE =====")
+        print("[sendFormData] Status Code: \(httpResponse.statusCode)")
+        print("[sendFormData] Headers:")
+        httpResponse.allHeaderFields.forEach { key, value in
+            print("[sendFormData]   \(key): \(value)")
+        }
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("[sendFormData] Body: \(responseString)")
+        }
+        print("[sendFormData] ====================")
 
         guard (200...399).contains(httpResponse.statusCode) else {
             throw NetworkError.statusCodeNotSuccessful(httpResponse.statusCode)

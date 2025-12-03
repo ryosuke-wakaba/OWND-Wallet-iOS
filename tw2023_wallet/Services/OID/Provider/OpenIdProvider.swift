@@ -226,6 +226,9 @@ class OpenIdProvider {
                 }
                 nonce = _nonce
                 state = requestObj?.state ?? authRequest.state ?? ""
+                print("[OpenIdProvider] Parsed state from request: '\(state ?? "nil")'")
+                print("[OpenIdProvider] requestObj?.state: '\(requestObj?.state ?? "nil")'")
+                print("[OpenIdProvider] authRequest.state: '\(authRequest.state ?? "nil")'")
                 if _responseType.contains("vp_token") {
                     guard let _dcqlQuery = processedRequestData.dcqlQuery
                     else {
@@ -472,6 +475,9 @@ class OpenIdProvider {
         var formData = ["vp_token": vpTokenValue]
         if let state = state {
             formData["state"] = state
+            print("[createVpToken] Adding state to formData: '\(state)'")
+        } else {
+            print("[createVpToken] No state to add (state is nil)")
         }
 
         return .success((formData, sharedCredentials))
