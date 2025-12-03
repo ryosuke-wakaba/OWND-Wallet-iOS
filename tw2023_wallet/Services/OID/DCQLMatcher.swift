@@ -20,7 +20,10 @@ class DCQLMatcher {
         query: DcqlQuery,
         sdJwt: String
     ) -> DcqlCredentialMatch? {
+        print("[DCQLMatcher] Starting credential matching")
+
         guard let sdJwtParts = try? SDJwtUtil.divideSDJwt(sdJwt: sdJwt) else {
+            print("[DCQLMatcher] Failed to parse SD-JWT")
             return nil
         }
 
@@ -35,21 +38,41 @@ class DCQLMatcher {
             }
         )
 
+        print("[DCQLMatcher] Credential has \(allDisclosures.count) disclosures")
+        print("[DCQLMatcher] Available claim keys: \(sourcePayload.keys.sorted())")
+
+        // Get VCT from credential
+        if let jwtPayload = try? getJwtPayload(sdJwtParts.issuerSignedJwt),
+           let credentialVct = jwtPayload["vct"] as? String {
+            print("[DCQLMatcher] Credential VCT: \(credentialVct)")
+        } else {
+            print("[DCQLMatcher] Credential has no VCT or failed to extract")
+        }
+
         // Try to match against each credential query
-        for credentialQuery in query.credentials {
+        for (index, credentialQuery) in query.credentials.enumerated() {
+            print("[DCQLMatcher] Checking query[\(index)]: format=\(credentialQuery.format)")
+
             // Check format
             guard credentialQuery.format == "vc+sd-jwt" || credentialQuery.format == "dc+sd-jwt" else {
+                print("[DCQLMatcher] Query[\(index)] skipped: format '\(credentialQuery.format)' not supported")
                 continue
             }
 
             // Check vct if specified
             if let meta = credentialQuery.meta, let vctValues = meta.vctValues {
+                print("[DCQLMatcher] Query[\(index)] requires VCT: \(vctValues)")
                 // Get vct from JWT payload
                 guard let jwtPayload = try? getJwtPayload(sdJwtParts.issuerSignedJwt),
-                      let vct = jwtPayload["vct"] as? String,
-                      vctValues.contains(vct) else {
+                      let vct = jwtPayload["vct"] as? String else {
+                    print("[DCQLMatcher] Query[\(index)] failed: could not extract VCT from credential")
                     continue
                 }
+                guard vctValues.contains(vct) else {
+                    print("[DCQLMatcher] Query[\(index)] failed: VCT mismatch - credential has '\(vct)'")
+                    continue
+                }
+                print("[DCQLMatcher] Query[\(index)] VCT matched")
             }
 
             // Match claims
@@ -60,13 +83,17 @@ class DCQLMatcher {
             )
 
             if let matchedClaims = matchedClaims {
+                print("[DCQLMatcher] Query[\(index)] MATCHED with \(matchedClaims.count) claims")
                 return DcqlCredentialMatch(
                     credentialQuery: credentialQuery,
                     disclosuresWithOptionality: matchedClaims
                 )
+            } else {
+                print("[DCQLMatcher] Query[\(index)] failed: claims matching failed")
             }
         }
 
+        print("[DCQLMatcher] No matching query found")
         return nil
     }
 
@@ -80,6 +107,7 @@ class DCQLMatcher {
             // OID4VP 1.0 Section 6.4.1: If claims is absent, the Verifier is requesting
             // no claims that are selectively disclosable; the Wallet MUST return only
             // the claims that are mandatory to present (SD-JWT and KB-JWT only).
+            print("[DCQLMatcher] No claims specified in query, returning all disclosures as non-submit")
             return allDisclosures.map { disclosure in
                 DisclosureWithOptionality(
                     disclosure: disclosure,
@@ -98,11 +126,16 @@ class DCQLMatcher {
             }
         }
 
+        print("[DCQLMatcher] Required claims: \(requiredPaths.sorted())")
+
         // Check if all required claims are present in the credential
         let availableKeys = Set(sourcePayload.keys)
-        guard requiredPaths.isSubset(of: availableKeys) else {
+        let missingClaims = requiredPaths.subtracting(availableKeys)
+        guard missingClaims.isEmpty else {
+            print("[DCQLMatcher] Claims matching failed - missing claims: \(missingClaims.sorted())")
             return nil
         }
+        print("[DCQLMatcher] All required claims are present")
 
         // Create disclosures with optionality
         return allDisclosures.map { disclosure in

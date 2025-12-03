@@ -384,9 +384,17 @@ class SharingRequestViewModel {
 
     /// Load credentials filtered by DCQL query for VP credential picker
     func loadFilteredCredentials() {
+        print("[loadFilteredCredentials] Starting credential filtering")
+
         guard let query = dcqlQuery else {
+            print("[loadFilteredCredentials] No DCQL query available")
             filteredCredentials = []
             return
+        }
+
+        print("[loadFilteredCredentials] DCQL query has \(query.credentials.count) credential queries")
+        for (i, cq) in query.credentials.enumerated() {
+            print("[loadFilteredCredentials] Query[\(i)]: format=\(cq.format), vct=\(cq.meta?.vctValues ?? [])")
         }
 
         var credentialList: [Credential] = []
@@ -394,11 +402,17 @@ class SharingRequestViewModel {
             if let converted = rawCredential.toCredential() {
                 credentialList.append(converted)
             } else {
-                print("Malformed Credential Found")
+                print("[loadFilteredCredentials] Malformed Credential Found")
             }
         }
 
+        print("[loadFilteredCredentials] Total credentials in wallet: \(credentialList.count)")
+        for (i, cred) in credentialList.enumerated() {
+            print("[loadFilteredCredentials] Credential[\(i)]: id=\(cred.id), format=\(cred.format)")
+        }
+
         filteredCredentials = credentialList.filter { filterCredentialByDcql($0, query) }
+        print("[loadFilteredCredentials] Filtered credentials count: \(filteredCredentials.count)")
     }
 
     /// Filter credential by DCQL query
