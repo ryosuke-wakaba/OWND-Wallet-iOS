@@ -63,7 +63,13 @@ struct SubmissionCredential: Codable, Equatable {
         guard let kb = keyBinding else {
             throw OpenIdProviderIllegalStateException.illegalKeyBindingState
         }
-        let selectedDisclosures = discloseClaims.map { $0.disclosure }
+        // Only include disclosures that should be submitted
+        let selectedDisclosures = discloseClaims.filter { $0.isSubmit }.map { $0.disclosure }
+        print("[createVpTokenForSdJwtVc] Total discloseClaims: \(discloseClaims.count)")
+        print("[createVpTokenForSdJwtVc] Selected disclosures (isSubmit=true): \(selectedDisclosures.count)")
+        for (i, d) in selectedDisclosures.enumerated() {
+            print("[createVpTokenForSdJwtVc] Disclosure[\(i)]: key=\(d.key ?? "nil")")
+        }
         print(String(describing: credentialQuery))
 
         // Get _sd_alg from SD-JWT payload (defaults to "sha-256")

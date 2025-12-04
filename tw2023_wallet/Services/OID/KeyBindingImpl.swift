@@ -47,12 +47,22 @@ class KeyBindingImpl: KeyBinding {
             issuerSignedJwt + "~"
             + selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
 
-        let sdHash = sd.data(using: String.Encoding.ascii)?.sha256ToBase64Url() ?? ""
+        print("[KeyBinding] SD string for hash (first 500 chars): \(String(sd.prefix(500)))")
+        print("[KeyBinding] SD string length: \(sd.count)")
+        print("[KeyBinding] Number of disclosures: \(selectedDisclosures.count)")
+
+        // Use UTF-8 encoding instead of ASCII to handle all characters
+        guard let sdData = sd.data(using: .utf8) else {
+            print("[KeyBinding] ERROR: Failed to convert SD string to UTF-8 data")
+            throw KeyBindingImplError.UnexpectedDisclosureValue
+        }
+        let sdHash = sdData.sha256ToBase64Url()
+        print("[KeyBinding] Calculated sd_hash: \(sdHash)")
         let header = ["typ": "kb+jwt", "alg": "ES256"]
         let payload: [String: Any] = [
             "aud": aud,
             "iat": Int(Date().timeIntervalSince1970),
-            "_sd_hash": sdHash,
+            "sd_hash": sdHash,  // Note: no underscore prefix per SD-JWT spec for KB-JWT
             "nonce": nonce,
         ]
         let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
