@@ -11,6 +11,12 @@ import Foundation
 
 class DCQLMatcher {
 
+    /// Reserved JWT claims that should not be treated as credential claims
+    private static let reservedJwtClaims: Set<String> = [
+        "iss", "sub", "aud", "exp", "nbf", "iat", "jti",  // Standard JWT claims
+        "vct", "cnf", "_sd", "_sd_alg", "status"           // SD-JWT specific claims
+    ]
+
     /// Match credentials against a DCQL query
     /// - Parameters:
     ///   - query: The DCQL query from the verifier
@@ -27,8 +33,9 @@ class DCQLMatcher {
             return nil
         }
 
+        // Get disclosures (selectively disclosable claims)
         let allDisclosures = SDJwtUtil.decodeDisclosure(sdJwtParts.disclosures)
-        let sourcePayload = Dictionary(
+        var sourcePayload = Dictionary(
             uniqueKeysWithValues: allDisclosures.compactMap { disclosure in
                 if let key = disclosure.key, let value = disclosure.value {
                     return (key, value)
@@ -38,7 +45,41 @@ class DCQLMatcher {
             }
         )
 
+        // Also extract claims directly from JWT payload (non-selectively-disclosable claims)
+        var directPayloadClaimKeys: Set<String> = []
+        if let jwtPayload = try? getJwtPayload(sdJwtParts.issuerSignedJwt) {
+            for (key, value) in jwtPayload {
+                // Skip reserved claims
+                guard !DCQLMatcher.reservedJwtClaims.contains(key) else { continue }
+
+                // Convert value to string
+                let stringValue: String
+                if let strVal = value as? String {
+                    stringValue = strVal
+                } else if let boolVal = value as? Bool {
+                    stringValue = boolVal ? "true" : "false"
+                } else if let numVal = value as? NSNumber {
+                    stringValue = numVal.stringValue
+                } else {
+                    // For complex types, use JSON serialization
+                    if let data = try? JSONSerialization.data(withJSONObject: value),
+                       let str = String(data: data, encoding: .utf8) {
+                        stringValue = str
+                    } else {
+                        stringValue = String(describing: value)
+                    }
+                }
+
+                // Only add if not already in disclosures (disclosures take precedence)
+                if sourcePayload[key] == nil {
+                    directPayloadClaimKeys.insert(key)
+                    sourcePayload[key] = stringValue
+                }
+            }
+        }
+
         print("[DCQLMatcher] Credential has \(allDisclosures.count) disclosures")
+        print("[DCQLMatcher] Credential has \(directPayloadClaimKeys.count) direct payload claims: \(directPayloadClaimKeys.sorted())")
         print("[DCQLMatcher] Available claim keys: \(sourcePayload.keys.sorted())")
 
         // Get VCT from credential
@@ -79,7 +120,8 @@ class DCQLMatcher {
             let matchedClaims = matchClaims(
                 credentialQuery: credentialQuery,
                 sourcePayload: sourcePayload,
-                allDisclosures: allDisclosures
+                allDisclosures: allDisclosures,
+                directPayloadClaimKeys: directPayloadClaimKeys
             )
 
             if let matchedClaims = matchedClaims {
@@ -97,11 +139,12 @@ class DCQLMatcher {
         return nil
     }
 
-    /// Match claims from a credential query against the credential's disclosures
+    /// Match claims from a credential query against the credential's disclosures and direct payload claims
     private func matchClaims(
         credentialQuery: DcqlCredentialQuery,
         sourcePayload: [String: String],
-        allDisclosures: [Disclosure]
+        allDisclosures: [Disclosure],
+        directPayloadClaimKeys: Set<String>
     ) -> [DisclosureWithOptionality]? {
         guard let claims = credentialQuery.claims else {
             // OID4VP 1.0 Section 6.4.1: If claims is absent, the Verifier is requesting
@@ -129,15 +172,23 @@ class DCQLMatcher {
         print("[DCQLMatcher] Required claims: \(requiredPaths.sorted())")
 
         // Check if all required claims are present in the credential
+        // (either as disclosures or as direct payload claims)
         let availableKeys = Set(sourcePayload.keys)
         let missingClaims = requiredPaths.subtracting(availableKeys)
         guard missingClaims.isEmpty else {
             print("[DCQLMatcher] Claims matching failed - missing claims: \(missingClaims.sorted())")
             return nil
         }
+
+        // Log which required claims are from direct payload vs disclosures
+        let requiredFromDirectPayload = requiredPaths.intersection(directPayloadClaimKeys)
+        let requiredFromDisclosures = requiredPaths.subtracting(directPayloadClaimKeys)
+        print("[DCQLMatcher] Required claims from direct payload (no disclosure needed): \(requiredFromDirectPayload.sorted())")
+        print("[DCQLMatcher] Required claims from disclosures: \(requiredFromDisclosures.sorted())")
         print("[DCQLMatcher] All required claims are present")
 
         // Create disclosures with optionality
+        // Only disclosures need to be submitted; direct payload claims are already visible
         return allDisclosures.map { disclosure in
             guard let dkey = disclosure.key else {
                 return DisclosureWithOptionality(
@@ -148,7 +199,7 @@ class DCQLMatcher {
             }
 
             if requiredPaths.contains(dkey) {
-                // This claim is required by the query
+                // This claim is required by the query and is a disclosure
                 return DisclosureWithOptionality(
                     disclosure: disclosure,
                     isSubmit: true,

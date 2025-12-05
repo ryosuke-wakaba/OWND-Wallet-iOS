@@ -34,6 +34,8 @@ OID4VP（OpenID for Verifiable Presentations）1.0プロトコルの実装に対
 
 ### テストケース
 
+#### 基本テスト（全クレームがDisclosure形式のSD-JWT）
+
 | テストメソッド | 説明 | 検証内容 |
 |--------------|------|---------|
 | `testClaimsAbsent_AllDisclosuresShouldNotBeSubmitted` | claims欠落時の動作 | 全Disclosureが`isSubmit=false`になること |
@@ -46,7 +48,38 @@ OID4VP（OpenID for Verifiable Presentations）1.0プロトコルの実装に対
 | `testInvalidSdJwt_EmptyString_ShouldReturnNil` | 不正なSD-JWT | 空文字列でマッチ失敗すること |
 | `testVctMatch_ShouldMatch` | VCTマッチング | VCT（Verifiable Credential Type）値がマッチすること |
 
+#### ハイブリッドSD-JWTテスト（JWTペイロード直接 + Disclosure混在）
+
+SD-JWT VC Type Metadataの`selectivelyDisclosable: "never"`設定により、一部クレームがJWTペイロードに直接含まれ、一部がDisclosure形式になるケースをテストします。
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testHybridSdJwt_DirectPayloadClaimsRequested_ShouldMatch` | ペイロード直接クレーム要求 | JWTペイロード内の直接クレームを検索・マッチできること |
+| `testHybridSdJwt_BothDirectAndDisclosureClaimsRequested_ShouldMatch` | 両方のクレーム要求 | 直接クレーム＋Disclosureクレーム両方をマッチできること |
+| `testHybridSdJwt_NonExistentClaimRequested_ShouldReturnNil` | 存在しないクレーム要求 | 存在しないクレーム要求でマッチ失敗すること |
+| `testHybridSdJwt_ClaimsAbsent_AllDisclosuresShouldNotBeSubmitted` | claims欠落時（ハイブリッド） | ハイブリッドSD-JWTでclaims省略時の正しい動作 |
+| `testHybridSdJwt_ReservedClaimsNotTreatedAsCredentialClaims` | 予約済みクレーム除外 | iss, vct, _sd等の予約済みJWTクレームが検索対象外であること |
+
+### ハイブリッドSD-JWT対応（2025-12-05追加）
+
+DCQLMatcherは以下の2種類のクレームソースを検索します：
+
+1. **Disclosureベースクレーム**: `_sd`配列経由で開示される選択的開示クレーム
+2. **JWTペイロード直接クレーム**: `selectivelyDisclosable: "never"`指定されたクレーム
+
+```swift
+// 予約済みJWTクレーム（検索対象外）
+private static let reservedJwtClaims: Set<String> = [
+    "iss", "sub", "aud", "exp", "nbf", "iat", "jti",  // 標準JWTクレーム
+    "vct", "cnf", "_sd", "_sd_alg", "status"           // SD-JWT固有クレーム
+]
+```
+
+**背景**: SD-JWT VC Type Metadataでは、`selectivelyDisclosable: "never"`と指定されたクレームはJWTペイロードに直接含める必要があります。これにより、Verifierの検証が成功します。
+
 ### テストデータ
+
+#### 基本テスト用SD-JWT（全クレームがDisclosure）
 
 テストで使用するSD-JWTには以下のクレームが含まれます：
 - `verified_at`
@@ -56,6 +89,18 @@ OID4VP（OpenID for Verifiable Presentations）1.0プロトコルの実装に対
 - `is_older_than_18`
 - `is_older_than_20`
 - `is_older_than_65`
+
+#### ハイブリッドテスト用SD-JWT
+
+`createHybridSdJwt()`メソッドで生成されるテストデータ：
+
+| クレーム | 格納場所 | 説明 |
+|---------|---------|------|
+| `issuing_authority` | JWTペイロード直接 | `selectivelyDisclosable: "never"` 相当 |
+| `issuing_country` | JWTペイロード直接 | `selectivelyDisclosable: "never"` 相当 |
+| `family_name` | Disclosure | 選択的開示クレーム |
+| `given_name` | Disclosure | 選択的開示クレーム |
+| `vct` | JWTペイロード直接 | `urn:example:hybrid_credential` |
 
 ### OID4VP 1.0 Section 6.4.1 選択的開示ルール
 
@@ -444,6 +489,7 @@ OID4VP機能とテストの対応関係：
 | DCQL Query解析 | DCQLMatcherTests.swift | ✅ |
 | DCQL Credential Matching | DCQLMatcherTests.swift | ✅ |
 | 選択的開示（claims absent/present） | DCQLMatcherTests.swift | ✅ |
+| ハイブリッドSD-JWT（直接+Disclosure混在） | DCQLMatcherTests.swift | ✅ |
 | VP Token送信レスポンス処理 | OpenIdProviderTests.swift | ✅ |
 | リダイレクト処理 | WebViewTests.swift | ✅ |
 | 共有履歴保存 | ModelDataTests.swift | ✅ |
@@ -465,6 +511,7 @@ OID4VP機能とテストの対応関係：
 | VP Token生成（SD-JWT VC） | ✅ | ✅ | 必須 | KeyBindingTests.swift |
 | VP Token生成（JWT-VC-JSON） | ✅ | - | 必須 | JwtVpJsonGeneratorImpl.swift |
 | Key Binding JWT生成 | ✅ | ✅ | 必須 | KeyBindingTests.swift |
+| ハイブリッドSD-JWT対応 | ✅ | ✅ | 必須 | DCQLMatcherTests.swift（2025-12-05追加） |
 | VP Token暗号化（JWE: ECDH-ES + A128GCM） | ✅ | - | オプション | JWEUtil.swift（HAIP準拠） |
 | Direct Post | ✅ | - | 必須 | ProviderUtils.swift |
 | Direct Post JWT | ✅ | - | オプション | ProviderUtils.swift（HAIP準拠） |

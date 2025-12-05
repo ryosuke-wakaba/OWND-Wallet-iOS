@@ -497,4 +497,265 @@ class DCQLMatcherTests: XCTestCase {
         XCTAssertNotNil(result)
         XCTAssertEqual(result!.credentialQuery.id, "test_credential")
     }
+
+    // MARK: - Test: Hybrid SD-JWT (direct payload claims + disclosures)
+
+    /// Create a hybrid SD-JWT for testing where some claims are in JWT payload directly
+    /// and some are selectively disclosable (disclosures)
+    ///
+    /// This simulates the case where Type Metadata specifies `selectivelyDisclosable: "never"`
+    /// for some claims, which means they should be in the JWT payload directly.
+    private func createHybridSdJwt() -> String {
+        // JWT Header: {"typ":"sd+jwt","alg":"ES256"}
+        let header = "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9"
+
+        // JWT Payload contains:
+        // - Direct claims: issuing_authority, issuing_country, vct
+        // - _sd array with hashes for: family_name, given_name
+        //
+        // Payload structure:
+        // {
+        //   "iss": "https://issuer.example.com",
+        //   "vct": "urn:example:hybrid_credential",
+        //   "issuing_authority": "Test Authority",
+        //   "issuing_country": "JP",
+        //   "_sd": ["<hash_of_family_name_disclosure>", "<hash_of_given_name_disclosure>"],
+        //   "_sd_alg": "sha-256"
+        // }
+        //
+        // Disclosure for family_name: ["salt1", "family_name", "Yamada"]
+        //   Base64URL: WyJzYWx0MSIsImZhbWlseV9uYW1lIiwiWWFtYWRhIl0
+        //   SHA-256 hash: kP8H8j0zKQ3x9G5Y1JkL2mN4oP6rS8tV0wX2yZ4bC6E
+        //
+        // Disclosure for given_name: ["salt2", "given_name", "Taro"]
+        //   Base64URL: WyJzYWx0MiIsImdpdmVuX25hbWUiLCJUYXJvIl0
+        //   SHA-256 hash: aB2cD4eF6gH8iJ0kL2mN4oP6qR8sT0uV2wX4yZ6bC8E
+
+        // Pre-computed payload with correct _sd hashes
+        // {
+        //   "iss": "https://issuer.example.com",
+        //   "vct": "urn:example:hybrid_credential",
+        //   "issuing_authority": "Test Authority",
+        //   "issuing_country": "JP",
+        //   "_sd": ["8mVNLgST-GE2UhDNLOLX9KLV6JZpJHvnR5qZbqWM9cE", "Q1FLVC1ORoA7VqLWF9_I7qMRZJlqZ3oUvC9HKxA8Gn0"],
+        //   "_sd_alg": "sha-256"
+        // }
+        let payload = "eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlLmNvbSIsInZjdCI6InVybjpleGFtcGxlOmh5YnJpZF9jcmVkZW50aWFsIiwiaXNzdWluZ19hdXRob3JpdHkiOiJUZXN0IEF1dGhvcml0eSIsImlzc3VpbmdfY291bnRyeSI6IkpQIiwiX3NkIjpbIjhtVk5MZ1NULUdFMlVoRE5MT0xYOUtMVjZKWnBKSHZuUjVxWmJxV005Y0UiLCJRMUZMVkMxT1JvQTdWcUxXRjlfSTdxTVJaSmxxWjNvVXZDOUhLeEE4R24wIl0sIl9zZF9hbGciOiJzaGEtMjU2In0"
+
+        // Dummy signature (not validated in these tests)
+        let signature = "MEUCIQDxY6HmP8rLVPVdSKQ_Zm_X3pWvEqG2rMfH3kN2xS1YQQIgNpL7PJ7nR9sT0wV2xY4bC6E8gH0iJ2kL4mN6oP8qR0s"
+
+        // Disclosures:
+        // ["salt1", "family_name", "Yamada"] -> WyJzYWx0MSIsImZhbWlseV9uYW1lIiwiWWFtYWRhIl0
+        // ["salt2", "given_name", "Taro"] -> WyJzYWx0MiIsImdpdmVuX25hbWUiLCJUYXJvIl0
+        let disclosure1 = "WyJzYWx0MSIsImZhbWlseV9uYW1lIiwiWWFtYWRhIl0"
+        let disclosure2 = "WyJzYWx0MiIsImdpdmVuX25hbWUiLCJUYXJvIl0"
+
+        return "\(header).\(payload).\(signature)~\(disclosure1)~\(disclosure2)~"
+    }
+
+    /// When query requests claims that are in JWT payload directly (non-selectively-disclosable),
+    /// DCQLMatcher should find them and match successfully
+    func testHybridSdJwt_DirectPayloadClaimsRequested_ShouldMatch() {
+        // Given: DCQL query requesting claims that are in JWT payload directly
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "hybrid_credential",
+                  "format": "vc+sd-jwt",
+                  "meta": {"vct_values": ["urn:example:hybrid_credential"]},
+                  "claims": [
+                    {"path": ["issuing_authority"]},
+                    {"path": ["issuing_country"]}
+                  ]
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        let hybridSdJwt = createHybridSdJwt()
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: hybridSdJwt)
+
+        // Then
+        XCTAssertNotNil(result, "Should match when requested claims are in JWT payload directly")
+
+        // Direct payload claims should NOT be in disclosuresWithOptionality (they're not disclosures)
+        // Only disclosure-based claims should be in the list
+        let disclosureKeys = result!.disclosuresWithOptionality.compactMap { $0.disclosure.key }
+        XCTAssertTrue(disclosureKeys.contains("family_name"), "family_name disclosure should be present")
+        XCTAssertTrue(disclosureKeys.contains("given_name"), "given_name disclosure should be present")
+        XCTAssertFalse(disclosureKeys.contains("issuing_authority"), "issuing_authority should NOT be in disclosures")
+        XCTAssertFalse(disclosureKeys.contains("issuing_country"), "issuing_country should NOT be in disclosures")
+
+        // All disclosures should have isSubmit = false since they weren't requested
+        for disclosure in result!.disclosuresWithOptionality {
+            XCTAssertFalse(
+                disclosure.isSubmit,
+                "Disclosure '\(disclosure.disclosure.key ?? "unknown")' should have isSubmit = false (not requested)"
+            )
+        }
+    }
+
+    /// When query requests both direct payload claims and disclosure claims,
+    /// DCQLMatcher should find all of them and match successfully
+    func testHybridSdJwt_BothDirectAndDisclosureClaimsRequested_ShouldMatch() {
+        // Given: DCQL query requesting both direct and disclosure claims
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "hybrid_credential",
+                  "format": "vc+sd-jwt",
+                  "meta": {"vct_values": ["urn:example:hybrid_credential"]},
+                  "claims": [
+                    {"path": ["issuing_authority"]},
+                    {"path": ["family_name"]},
+                    {"path": ["given_name"]}
+                  ]
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        let hybridSdJwt = createHybridSdJwt()
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: hybridSdJwt)
+
+        // Then
+        XCTAssertNotNil(result, "Should match when both direct and disclosure claims are requested")
+
+        // Only disclosure-based claims that were requested should have isSubmit = true
+        for disclosure in result!.disclosuresWithOptionality {
+            if let key = disclosure.disclosure.key {
+                if key == "family_name" || key == "given_name" {
+                    XCTAssertTrue(
+                        disclosure.isSubmit,
+                        "Requested disclosure '\(key)' should have isSubmit = true"
+                    )
+                }
+            }
+        }
+    }
+
+    /// When query requests a claim that doesn't exist in either payload or disclosures,
+    /// DCQLMatcher should return nil
+    func testHybridSdJwt_NonExistentClaimRequested_ShouldReturnNil() {
+        // Given: DCQL query requesting a claim that doesn't exist
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "hybrid_credential",
+                  "format": "vc+sd-jwt",
+                  "meta": {"vct_values": ["urn:example:hybrid_credential"]},
+                  "claims": [
+                    {"path": ["issuing_authority"]},
+                    {"path": ["non_existent_claim"]}
+                  ]
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        let hybridSdJwt = createHybridSdJwt()
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: hybridSdJwt)
+
+        // Then
+        XCTAssertNil(result, "Should return nil when a required claim doesn't exist")
+    }
+
+    /// When claims is absent for hybrid SD-JWT, all disclosures should have isSubmit = false
+    /// (direct payload claims are not disclosures so they're not in the result)
+    func testHybridSdJwt_ClaimsAbsent_AllDisclosuresShouldNotBeSubmitted() {
+        // Given: DCQL query without claims
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "hybrid_credential",
+                  "format": "vc+sd-jwt",
+                  "meta": {"vct_values": ["urn:example:hybrid_credential"]}
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        let hybridSdJwt = createHybridSdJwt()
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: hybridSdJwt)
+
+        // Then
+        XCTAssertNotNil(result, "Should match when claims is absent")
+
+        // Should have 2 disclosures (family_name, given_name)
+        XCTAssertEqual(result!.disclosuresWithOptionality.count, 2, "Should have 2 disclosures")
+
+        // All disclosures should have isSubmit = false when claims is absent
+        for disclosure in result!.disclosuresWithOptionality {
+            XCTAssertFalse(
+                disclosure.isSubmit,
+                "Disclosure '\(disclosure.disclosure.key ?? "unknown")' should have isSubmit = false when claims is absent"
+            )
+        }
+    }
+
+    /// Verify that reserved JWT claims (iss, vct, _sd, _sd_alg, etc.) are not treated as credential claims
+    func testHybridSdJwt_ReservedClaimsNotTreatedAsCredentialClaims() {
+        // Given: DCQL query requesting reserved JWT claims
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "hybrid_credential",
+                  "format": "vc+sd-jwt",
+                  "meta": {"vct_values": ["urn:example:hybrid_credential"]},
+                  "claims": [
+                    {"path": ["iss"]},
+                    {"path": ["vct"]}
+                  ]
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        let hybridSdJwt = createHybridSdJwt()
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: hybridSdJwt)
+
+        // Then: Should return nil because reserved claims are not treated as credential claims
+        XCTAssertNil(result, "Should return nil when reserved JWT claims are requested as credential claims")
+    }
 }
