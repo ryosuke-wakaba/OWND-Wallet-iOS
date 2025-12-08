@@ -42,13 +42,30 @@ struct DcqlCredentialMeta: Codable {
 /// DCQL Claim Query - Defines requirements for claims within a credential
 struct DcqlClaimQuery: Codable {
     let id: String?
-    let path: [String]
+    let path: [AnyCodableValue]  // Can contain strings, integers, or null
     let values: [AnyCodableValue]?
 
     enum CodingKeys: String, CodingKey {
         case id
         case path
         case values
+    }
+
+    /// Convert path elements to strings for display or matching
+    /// Filters out null values and converts integers to strings
+    var pathAsStrings: [String] {
+        return path.compactMap { element in
+            switch element {
+            case .string(let str):
+                return str
+            case .int(let num):
+                return String(num)
+            case .double(let num):
+                return String(Int(num))
+            case .bool, .null:
+                return nil
+            }
+        }
     }
 }
 

@@ -164,7 +164,8 @@ class DCQLMatcher {
         var requiredPaths = Set<String>()
         for claim in claims {
             // DCQL path is an array, we use the last element as the key
-            if let lastPath = claim.path.last {
+            // Use pathAsStrings to convert AnyCodableValue elements to strings
+            if let lastPath = claim.pathAsStrings.last {
                 requiredPaths.insert(lastPath)
             }
         }
