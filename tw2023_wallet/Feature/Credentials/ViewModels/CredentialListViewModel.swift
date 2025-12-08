@@ -7,6 +7,7 @@
 
 import Foundation
 
+@Observable
 class CredentialListViewModel {
     var dataModel: CredentialListModel = .init()
 
