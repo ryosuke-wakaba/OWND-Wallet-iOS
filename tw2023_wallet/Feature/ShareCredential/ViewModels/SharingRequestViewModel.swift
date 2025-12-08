@@ -439,10 +439,8 @@ class SharingRequestViewModel {
         let credentialFormat = CredentialFormat(formatString: format)
 
         if credentialFormat?.isSDJWT == true {
-            if let match = dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload) {
-                return match.disclosuresWithOptionality.contains { $0.isUserSelectable || $0.isSubmit }
-            }
-            return false
+            // Match means all required claims exist (either as disclosures or direct payload)
+            return dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload) != nil
         } else {
             // TODO: Support other formats if needed
             return false
