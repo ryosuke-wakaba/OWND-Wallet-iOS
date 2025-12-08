@@ -64,25 +64,20 @@ struct SharingRequest: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
                                     // ------------ logo to logo section ------------
-                                    HStack {
-                                        Image("logo_ownd")
-                                            .padding(.trailing, 8)
-                                        Image(systemName: "arrow.forward")
-                                            .modifier(TitleGray())
-                                            .fontWeight(.black)
-                                            .padding(.horizontal, 8)
-                                        Group {
-                                            if let logoView = clientInfo.logoImage {
-                                                logoView
-                                            }
-                                            else {
-                                                Color.clear
-                                            }
+                                    if let logoView = clientInfo.logoImage {
+                                        HStack {
+                                            Image("logo_ownd")
+                                                .padding(.trailing, 8)
+                                            Image(systemName: "arrow.forward")
+                                                .modifier(TitleGray())
+                                                .fontWeight(.black)
+                                                .padding(.horizontal, 8)
+                                            logoView
+                                                .frame(width: 70, height: 70)
+                                                .padding(.horizontal, 8)
                                         }
-                                        .frame(width: 70, height: 70)
-                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 16)
                                     }
-                                    .padding(.vertical, 16)
 
                                     // ------------ sharing data info section ------------
                                     Text(
