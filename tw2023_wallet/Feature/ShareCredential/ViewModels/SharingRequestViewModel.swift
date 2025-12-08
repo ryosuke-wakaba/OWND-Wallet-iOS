@@ -101,9 +101,27 @@ class SharingRequestViewModel {
 
                     if clientId.hasPrefix("x509_san_dns:") || clientId.hasPrefix("x509_hash:") {
                         // For x509 schemes, certificate is verified via JWT x5c header
-                        // No need to extract from URL
                         verified = processedRequestData.requestIsSigned
                         print("x509 scheme - verified via JWT: \(verified)")
+                        // Extract certificate info from x5c header for display
+                        cert = extractCertificateInfoFromJwt(jwt: processedRequestData.requestObjectJwt)
+                        if let certInfo = cert {
+                            print("x509 scheme - extracted cert info:")
+                            print("  domain: \(certInfo.domain ?? "nil")")
+                            print("  organization: \(certInfo.organization ?? "nil")")
+                            print("  locality: \(certInfo.locality ?? "nil")")
+                            print("  state: \(certInfo.state ?? "nil")")
+                            print("  country: \(certInfo.country ?? "nil")")
+                            print("  street: \(certInfo.street ?? "nil")")
+                            print("  email: \(certInfo.email ?? "nil")")
+                            if let issuer = certInfo.issuer {
+                                print("  issuer.domain: \(issuer.domain ?? "nil")")
+                                print("  issuer.organization: \(issuer.organization ?? "nil")")
+                                print("  issuer.country: \(issuer.country ?? "nil")")
+                            }
+                        } else {
+                            print("x509 scheme - extracted cert info: nil")
+                        }
                     } else {
                         // For URL-based client_id (redirect_uri scheme or legacy)
                         guard let url = URL(string: clientId), let schema = url.scheme,

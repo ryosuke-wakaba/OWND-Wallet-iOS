@@ -457,3 +457,73 @@ func validateX509HashClientId(clientId: String, certificates: [Certificate]) -> 
         return .hashMismatch(expected: expectedHash, actual: actualHash)
     }
 }
+
+// MARK: - Extract CertificateInfo from JWT x5c
+
+/// Extract first dnsName from certificate's Subject Alternative Names
+/// - Parameter certificate: X509.Certificate from swift-certificates
+/// - Returns: First dnsName found in SAN, or nil if not found
+func extractDnsNameFromSAN(certificate: Certificate) -> String? {
+    do {
+        guard let sanExtension = try certificate.extensions.subjectAlternativeNames else {
+            return nil
+        }
+        for name in sanExtension {
+            switch name {
+            case .dnsName(let dnsName):
+                return dnsName
+            default:
+                continue
+            }
+        }
+        return nil
+    } catch {
+        return nil
+    }
+}
+
+/// Extract CertificateInfo from JWT's x5c header
+/// - Parameter jwt: JWT string containing x5c header
+/// - Returns: CertificateInfo from the leaf certificate, or nil if extraction fails
+func extractCertificateInfoFromJwt(jwt: String) -> CertificateInfo? {
+    // Decode JWT to get header
+    guard let (header, _, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+          let x5c = header["x5c"] as? [String],
+          !x5c.isEmpty
+    else {
+        return nil
+    }
+
+    // Convert first (leaf) certificate from base64 to X509Certificate (ASN1Decoder)
+    guard let certData = Data(base64Encoded: x5c[0]),
+          let x509Cert = try? X509Certificate(data: certData)
+    else {
+        return nil
+    }
+
+    // Extract issuer info
+    let issuer = issuerCertificateInfo(certificate: x509Cert)
+
+    // Extract subject info
+    var certInfo = x509Certificate2CertificateInfo(firstCertificate: x509Cert, issuer: issuer)
+
+    // Try to get dnsName from SAN using swift-certificates
+    if let certificates = try? SignatureUtil.convertPemToX509Certificates(pemChain: x5c),
+       let firstCert = certificates.first {
+        if let dnsName = extractDnsNameFromSAN(certificate: firstCert) {
+            // Override domain with SAN dnsName if available
+            certInfo = CertificateInfo(
+                domain: dnsName,
+                organization: certInfo.organization,
+                locality: certInfo.locality,
+                state: certInfo.state,
+                country: certInfo.country,
+                street: certInfo.street,
+                email: certInfo.email,
+                issuer: certInfo.issuer
+            )
+        }
+    }
+
+    return certInfo
+}

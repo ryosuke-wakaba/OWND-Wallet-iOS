@@ -52,23 +52,16 @@ struct SharingRequest: View {
                                         Spacer()
                                     }
                                     // ------------ title section ------------
-                                    if let query = viewModel.dcqlQuery,
-                                        let name = query.credentials.first?.id
-                                    {
-                                        Text(name)
-                                            .modifier(Title3Black())
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    else {
-                                        let titleKey =
-                                            "provide_the_information_required_to_register"
-                                        let title = String(
-                                            format: NSLocalizedString(titleKey, comment: ""),
-                                            clientInfo.name)
-                                        Text(title)
-                                            .modifier(Title3Black())
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
+                                    // Use recipient display name (organization from cert or client name)
+                                    let recipientName = clientInfo.certificateInfo?.organization ?? clientInfo.name
+                                    let displayName = recipientName.isEmpty ? NSLocalizedString("unknown_recipient", comment: "") : recipientName
+                                    let titleKey = "provide_the_information_required_to_register"
+                                    let title = String(
+                                        format: NSLocalizedString(titleKey, comment: ""),
+                                        displayName)
+                                    Text(title)
+                                        .modifier(Title3Black())
+                                        .frame(maxWidth: .infinity, alignment: .leading)
 
                                     // ------------ logo to logo section ------------
                                     HStack {
@@ -96,17 +89,14 @@ struct SharingRequest: View {
                                         String(
                                             format: NSLocalizedString(
                                                 "information_provided_to", comment: ""),
-                                            clientInfo.name)
+                                            displayName)
                                     )
                                     .modifier(BodyGray())
                                     .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
                                     .padding(.top, 16)
 
-                                    if let dcqlQuery = viewModel.dcqlQuery
+                                    if viewModel.dcqlQuery != nil
                                     {
-                                        ProvideAge(
-                                            clientInfo: clientInfo,
-                                            dcqlQuery: dcqlQuery)
                                         if viewModel.selectedCredential {
                                             // ------------ selected credential info ------------
                                             StatusBox(displayText: $proofBy, status: .success)
