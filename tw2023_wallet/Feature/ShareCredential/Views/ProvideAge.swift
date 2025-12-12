@@ -9,15 +9,20 @@ import SwiftUI
 
 struct ProvideAge: View {
     var clientInfo: ClientInfo
-    var presentationDefinition: PresentationDefinition
+    var dcqlQuery: DcqlQuery
 
     var body: some View {
-        let id = presentationDefinition.inputDescriptors[0]
-        if let name = id.name, let purpose = id.purpose {
+        let credentialQuery = dcqlQuery.credentials.first
+        if let id = credentialQuery?.id {
             HStack {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(name).modifier(BodyBlack())
-                    Text(purpose).modifier(SubHeadLineGray())
+                    Text(id).modifier(BodyBlack())
+                    // DCQL doesn't have purpose field like PEX, show default message
+                    Text(
+                        String(
+                            format: NSLocalizedString("age_share_description", comment: ""),
+                            self.clientInfo.name)
+                    ).modifier(SubHeadLineGray())
                 }
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
@@ -43,8 +48,8 @@ struct ProvideAge: View {
 #Preview {
     let modelData = ModelData()
     modelData.loadClientInfoList()
-    modelData.loadPresentationDefinitions()
+    modelData.loadDcqlQueries()
     return ProvideAge(
         clientInfo: modelData.clientInfoList[0],
-        presentationDefinition: modelData.presentationDefinitions[0])
+        dcqlQuery: modelData.dcqlQueries[0])
 }

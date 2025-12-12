@@ -10,13 +10,15 @@ import SwiftUI
 struct PinCodeInput: View {
     @State private var pinCode = ""  // PINコード用の状態変数
     @State var viewModel: CredentialOfferViewModel
-    @State private var navigateToCredentialList = false
     @State private var showErrorDialog = false
     @State private var errorMessage = ""
     @FocusState private var isInputActive: Bool
 
-    init(viewModel: CredentialOfferViewModel = CredentialOfferViewModel()) {
+    var onSuccess: (() -> Void)?
+
+    init(viewModel: CredentialOfferViewModel = CredentialOfferViewModel(), onSuccess: (() -> Void)? = nil) {
         self.viewModel = viewModel
+        self.onSuccess = onSuccess
     }
 
     var body: some View {
@@ -54,7 +56,7 @@ struct PinCodeInput: View {
                                 Task {
                                     do {
                                         try await viewModel.sendRequest(txCode: pinCode)
-                                        self.navigateToCredentialList = true
+                                        onSuccess?()  // 発行成功を親に通知
                                     } catch {
                                         print("Error in sendRequest: \(error)")
                                         // Use localizedDescription if available, otherwise use error description
@@ -67,12 +69,6 @@ struct PinCodeInput: View {
                                         showErrorDialog = true
                                     }
                                 }
-                            }
-                        )
-                        .navigationDestination(
-                            isPresented: $navigateToCredentialList,
-                            destination: {
-                                CredentialList()
                             }
                         )
                         Spacer()

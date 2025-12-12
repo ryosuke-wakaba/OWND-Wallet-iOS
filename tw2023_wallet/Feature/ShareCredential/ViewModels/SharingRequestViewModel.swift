@@ -27,7 +27,7 @@ class SharingRequestViewModel {
     var isLoading = false
     var hasLoadedData = false
     var clientInfo: ClientInfo? = nil
-    var presentationDefinition: PresentationDefinition? = nil
+    var dcqlQuery: DcqlQuery? = nil
     var selectedCredential: Bool = false
     var openIdProvider: OpenIdProvider? = nil
     var seed: String?
@@ -35,6 +35,15 @@ class SharingRequestViewModel {
     var showAlert = false
     var alertTitle = ""
     var alertMessage = ""
+
+    // Credential claims classification for VP sharing
+    var requiredClaims: [DisclosureWithOptionality] = []
+    var undisclosedClaims: [DisclosureWithOptionality] = []
+    private var credentialQuery: DcqlCredentialQuery? = nil
+
+    // Filtered credentials for VP credential picker
+    var filteredCredentials: [Credential] = []
+    private let credentialDataManager = CredentialDataManager(container: nil)
 
     func accessPairwiseAccountManager() async -> Bool {
         do {
@@ -84,20 +93,56 @@ class SharingRequestViewModel {
                         print(clientMetadata)
                         throw IllegalArgumentException.badParams
                     }
-                    guard let url = URL(string: clientId), let schema = url.scheme,
-                        let host = url.host
-                    else {
-                        throw SharingRequestIllegalStateException.illegalState
-                    }
-                    let clientUrl = "\(schema)://\(host)"
                     print("clientId: \(clientId)")
-                    print("client url: \(clientUrl)")
-                    let (cert, derCertificates) = extractFirstCertSubject(url: clientUrl)
-                    // verify ov of rp
-                    print("verify cert chain")
-                    let b = try? SignatureUtil.validateCertificateChain(
-                        derCertificates: derCertificates)
-                    print("verified: \(b ?? false)")
+
+                    // Handle Client Identifier Prefix (OID4VP 1.0)
+                    var cert: CertificateInfo? = nil
+                    var verified = false
+
+                    if clientId.hasPrefix("x509_san_dns:") || clientId.hasPrefix("x509_hash:") {
+                        // For x509 schemes, certificate is verified via JWT x5c header
+                        verified = processedRequestData.requestIsSigned
+                        print("x509 scheme - verified via JWT: \(verified)")
+                        // Extract certificate info from x5c header for display
+                        cert = extractCertificateInfoFromJwt(jwt: processedRequestData.requestObjectJwt)
+                        if let certInfo = cert {
+                            print("x509 scheme - extracted cert info:")
+                            print("  domain: \(certInfo.domain ?? "nil")")
+                            print("  organization: \(certInfo.organization ?? "nil")")
+                            print("  locality: \(certInfo.locality ?? "nil")")
+                            print("  state: \(certInfo.state ?? "nil")")
+                            print("  country: \(certInfo.country ?? "nil")")
+                            print("  street: \(certInfo.street ?? "nil")")
+                            print("  email: \(certInfo.email ?? "nil")")
+                            if let issuer = certInfo.issuer {
+                                print("  issuer.domain: \(issuer.domain ?? "nil")")
+                                print("  issuer.organization: \(issuer.organization ?? "nil")")
+                                print("  issuer.country: \(issuer.country ?? "nil")")
+                            }
+                        } else {
+                            print("x509 scheme - extracted cert info: nil")
+                        }
+                    } else {
+                        // For URL-based client_id (redirect_uri scheme or legacy)
+                        guard let url = URL(string: clientId), let schema = url.scheme,
+                            let host = url.host
+                        else {
+                            throw SharingRequestIllegalStateException.illegalState
+                        }
+                        let clientUrl = "\(schema)://\(host)"
+                        print("client url: \(clientUrl)")
+                        let (extractedCert, derCertificates) = extractFirstCertSubject(url: clientUrl)
+                        cert = extractedCert
+                        // verify ov of rp
+                        print("verify cert chain")
+                        if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
+                            if case .success = SignatureUtil.validateCertificateChainWithCustomAnchors(
+                                certificates: secCerts) {
+                                verified = true
+                            }
+                        }
+                        print("verified: \(verified)")
+                    }
 
                     guard let seed = self.seed else {
                         throw SharingRequestIllegalStateException.illegalSeedState
@@ -114,12 +159,11 @@ class SharingRequestViewModel {
                         tosUrl: clientMetadata.tosUri ?? "",
                         jwkThumbprint: account!.thumbprint,
                         certificateInfo: cert,
-                        verified: b ?? false
+                        verified: verified
                     )
 
-                    print("set presentation request")
-                    // set presentation def
-                    presentationDefinition = processedRequestData.presentationDefinition
+                    print("set dcql query")
+                    dcqlQuery = processedRequestData.dcqlQuery
                     print("success")
                 case .failure(let error):
                     print(error)
@@ -127,7 +171,17 @@ class SharingRequestViewModel {
                         case .authRequestInputError(let subError):
                             print(subError)
                             alertTitle = "Found wrong input. It needs to confirm client system."
-                            alertMessage = subError.localizedDescription
+                            // Extract reason string from error case
+                            switch subError {
+                            case .compliantError(let reason):
+                                alertMessage = reason
+                            case .missingParameter(let reason):
+                                alertMessage = reason
+                            case .resourceNotFound(let reason):
+                                alertMessage = reason
+                            case .invalidJwt:
+                                alertMessage = "Invalid JWT"
+                            }
                         case .authRequestClientError(let subError):
                             print(subError)
                             switch subError {
@@ -286,4 +340,125 @@ class SharingRequestViewModel {
         case keyPairError
         case responseError
     }
+
+    // MARK: - Credential Claims Classification
+
+    /// Classify credential claims based on DCQL query
+    func classifyClaims(credential: Credential) {
+        guard let query = dcqlQuery else { return }
+
+        // Reset previous classification
+        requiredClaims = []
+        undisclosedClaims = []
+        credentialQuery = nil
+
+        switch credential.format {
+            case "vc+sd-jwt", "dc+sd-jwt":
+                if let matched = query.firstMatchedCredentialQuery(sdJwt: credential.payload) {
+                    credentialQuery = matched.credentialQuery
+                    let disclosuresWithOptionality = matched.disclosuresWithOptionality
+
+                    // Claims to submit (required or user selectable)
+                    requiredClaims = disclosuresWithOptionality.filter { d in
+                        d.isSubmit || d.isUserSelectable
+                    }
+                    // Claims not to submit
+                    undisclosedClaims = disclosuresWithOptionality.filter { d in
+                        !d.isSubmit && !d.isUserSelectable
+                    }
+                }
+            case "jwt_vc_json":
+                credentialQuery = query.credentials.first
+                undisclosedClaims = []
+                requiredClaims = jwtVcJsonClaimsTobeDisclosed(jwt: credential.payload).map { it in
+                    return DisclosureWithOptionality(
+                        disclosure: it, isSubmit: true, isUserSelectable: false)
+                }
+            default:
+                credentialQuery = query.credentials.first
+        }
+    }
+
+    /// Create submission credential for VP token
+    func createSubmissionCredential(
+        credential: Credential,
+        discloseClaims: [DisclosureWithOptionality]
+    ) -> SubmissionCredential? {
+        guard let credentialQuery = credentialQuery else { return nil }
+
+        let types = try! VCIMetadataUtil.extractTypes(
+            format: credential.format, credential: credential.payload)
+        return SubmissionCredential(
+            id: credential.id,
+            format: credential.format,
+            types: types,
+            credential: credential.payload,
+            credentialQuery: credentialQuery,
+            discloseClaims: discloseClaims
+        )
+    }
+
+    // MARK: - Credential Loading for VP Picker
+
+    /// Load credentials filtered by DCQL query for VP credential picker
+    func loadFilteredCredentials() {
+        print("[loadFilteredCredentials] Starting credential filtering")
+
+        guard let query = dcqlQuery else {
+            print("[loadFilteredCredentials] No DCQL query available")
+            filteredCredentials = []
+            return
+        }
+
+        print("[loadFilteredCredentials] DCQL query has \(query.credentials.count) credential queries")
+        for (i, cq) in query.credentials.enumerated() {
+            print("[loadFilteredCredentials] Query[\(i)]: format=\(cq.format), vct=\(cq.meta?.vctValues ?? [])")
+        }
+
+        var credentialList: [Credential] = []
+        for rawCredential in credentialDataManager.getAllCredentials() {
+            if let converted = rawCredential.toCredential() {
+                credentialList.append(converted)
+            } else {
+                print("[loadFilteredCredentials] Malformed Credential Found")
+            }
+        }
+
+        print("[loadFilteredCredentials] Total credentials in wallet: \(credentialList.count)")
+        for (i, cred) in credentialList.enumerated() {
+            print("[loadFilteredCredentials] Credential[\(i)]: id=\(cred.id), format=\(cred.format)")
+        }
+
+        filteredCredentials = credentialList.filter { filterCredentialByDcql($0, query) }
+        print("[loadFilteredCredentials] Filtered credentials count: \(filteredCredentials.count)")
+    }
+
+    /// Filter credential by DCQL query
+    private func filterCredentialByDcql(_ credential: Credential, _ dcqlQuery: DcqlQuery) -> Bool {
+        let format = credential.format
+        let credentialFormat = CredentialFormat(formatString: format)
+
+        if credentialFormat?.isSDJWT == true {
+            // Match means all required claims exist (either as disclosures or direct payload)
+            return dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload) != nil
+        } else {
+            // TODO: Support other formats if needed
+            return false
+        }
+    }
+}
+
+// MARK: - Helper Functions
+
+private func jwtVcJsonClaimsTobeDisclosed(jwt: String) -> [Disclosure] {
+    if let (_, body, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+        let vc = body["vc"] as? [String: Any],
+        let credentialSubject = vc["credentialSubject"] as? [String: Any]
+    {
+        let disclosures = credentialSubject.map { key, value in
+            return Disclosure(disclosure: nil, key: key, value: value as? String)
+        }
+        return disclosures
+    }
+    return []
 }

@@ -43,6 +43,10 @@ func convertDisclosureValue(value: Any) -> String {
     if let boolValue = value as? Bool {
         return boolValue ? "Yes" : "No"
     }
+    else if let arrayValue = value as? [Any] {
+        // Convert array elements to strings and join with comma
+        return arrayValue.map { convertDisclosureValue(value: $0) }.joined(separator: ", ")
+    }
     else {
         return String(describing: value)
     }
@@ -134,6 +138,74 @@ struct SDJwtUtil {
         }
 
         return headerJSON
+    }
+
+    /// Get the _sd_alg value from SD-JWT payload
+    /// - Parameter sdJwt: SD-JWT string
+    /// - Returns: _sd_alg value (defaults to "sha-256" if not present)
+    static func getSdAlg(_ sdJwt: String) -> String {
+        let parts = sdJwt.split(separator: "~").map { String($0) }
+        guard let issuerJwt = parts.first else {
+            return "sha-256"
+        }
+
+        let jwtParts = issuerJwt.split(separator: ".").map { String($0) }
+        guard jwtParts.count >= 2 else {
+            return "sha-256"
+        }
+
+        let payloadBase64 = jwtParts[1]
+        guard let payloadData = Data(base64Encoded: base64urlToBase64(base64url: payloadBase64)),
+              let payloadString = String(data: payloadData, encoding: .utf8),
+              let payloadJson = try? JSONSerialization.jsonObject(
+                  with: payloadString.data(using: .utf8)!) as? [String: Any],
+              let sdAlg = payloadJson["_sd_alg"] as? String
+        else {
+            return "sha-256"  // Default per SD-JWT spec
+        }
+
+        return sdAlg
+    }
+
+    /// Get the _sd array from SD-JWT payload (for debugging)
+    /// - Parameter sdJwt: SD-JWT string
+    /// - Returns: Array of disclosure hashes from the _sd claim
+    static func getSdArray(_ sdJwt: String) -> [String] {
+        let parts = sdJwt.split(separator: "~").map { String($0) }
+        guard let issuerJwt = parts.first else {
+            return []
+        }
+
+        let jwtParts = issuerJwt.split(separator: ".").map { String($0) }
+        guard jwtParts.count >= 2 else {
+            return []
+        }
+
+        let payloadBase64 = jwtParts[1]
+        guard let payloadData = Data(base64Encoded: base64urlToBase64(base64url: payloadBase64)),
+              let payloadString = String(data: payloadData, encoding: .utf8),
+              let payloadJson = try? JSONSerialization.jsonObject(
+                  with: payloadString.data(using: .utf8)!) as? [String: Any],
+              let sdArray = payloadJson["_sd"] as? [String]
+        else {
+            return []
+        }
+
+        return sdArray
+    }
+
+    /// Debug: Print SD-JWT structure analysis
+    static func debugPrintStructure(_ sdJwt: String) {
+        print("[SDJwtUtil] ===== SD-JWT Structure Analysis =====")
+
+        let sdArray = getSdArray(sdJwt)
+        print("[SDJwtUtil] _sd array contains \(sdArray.count) hashes:")
+        for (i, hash) in sdArray.enumerated() {
+            print("[SDJwtUtil] _sd[\(i)]: \(hash)")
+        }
+
+        print("[SDJwtUtil] _sd_alg: \(getSdAlg(sdJwt))")
+        print("[SDJwtUtil] ========================================")
     }
 
     static func extractX5cValues(_ header: [String: Any]) -> [String]? {

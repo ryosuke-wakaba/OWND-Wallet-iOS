@@ -7,12 +7,13 @@
 
 import Foundation
 
+@Observable
 class CredentialListViewModel {
     var dataModel: CredentialListModel = .init()
 
     private let credentialDataManager = CredentialDataManager(container: nil)
 
-    func loadData(presentationDefinition: PresentationDefinition? = nil) {
+    func loadData() {
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
             print("now previewing")
             return
@@ -23,66 +24,27 @@ class CredentialListViewModel {
 
         var credentialList: [Credential] = []
         for rawCredential in credentialDataManager.getAllCredentials() {
-            let converted = rawCredential.toCredential()
-            if converted != nil {
-                credentialList.append(converted!)
-            }
-            else {
+            if let converted = rawCredential.toCredential() {
+                credentialList.append(converted)
+            } else {
                 print("Malformed Credential Found")
             }
         }
 
-        if let pd = presentationDefinition {
-            dataModel.credentials = credentialList.filter { filterCredential($0, pd) }
-        }
-        else {
-            dataModel.credentials = credentialList
-        }
-
+        dataModel.credentials = credentialList
         dataModel.isLoading = false
         dataModel.hasLoadedData = true
         print("done")
     }
 
-    func filterCredential(
-        _ credential: Credential, _ presentationDefinition: PresentationDefinition
-    ) -> Bool {
-        let format = credential.format
-        print("format: \(format)")
-        do {
-            let credentialFormat = CredentialFormat(formatString: format)
-
-            if credentialFormat?.isSDJWT == true {
-                let ret = presentationDefinition.firstMatchedInputDescriptor(
-                    sdJwt: credential.payload)
-                if let (_, disclosures) = ret {
-                    return 0
-                        < disclosures.filter { it in (it.isUserSelectable || it.isSubmit) }.count
-                }
-                return false
-            }
-            else if credentialFormat == .jwtVCJson {
-                let (_, payload, _) = try JWTUtil.decodeJwt(jwt: credential.payload)
-                print("satisfyConstrains?")
-                return presentationDefinition.satisfyConstrains(
-                    credential: payload)
-            }
-            else {
-                // その他のフォーマットに対する処理が必要な場合、ここに追加
-                return false
-            }
-        }
-        catch {
-            // JWTのデコードに失敗した場合の処理
-            print("JWT decoding failed for credential with format: \(format)")
-            return false
-        }
+    func reloadData() {
+        dataModel.hasLoadedData = false
+        loadData()
     }
 
     func deleteCredential(credential: Credential) {
         print("delete: \(credential.id), \(credential.format)")
         credentialDataManager.deleteCredentialById(id: credential.id)
-        dataModel.hasLoadedData = false
-        loadData()
+        reloadData()
     }
 }

@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct WalkThrough1: View {
-    @Binding var isNotFirstLaunch: Bool
-
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -68,5 +66,5 @@ struct WalkThrough1: View {
 }
 
 #Preview {
-    WalkThrough1(isNotFirstLaunch: .constant(true))
+    WalkThrough1()
 }

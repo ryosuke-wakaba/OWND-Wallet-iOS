@@ -1363,13 +1363,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Provide the information required to register %@"
+            "value" : "Provide the information to  %@"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@の登録に必要な情報を提供します"
+            "state" : "needs_review",
+            "value" : "%@に情報を提供します"
           }
         }
       }
@@ -1820,6 +1820,9 @@
       }
     },
     "Unknown" : {
+
+    },
+    "unknown_recipient" : {
 
     },
     "Unsupported proof type. Supported types: %@" : {

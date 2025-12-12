@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var isNotFirstLaunch = UserDefaults.standard.bool(forKey: "isNotFirstLaunch")
+    @AppStorage("isNotFirstLaunch") private var isNotFirstLaunch = false
 
     var body: some View {
         if isNotFirstLaunch {
             Home()
         }
         else {
-            WalkThrough1(isNotFirstLaunch: $isNotFirstLaunch)
+            WalkThrough1()
         }
     }
 }

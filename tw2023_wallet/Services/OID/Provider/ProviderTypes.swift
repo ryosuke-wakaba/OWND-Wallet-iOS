@@ -36,8 +36,8 @@ struct TokenSendResult: Decodable {
 
 struct PreparedSubmissionData {
     let credentialId: String
+    let dcqlCredentialId: String  // DCQL credential query ID
     let vpToken: String
-    let descriptorMap: DescriptorMap
     let disclosedClaims: [DisclosedClaim]
     let purpose: String?
 }
@@ -47,7 +47,7 @@ struct SubmissionCredential: Codable, Equatable {
     let format: String
     let types: [String]
     let credential: String
-    let inputDescriptor: InputDescriptor
+    let credentialQuery: DcqlCredentialQuery
     let discloseClaims: [DisclosureWithOptionality]
 
     static func == (lhs: SubmissionCredential, rhs: SubmissionCredential) -> Bool {
@@ -63,13 +63,52 @@ struct SubmissionCredential: Codable, Equatable {
         guard let kb = keyBinding else {
             throw OpenIdProviderIllegalStateException.illegalKeyBindingState
         }
-        // ここに実装を追加します
-        let inputDescriptor = inputDescriptor
-        let selectedDisclosures = discloseClaims.map { $0.disclosure }
-        print(String(describing: inputDescriptor))
+
+        // Debug: Log original credential disclosures and _sd array
+        print("[createVpTokenForSdJwtVc] ===== DEBUG: Original Credential Analysis =====")
+        SDJwtUtil.debugPrintStructure(credential)
+        let credentialParts = credential.split(separator: "~").map(String.init)
+        print("[createVpTokenForSdJwtVc] Credential parts count: \(credentialParts.count)")
+        if credentialParts.count > 1 {
+            let originalDisclosures = Array(credentialParts.dropFirst().dropLast(credentialParts.last?.contains(".") == true ? 1 : 0))
+            print("[createVpTokenForSdJwtVc] Original disclosures in credential: \(originalDisclosures.count)")
+            for (i, d) in originalDisclosures.enumerated() {
+                let decoded = SDJwtUtil.decodeDisclosure([d]).first
+                // Calculate hash for this disclosure
+                if let disclosureData = d.data(using: .utf8) {
+                    let hash = disclosureData.sha256ToBase64Url()
+                    print("[createVpTokenForSdJwtVc] OriginalDisclosure[\(i)]: key=\(decoded?.key ?? "nil"), hash=\(hash)")
+                } else {
+                    print("[createVpTokenForSdJwtVc] OriginalDisclosure[\(i)]: key=\(decoded?.key ?? "nil"), base64url=\(d.prefix(50))...")
+                }
+            }
+        }
+
+        // Only include disclosures that should be submitted
+        let selectedDisclosures = discloseClaims.filter { $0.isSubmit }.map { $0.disclosure }
+        print("[createVpTokenForSdJwtVc] ===== DEBUG: Selected Disclosures =====")
+        print("[createVpTokenForSdJwtVc] Total discloseClaims: \(discloseClaims.count)")
+        print("[createVpTokenForSdJwtVc] Selected disclosures (isSubmit=true): \(selectedDisclosures.count)")
+        for (i, d) in selectedDisclosures.enumerated() {
+            print("[createVpTokenForSdJwtVc] Disclosure[\(i)]: key=\(d.key ?? "nil"), base64url=\(d.disclosure?.prefix(50) ?? "nil")...")
+            // Calculate hash for comparison with _sd array
+            if let disclosureStr = d.disclosure,
+               let disclosureData = disclosureStr.data(using: .utf8) {
+                let hash = disclosureData.sha256ToBase64Url()
+                print("[createVpTokenForSdJwtVc] Disclosure[\(i)]: sha256_hash=\(hash)")
+            }
+        }
+        print(String(describing: credentialQuery))
+
+        // Get _sd_alg from SD-JWT payload (defaults to "sha-256")
+        let sdAlg = SDJwtUtil.getSdAlg(credential)
 
         let keyBindingJwt = try kb.generateJwt(
-            sdJwt: credential, selectedDisclosures: selectedDisclosures, aud: clientId, nonce: nonce
+            sdJwt: credential,
+            selectedDisclosures: selectedDisclosures,
+            aud: clientId,
+            nonce: nonce,
+            sdAlg: sdAlg
         )
 
         let parts = credential.split(separator: "~").map(String.init)
@@ -92,13 +131,6 @@ struct SubmissionCredential: Codable, Equatable {
 
         print("### Created vpToken\n\(vpToken)")
 
-        let dm = DescriptorMap(
-            id: inputDescriptor.id,
-            format: format,
-            path: tokenIndex > -1 ? "$[\(tokenIndex)]" : "$",
-            pathNested: nil
-        )
-
         let disclosedClaims = selectedDisclosures.compactMap { disclosure -> DisclosedClaim? in
             guard let key = disclosure.key else { return nil }
             return DisclosedClaim(
@@ -107,8 +139,10 @@ struct SubmissionCredential: Codable, Equatable {
 
         return PreparedSubmissionData(
             credentialId: id,
-            vpToken: vpToken, descriptorMap: dm, disclosedClaims: disclosedClaims,
-            purpose: inputDescriptor.purpose)
+            dcqlCredentialId: credentialQuery.id,
+            vpToken: vpToken,
+            disclosedClaims: disclosedClaims,
+            purpose: nil)
     }
 
     func createVpTokenForJwtVc(
@@ -134,14 +168,10 @@ struct SubmissionCredential: Codable, Equatable {
                     vcJwt: credential, headerOptions: HeaderOptions(),
                     payloadOptions: JwtVpJsonPayloadOptions(aud: clientId, nonce: nonce))
 
-                let descriptorMap = JwtVpJsonPresentation.genDescriptorMap(
-                    inputDescriptorId: inputDescriptor.id,
-                    pathIndex: tokenIndex
-                )
                 return PreparedSubmissionData(
                     credentialId: id,
+                    dcqlCredentialId: credentialQuery.id,
                     vpToken: vpToken,
-                    descriptorMap: descriptorMap,
                     disclosedClaims: disclosedClaims,
                     purpose: nil
                 )

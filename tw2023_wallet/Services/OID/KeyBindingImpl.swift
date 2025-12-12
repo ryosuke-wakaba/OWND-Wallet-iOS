@@ -10,6 +10,7 @@ import Foundation
 
 enum KeyBindingImplError: Error {
     case UnexpectedDisclosureValue
+    case UnsupportedHashAlgorithm(String)
 }
 
 class KeyBindingImpl: KeyBinding {
@@ -18,9 +19,19 @@ class KeyBindingImpl: KeyBinding {
     init(keyAlias: String) {
         self.keyAlias = keyAlias
     }
-    func generateJwt(sdJwt: String, selectedDisclosures: [Disclosure], aud: String, nonce: String)
-        throws -> String
-    {
+    func generateJwt(
+        sdJwt: String,
+        selectedDisclosures: [Disclosure],
+        aud: String,
+        nonce: String,
+        sdAlg: String
+    ) throws -> String {
+        // Validate _sd_alg - currently only sha-256 is supported
+        // Per SD-JWT spec, _sd_alg is case-sensitive and must match IANA registry exactly
+        guard sdAlg == "sha-256" else {
+            throw KeyBindingImplError.UnsupportedHashAlgorithm(sdAlg)
+        }
+
         let parts = sdJwt.split(separator: "~").map(String.init)
         let issuerSignedJwt = parts[0]
 
@@ -36,12 +47,22 @@ class KeyBindingImpl: KeyBinding {
             issuerSignedJwt + "~"
             + selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
 
-        let sdHash = sd.data(using: String.Encoding.ascii)?.sha256ToBase64Url() ?? ""
+        print("[KeyBinding] SD string for hash (first 500 chars): \(String(sd.prefix(500)))")
+        print("[KeyBinding] SD string length: \(sd.count)")
+        print("[KeyBinding] Number of disclosures: \(selectedDisclosures.count)")
+
+        // Use UTF-8 encoding instead of ASCII to handle all characters
+        guard let sdData = sd.data(using: .utf8) else {
+            print("[KeyBinding] ERROR: Failed to convert SD string to UTF-8 data")
+            throw KeyBindingImplError.UnexpectedDisclosureValue
+        }
+        let sdHash = sdData.sha256ToBase64Url()
+        print("[KeyBinding] Calculated sd_hash: \(sdHash)")
         let header = ["typ": "kb+jwt", "alg": "ES256"]
         let payload: [String: Any] = [
             "aud": aud,
             "iat": Int(Date().timeIntervalSince1970),
-            "_sd_hash": sdHash,
+            "sd_hash": sdHash,  // Note: no underscore prefix per SD-JWT spec for KB-JWT
             "nonce": nonce,
         ]
         let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)

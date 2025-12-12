@@ -9,7 +9,7 @@ import SwiftUI
 
 struct WalkThrough4: View {
     @Environment(\.presentationMode) var presentationMode
-    @State private var navigateToCredentialList = false  // 追加
+    @AppStorage("isNotFirstLaunch") private var isNotFirstLaunch = false
     @State private var navigateToRestore = false
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfUse = false
@@ -26,7 +26,7 @@ struct WalkThrough4: View {
                         .imageScale(.large)
                         .foregroundStyle(.tint)
                         .frame(width: geometry.size.width * 0.6)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2 + 80)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.45)
                     VStack {
                         HStack {
                             Button(action: {
@@ -70,44 +70,36 @@ struct WalkThrough4: View {
                         Text("walkthrough_4_3")
                             .modifier(SubHeadLineBlack())
                     }
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2 + 210)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height * 0.68)
                 }
                 VStack {
-                    VStack {
+                    VStack(spacing: 16) {
                         Text("walkthrough_4_1")
                             .modifier(TitleBlack())
-                            .padding(.vertical, 32)
                         Text("walkthrough_4_2")
                             .modifier(TitleBlack())
-                            .padding(.vertical, 32)
                     }
-                    .padding(.vertical, 50)
+                    .padding(.top, 24)
+                    .padding(.bottom, 16)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .multilineTextAlignment(.center)
                     Spacer()  // 下部の余白
-                    VStack {
-                        HStack {
-                            Button(action: {
-                                self.presentationMode.wrappedValue.dismiss()
-                            }) {
-                                Image(systemName: "chevron.backward")
-                                    .modifier(Title3Gray())
-                            }
-                            Spacer()  // 下部の余白
+                    HStack {
+                        Button(action: {
+                            self.presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "chevron.backward")
+                                .modifier(Title3Gray())
                         }
+                        Spacer()
                     }
-                    .padding(.bottom, geometry.size.height * 0.2)  // 下部からの位置を調整
                     ActionButtonBlack(
                         title: "begin_anew",
                         action: {
-                            self.navigateToCredentialList = true
-                            UserDefaults.standard.set(true, forKey: "isNotFirstLaunch")
+                            isNotFirstLaunch = true  // ContentViewが自動的に再評価されHome()を表示
                         }
                     )
                     .padding(.vertical, 16)
-                    .navigationDestination(isPresented: $navigateToCredentialList) {
-                        Home()
-                    }
                     Button(action: {
                         self.navigateToRestore = true
                     }) {
@@ -118,6 +110,7 @@ struct WalkThrough4: View {
                     .navigationDestination(isPresented: $navigateToRestore) {
                         Restore()
                     }
+                    .padding(.bottom, 24)
                 }
             }
             .padding(.horizontal, 32)
@@ -126,6 +119,11 @@ struct WalkThrough4: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     WalkThrough4()
+}
+
+#Preview("iPhone SE") {
+    WalkThrough4()
+        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }

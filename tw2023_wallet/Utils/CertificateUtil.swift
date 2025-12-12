@@ -9,6 +9,7 @@ import ASN1Decoder
 import CryptoKit
 import Foundation
 import Security
+import SwiftASN1
 import X509
 
 class CertificateHandler: NSObject, URLSessionDelegate {
@@ -342,6 +343,32 @@ func generateCertificate(
     }
 }
 
+/// Calculate SHA-256 hash of X.509 certificate (Base64URL encoded)
+/// Used for x509_hash Client Identifier Prefix in OID4VP 1.0
+func calculateX509CertificateHash(_ certificate: Certificate) -> String? {
+    do {
+        // Get DER-encoded certificate data
+        var serializer = DER.Serializer()
+        try serializer.serialize(certificate)
+        let derData = Data(serializer.serializedBytes)
+
+        // Calculate SHA-256 hash using CryptoKit
+        let hash = SHA256.hash(data: derData)
+
+        // Base64URL encode (no padding)
+        let base64 = Data(hash).base64EncodedString()
+        let base64Url = base64
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+
+        return base64Url
+    } catch {
+        print("Error calculating certificate hash: \(error)")
+        return nil
+    }
+}
+
 func isDomainInSAN(certificate: Certificate, domain: String) -> Bool {
     // SubjectAlternativeNames を取得
     do {
@@ -366,4 +393,137 @@ func isDomainInSAN(certificate: Certificate, domain: String) -> Bool {
     catch {
         return false
     }
+}
+
+// MARK: - x509_hash Client ID Validation
+
+/// Result of x509_hash client_id validation
+enum X509HashValidationResult {
+    case success
+    case invalidPrefix
+    case noCertificates
+    case hashCalculationFailed
+    case hashMismatch(expected: String, actual: String)
+
+    var errorMessage: String? {
+        switch self {
+        case .success:
+            return nil
+        case .invalidPrefix:
+            return "client_id does not have x509_hash prefix"
+        case .noCertificates:
+            return "No certificates provided for validation"
+        case .hashCalculationFailed:
+            return "Failed to calculate certificate hash"
+        case .hashMismatch(let expected, let actual):
+            return "Certificate hash does not match client_id: expected \(expected), got \(actual)"
+        }
+    }
+
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+}
+
+/// Validates x509_hash Client Identifier Prefix per OID4VP 1.0 specification
+/// - Parameters:
+///   - clientId: The client_id with x509_hash prefix (e.g., "x509_hash:Uvo3Htu...")
+///   - certificates: Certificate chain from JWT x5c header (first certificate is leaf)
+/// - Returns: Validation result indicating success or specific failure reason
+func validateX509HashClientId(clientId: String, certificates: [Certificate]) -> X509HashValidationResult {
+    // Check prefix
+    guard clientId.hasPrefix("x509_hash:") else {
+        return .invalidPrefix
+    }
+
+    // Check certificates exist
+    guard !certificates.isEmpty else {
+        return .noCertificates
+    }
+
+    // Extract expected hash from client_id
+    let expectedHash = String(clientId.dropFirst("x509_hash:".count))
+
+    // Calculate actual hash from leaf certificate
+    guard let actualHash = calculateX509CertificateHash(certificates[0]) else {
+        return .hashCalculationFailed
+    }
+
+    // Compare hashes
+    if actualHash == expectedHash {
+        return .success
+    } else {
+        return .hashMismatch(expected: expectedHash, actual: actualHash)
+    }
+}
+
+// MARK: - Extract CertificateInfo from JWT x5c
+
+/// Extract first dnsName from certificate's Subject Alternative Names
+/// - Parameter certificate: X509.Certificate from swift-certificates
+/// - Returns: First dnsName found in SAN, or nil if not found
+func extractDnsNameFromSAN(certificate: Certificate) -> String? {
+    do {
+        guard let sanExtension = try certificate.extensions.subjectAlternativeNames else {
+            return nil
+        }
+        for name in sanExtension {
+            switch name {
+            case .dnsName(let dnsName):
+                return dnsName
+            default:
+                continue
+            }
+        }
+        return nil
+    } catch {
+        return nil
+    }
+}
+
+/// Extract CertificateInfo from JWT's x5c header
+/// - Parameter jwt: JWT string containing x5c header
+/// - Returns: CertificateInfo from the leaf certificate, or nil if extraction fails
+func extractCertificateInfoFromJwt(jwt: String) -> CertificateInfo? {
+    // Decode JWT to get header
+    guard let (header, _, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+          let x5c = header["x5c"] as? [String],
+          !x5c.isEmpty
+    else {
+        return nil
+    }
+
+    // Convert first (leaf) certificate from base64 to X509Certificate (ASN1Decoder)
+    guard let certData = Data(base64Encoded: x5c[0]),
+          let x509Cert = try? X509Certificate(data: certData)
+    else {
+        return nil
+    }
+
+    // Extract issuer info
+    let issuer = issuerCertificateInfo(certificate: x509Cert)
+
+    // Extract subject info
+    var certInfo = x509Certificate2CertificateInfo(firstCertificate: x509Cert, issuer: issuer)
+
+    // Try to get dnsName from SAN using swift-certificates
+    if let certificates = try? SignatureUtil.convertPemToX509Certificates(pemChain: x5c),
+       let firstCert = certificates.first {
+        if let dnsName = extractDnsNameFromSAN(certificate: firstCert) {
+            // Override domain with SAN dnsName if available
+            certInfo = CertificateInfo(
+                domain: dnsName,
+                organization: certInfo.organization,
+                locality: certInfo.locality,
+                state: certInfo.state,
+                country: certInfo.country,
+                street: certInfo.street,
+                email: certInfo.email,
+                issuer: certInfo.issuer
+            )
+        }
+    }
+
+    return certInfo
 }

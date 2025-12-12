@@ -1,0 +1,18 @@
+[
+  {
+    "credentials": [
+      {
+        "id": "age_verification",
+        "format": "vc+sd-jwt",
+        "meta": {
+          "vct_values": ["AgeVerificationCredential"]
+        },
+        "claims": [
+          {
+            "path": ["is_older_than_13"]
+          }
+        ]
+      }
+    ]
+  }
+]

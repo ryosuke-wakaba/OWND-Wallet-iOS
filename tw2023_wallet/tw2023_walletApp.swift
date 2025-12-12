@@ -7,6 +7,8 @@
 
 import CoreData
 import LocalAuthentication
+import SDWebImage
+import SDWebImageSVGCoder
 import SwiftUI
 
 func createCredentialOfferArgs(value: String) -> CredentialOfferArgs {
@@ -34,6 +36,14 @@ struct tw2023_walletApp: App {
 
     private var authenticationManager = AuthenticationManager()
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // Initialize TrustAnchorManager to load built-in certificates at startup
+        _ = TrustAnchorManager.shared
+
+        // Register SVGCoder for SVG image support
+        SDImageCodersManager.shared.addCoder(SDImageSVGCoder.shared)
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -108,7 +118,7 @@ struct tw2023_walletApp: App {
 
     private func handleIncomingURL(_ url: URL) {
         print("handling url : \(url)")
-        if url.scheme == "openid4vp" {
+        if url.scheme == "openid4vp" || url.scheme == "haip-vp" || url.scheme == "eudi-openid4vp" {
             handleVp(url)
         }
         else if url.scheme == "openid-credential-offer" {

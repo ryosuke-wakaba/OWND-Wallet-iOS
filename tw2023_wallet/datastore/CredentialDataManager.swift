@@ -196,23 +196,14 @@ class CredentialDataManager {
     let persistentContainer: NSPersistentContainer
     var context: NSManagedObjectContext
 
-    init(container: NSPersistentContainer?) {
-        if container != nil {
-            self.persistentContainer = container!
+    init(container: NSPersistentContainer? = nil) {
+        if let container = container {
+            self.persistentContainer = container
             self.context = self.persistentContainer.viewContext
-            return
+        } else {
+            self.persistentContainer = PersistenceController.shared.container
+            self.context = PersistenceController.shared.viewContext
         }
-        self.persistentContainer = NSPersistentContainer(name: "DataModel")  // モデルの名前に合わせて変更
-
-        let description = self.persistentContainer.persistentStoreDescriptions.first
-        description?.type = NSSQLiteStoreType
-
-        self.persistentContainer.loadPersistentStores { _, error in
-            if let error = error {
-                fatalError("Unable to initialize Core Data: \(error)")
-            }
-        }
-        self.context = self.persistentContainer.viewContext
     }
 
     func saveCredentialData(credentialData: Datastore_CredentialData) throws {

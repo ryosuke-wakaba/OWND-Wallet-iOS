@@ -9,161 +9,122 @@ import Foundation
 
 class DetailPreviewModel: CredentialDetailViewModel {
     override func loadData(credential: Credential) async {
-        // nop
-    }
-    override func loadData(
-        credential: Credential, presentationDefinition: PresentationDefinition? = nil
-    ) async {
-        // mock data for preview
+        // mock data for preview (without bundle access)
         dataModel.isLoading = true
         print("load dummy data..")
-        let modelData = ModelData()
-        modelData.loadCredentialSharingHistories()
-        self.dataModel.sharingHistories = modelData.credentialSharingHistories
+        // Use empty history for preview to avoid bundle access
+        self.dataModel.sharingHistories = []
         print("done")
         dataModel.isLoading = false
+        dataModel.hasLoadedData = true
     }
 }
 
-class DetailVPModePreviewModel: CredentialDetailViewModel {
-    override func loadData(credential: Credential) async {
-        // nop
+// MARK: - Preview Sample Data
+
+/// Helper to create sample credentials for SwiftUI previews without bundle access
+enum PreviewSampleData {
+    private static let sampleMetadataJson = """
+    {
+        "credential_issuer": "https://example.com",
+        "credential_endpoint": "https://example.com/credentials",
+        "credential_configurations_supported": {
+            "IdentityCredential": {
+                "format": "dc+sd-jwt",
+                "vct": "IdentityCredential",
+                "display": [
+                    {
+                        "name": "Identity Credential",
+                        "locale": "en-US",
+                        "background_color": "#12107c",
+                        "text_color": "#FFFFFF"
+                    }
+                ]
+            }
+        },
+        "display": [
+            {
+                "name": "Sample Issuer",
+                "locale": "en-US"
+            }
+        ]
     }
-    override func loadData(
-        credential: Credential, presentationDefinition: PresentationDefinition? = nil
-    ) async {
-        // mock data for preview
-        dataModel.isLoading = true
-        print("load dummy data..")
-        requiredClaims = [
-            DisclosureWithOptionality(
-                disclosure: Disclosure(disclosure: "1", key: "last_name", value: "value1"),
-                isSubmit: true,
-                isUserSelectable: false),
-            DisclosureWithOptionality(
-                disclosure: Disclosure(disclosure: "2", key: "age", value: "value3"),
-                isSubmit: true,
-                isUserSelectable: false),
-        ]
-        undisclosedClaims = [
-            DisclosureWithOptionality(
-                disclosure: Disclosure(disclosure: "3", key: "first_name", value: "value2"),
-                isSubmit: false,
-                isUserSelectable: false)
-        ]
+    """
 
-        userSelectableClaims = [
-            DisclosureWithOptionality(
-                disclosure: Disclosure(disclosure: "4", key: "address", value: "value4"),
-                isSubmit: false,
-                isUserSelectable: true),
-            DisclosureWithOptionality(
-                disclosure: Disclosure(disclosure: "5", key: "gender", value: "value4"),
-                isSubmit: true,
-                isUserSelectable: true),
-
-        ]
-
-        print("done")
-        dataModel.isLoading = false
-    }
-
-    func dummyPresentationDefinition1() -> PresentationDefinition {
+    static func sampleMetadata() -> CredentialIssuerMetadata {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let presentationJsonData = presentationJson1.data(using: .utf8)
-        let presentationDefinition = try! decoder.decode(
-            PresentationDefinition.self, from: presentationJsonData!)
-        return presentationDefinition
+        let data = sampleMetadataJson.data(using: .utf8)!
+        return try! decoder.decode(CredentialIssuerMetadata.self, from: data)
     }
 
-    func dummyPresentationDefinition2() -> PresentationDefinition {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let presentationJsonData = presentationJson2.data(using: .utf8)
-        let presentationDefinition = try! decoder.decode(
-            PresentationDefinition.self, from: presentationJsonData!)
-        return presentationDefinition
+    /// Sample SD-JWT credential with background image
+    static func sampleSdJwtCredentialWithImage() -> Credential {
+        Credential(
+            id: "001",
+            format: "vc+sd-jwt",
+            payload: "QmFzZTY0RW5jb2RlZENvbnRlbnQ=",
+            issuer: "https://example.com",
+            issuerDisplayName: "Sample Issuer",
+            issuedAt: "2024-01-01T12:00:00Z",
+            logoUrl: nil,
+            backgroundColor: nil,
+            backgroundImageUrl: "https://example.com/image.png",
+            textColor: nil,
+            credentialType: "IdentityCredential",
+            disclosure: [
+                "name": "Yamada Taro",
+                "birth_of_date": "2000-10-20",
+                "is_older_than_18": "True"
+            ],
+            certificates: nil,
+            qrDisplay: "",
+            metaData: sampleMetadata()
+        )
     }
 
-    let presentationJson1 = """
-          {
-            "id": "12345",
-            "inputDescriptors": [
-              {
-                "id": "input1",
-                "name": "First Input",
-                "purpose": "For identification",
-                "format": {
-                  "vc+sd-jwt": {}
-                },
-                "group": [
-                  "A"
-                ],
-                "constraints": {
-                  "limitDisclosure": "required",
-                  "fields": [
-                    {
-                      "path": [
-                        "$.is_older_than_13"
-                      ],
-                      "filter": {
-                        "type": "boolean"
-                      }
-                    }
-                  ]
-                }
-              }
+    /// Sample SD-JWT credential with background color
+    static func sampleSdJwtCredentialWithColor() -> Credential {
+        Credential(
+            id: "002",
+            format: "vc+sd-jwt",
+            payload: "U29tZU90aGVyQmFzZTY0RW5jb2RlZENvbnRlbnQ=",
+            issuer: "https://example.com",
+            issuerDisplayName: "Sample Corp",
+            issuedAt: "2024-01-01T12:00:00Z",
+            logoUrl: nil,
+            backgroundColor: "#FF5733",
+            backgroundImageUrl: nil,
+            textColor: "#000000",
+            credentialType: "EmployeeCredential",
+            disclosure: [
+                "employeeNo": "12345",
+                "division": "Engineering"
             ],
-            "submissionRequirements": [
-              {
-                "name": "Over13 Proof",
-                "rule": "pick",
-                "count": 1,
-                "from": "A"
-              }
-            ]
-          }
-        """
+            certificates: nil,
+            qrDisplay: "",
+            metaData: sampleMetadata()
+        )
+    }
 
-    let presentationJson2 = """
-          {
-            "id": "12345",
-            "inputDescriptors": [
-              {
-                "id": "input1",
-                "name": "First Input",
-                "purpose": "For identification",
-                "format": {
-                  "vc+sd-jwt": {}
-                },
-                "group": [
-                  "A"
-                ],
-                "constraints": {
-                  "limitDisclosure": "required",
-                  "fields": [
-                    {
-                      "path": [
-                        "$.is_older_than_13"
-                      ],
-                      "filter": {
-                        "type": "boolean"
-                      },
-                      "optional": true
-                    }
-                  ]
-                }
-              }
-            ],
-            "submissionRequirements": [
-              {
-                "name": "Over13 Proof",
-                "rule": "pick",
-                "count": 1,
-                "from": "A"
-              }
-            ]
-          }
-        """
+    /// Sample JWT-VC-JSON credential
+    static func sampleJwtVcJsonCredential() -> Credential {
+        Credential(
+            id: "003",
+            format: "jwt_vc_json",
+            payload: "eyJhbGciOiJFUzI1NiJ9.eyJ0ZXN0IjoidmFsdWUifQ.signature",
+            issuer: "https://example.com",
+            issuerDisplayName: "Event Organizer",
+            issuedAt: "2024-01-01T12:00:00Z",
+            logoUrl: nil,
+            backgroundColor: "#33ffd3",
+            backgroundImageUrl: nil,
+            textColor: "#ff0000",
+            credentialType: "ParticipationCertificate",
+            disclosure: nil,
+            certificates: nil,
+            qrDisplay: "",
+            metaData: sampleMetadata()
+        )
+    }
 }

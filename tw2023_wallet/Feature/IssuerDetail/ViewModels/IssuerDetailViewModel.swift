@@ -108,14 +108,19 @@ class IssuerDetailViewModel {
         // SignatureUtilを使用して証明書チェーンの検証
         let pemCertificate = certificates[0].0
         let derCertificates = certificates.map { $0.1 }
-        if try SignatureUtil.validateCertificateChain(derCertificates: derCertificates) {
+        guard let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) else {
+            return
+        }
+        let validationResult = SignatureUtil.validateCertificateChainWithCustomAnchors(certificates: secCerts)
+        switch validationResult {
+        case .success:
             let pemCertificateInData = pemCertificate.data(using: .ascii)
             certInfo =
                 pemCertificateInData != nil
                 ? x509Certificate2CertificateInfo(pemData: pemCertificateInData!) : nil
-        }
-        else {
+        case .failure(let error):
             // TODO: 検証に失敗した場合の見せ方は要検討
+            print("Certificate validation failed: \(error.errorDescription ?? "unknown")")
         }
     }
 }

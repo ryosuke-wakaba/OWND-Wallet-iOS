@@ -71,23 +71,14 @@ class CredentialSharingHistoryManager {
     let persistentContainer: NSPersistentContainer
     var context: NSManagedObjectContext
 
-    init(container: NSPersistentContainer?) {
-        if container != nil {
-            persistentContainer = container!
+    init(container: NSPersistentContainer? = nil) {
+        if let container = container {
+            persistentContainer = container
             context = persistentContainer.viewContext
-            return
+        } else {
+            persistentContainer = PersistenceController.shared.container
+            context = PersistenceController.shared.viewContext
         }
-        persistentContainer = NSPersistentContainer(name: "DataModel")  // モデルの名前に合わせて変更
-
-        let description = persistentContainer.persistentStoreDescriptions.first
-        description?.type = NSSQLiteStoreType
-
-        persistentContainer.loadPersistentStores { _, error in
-            if let error = error {
-                fatalError("Unable to initialize Core Data: \(error)")
-            }
-        }
-        context = persistentContainer.viewContext
     }
 
     func save(history: Datastore_CredentialSharingHistory) {

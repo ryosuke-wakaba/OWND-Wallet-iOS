@@ -63,10 +63,5 @@ final class ModelDataTests: XCTestCase {
             modelData.clientInfoList.isEmpty, "Client Info List should not be empty after loading.")
     }
 
-    func testLoadPresentationDefinitions() {
-        modelData.loadPresentationDefinitions()
-        XCTAssertFalse(
-            modelData.presentationDefinitions.isEmpty,
-            "Presentation Definitions should not be empty after loading.")
-    }
+    // Note: testLoadPresentationDefinitions removed - PresentationDefinition deprecated in favor of DCQL
 }

@@ -7,15 +7,8 @@
 
 import SwiftUI
 
-enum SharingScreen {
-    case sharingRequest
-    case credentialList
-    case credentialDetail
-}
-
 struct SharingRequest: View {
     @Environment(\.presentationMode) var presentationMode
-    //    @Environment(SharingCredentialArgs.self) var args
     @Environment(SharingRequestModel.self) var sharingRequestModel
     @State var viewModel: SharingRequestViewModel = SharingRequestViewModel()
     var args: SharingCredentialArgs
@@ -25,11 +18,15 @@ struct SharingRequest: View {
     @State var alertTitle = ""
     @State var alertMessage = ""
 
-    @State private var path: [ScreensOnFullScreen] = []
     @State var proofBy = ""
 
+    // Credential picker sheet
+    @State private var showCredentialPicker = false
+    @State private var displayCredential: Credential?
+    @State private var claimsLoaded = false
+
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack {
             GeometryReader { _ in
                 Group {
                     if viewModel.isLoading {
@@ -55,63 +52,48 @@ struct SharingRequest: View {
                                         Spacer()
                                     }
                                     // ------------ title section ------------
-                                    if let pd = viewModel.presentationDefinition,
-                                        let name = pd.name
-                                    {
-                                        Text(name)
-                                            .modifier(Title3Black())
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                    else {
-                                        let titleKey =
-                                            "provide_the_information_required_to_register"
-                                        let title = String(
-                                            format: NSLocalizedString(titleKey, comment: ""),
-                                            clientInfo.name)
-                                        Text(title)
-                                            .modifier(Title3Black())
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
+                                    // Use recipient display name (organization from cert or client name)
+                                    let recipientName = clientInfo.certificateInfo?.organization ?? clientInfo.name
+                                    let displayName = recipientName.isEmpty ? NSLocalizedString("unknown_recipient", comment: "") : recipientName
+                                    let titleKey = "provide_the_information_required_to_register"
+                                    let title = String(
+                                        format: NSLocalizedString(titleKey, comment: ""),
+                                        displayName)
+                                    Text(title)
+                                        .modifier(Title3Black())
+                                        .frame(maxWidth: .infinity, alignment: .leading)
 
                                     // ------------ logo to logo section ------------
-                                    HStack {
-                                        Image("logo_ownd")
-                                            .padding(.trailing, 8)
-                                        Image(systemName: "arrow.forward")
-                                            .modifier(TitleGray())
-                                            .fontWeight(.black)
-                                            .padding(.horizontal, 8)
-                                        Group {
-                                            if let logoView = clientInfo.logoImage {
-                                                logoView
-                                            }
-                                            else {
-                                                Color.clear
-                                            }
+                                    if let logoView = clientInfo.logoImage {
+                                        HStack {
+                                            Image("logo_ownd")
+                                                .padding(.trailing, 8)
+                                            Image(systemName: "arrow.forward")
+                                                .modifier(TitleGray())
+                                                .fontWeight(.black)
+                                                .padding(.horizontal, 8)
+                                            logoView
+                                                .frame(width: 70, height: 70)
+                                                .padding(.horizontal, 8)
                                         }
-                                        .frame(width: 70, height: 70)
-                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 16)
                                     }
-                                    .padding(.vertical, 16)
 
                                     // ------------ sharing data info section ------------
                                     Text(
                                         String(
                                             format: NSLocalizedString(
                                                 "information_provided_to", comment: ""),
-                                            clientInfo.name)
+                                            displayName)
                                     )
                                     .modifier(BodyGray())
                                     .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
                                     .padding(.top, 16)
 
-                                    if let presentationDefinition = viewModel.presentationDefinition
+                                    if viewModel.dcqlQuery != nil
                                     {
-                                        ProvideAge(
-                                            clientInfo: clientInfo,
-                                            presentationDefinition: presentationDefinition)
                                         if viewModel.selectedCredential {
-                                            // ------------ change link ------------
+                                            // ------------ selected credential info ------------
                                             StatusBox(displayText: $proofBy, status: .success)
                                             Text("change_credential")
                                                 .modifier(BodyBlack())
@@ -120,8 +102,34 @@ struct SharingRequest: View {
                                                 .onTapGesture {
                                                     viewModel.selectedCredential = false
                                                     sharingRequestModel.data = nil
-                                                    path.append(ScreensOnFullScreen.credentialList)
+                                                    displayCredential = nil
+                                                    claimsLoaded = false
+                                                    viewModel.loadFilteredCredentials()
+                                                    showCredentialPicker = true
                                                 }
+
+                                            // ------------ claims display section ------------
+                                            if claimsLoaded {
+                                                // required claims
+                                                Text("Sharing Contents of this certificate")
+                                                    .padding(.vertical, 16)
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                    .modifier(BodyGray())
+                                                ForEach(viewModel.requiredClaims, id: \.self.disclosure.id) { it in
+                                                    DisclosureRow(submitDisclosure: .constant(it))
+                                                }
+
+                                                // undisclosed claims
+                                                if !viewModel.undisclosedClaims.isEmpty {
+                                                    Text("Not Sharing Contents of this certificate")
+                                                        .padding(.vertical, 16)
+                                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                                        .modifier(BodyGray())
+                                                    ForEach(viewModel.undisclosedClaims, id: \.self.disclosure.id) { it in
+                                                        DisclosureRow(submitDisclosure: .constant(it))
+                                                    }
+                                                }
+                                            }
                                         }
                                         else {
                                             StatusBox(
@@ -130,7 +138,8 @@ struct SharingRequest: View {
                                             ActionButtonWhite(
                                                 title: "select_a_certificate",
                                                 action: {
-                                                    path.append(ScreensOnFullScreen.credentialList)
+                                                    viewModel.loadFilteredCredentials()
+                                                    showCredentialPicker = true
                                                 })
                                         }
                                     }
@@ -148,7 +157,7 @@ struct SharingRequest: View {
                                     .padding(.vertical, 16)
 
                                     // ------------ sharing button section ------------
-                                    if viewModel.presentationDefinition == nil
+                                    if viewModel.dcqlQuery == nil
                                         || viewModel.selectedCredential
                                     {
                                         ActionButtonBlack(
@@ -211,16 +220,6 @@ struct SharingRequest: View {
                     print("client info changed: \(clientInfo)")
                 }
             }
-            .navigationDestination(for: ScreensOnFullScreen.self) { screen in
-                switch screen {
-                    case .credentialList:
-                        CredentialListForSharing()
-                    case .credentialDetail(let credential):
-                        CredentialDetail(credential: credential, path: $path)
-                    default:
-                        EmptyView()
-                }
-            }
             .onAppear {
                 Task {
                     print("accessPairwiseAccountManager")
@@ -230,9 +229,9 @@ struct SharingRequest: View {
                             authenticated = true
                             if let url = args.url {
                                 await viewModel.loadData(url)
-                                if viewModel.presentationDefinition != nil {
-                                    sharingRequestModel.presentationDefinition =
-                                        viewModel.presentationDefinition
+                                if viewModel.dcqlQuery != nil {
+                                    sharingRequestModel.dcqlQuery =
+                                        viewModel.dcqlQuery
                                 }
                                 showAlert = viewModel.showAlert
                                 alertTitle = viewModel.alertTitle
@@ -257,9 +256,107 @@ struct SharingRequest: View {
                     }
                 )
             }
+            .sheet(isPresented: $showCredentialPicker, onDismiss: nil) {
+                CredentialPickerSheet(
+                    credentials: viewModel.filteredCredentials,
+                    onSelect: { credential in
+                        selectCredential(credential)
+                    }
+                )
+            }
         }
     }
+
+    private func selectCredential(_ credential: Credential) {
+        displayCredential = credential
+
+        // Classify claims using viewModel
+        viewModel.classifyClaims(credential: credential)
+
+        // Create submission credential
+        if let submissionCredential = viewModel.createSubmissionCredential(
+            credential: credential,
+            discloseClaims: viewModel.requiredClaims
+        ) {
+            sharingRequestModel.setSelectedCredentials(
+                data: [submissionCredential],
+                metadata: credential.metaData
+            )
+        }
+
+        // Update UI state
+        viewModel.selectedCredential = true
+        if let credentialSupported = VCIMetadataUtil.findMatchingCredentials(
+            format: credential.format,
+            types: try! VCIMetadataUtil.extractTypes(format: credential.format, credential: credential.payload),
+            metadata: credential.metaData
+        ) {
+            if let display = credentialSupported.display {
+                proofBy = String(
+                    format: NSLocalizedString("proof_by", comment: ""),
+                    display[0].name)
+            }
+        }
+        claimsLoaded = true
+    }
 }
+
+// MARK: - Credential Picker Sheet
+
+struct CredentialPickerSheet: View {
+    @Environment(\.dismiss) var dismiss
+    var credentials: [Credential]
+    var onSelect: (Credential) -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if credentials.isEmpty {
+                    VStack {
+                        Spacer()
+                        Text("no_certificate")
+                            .modifier(BodyGray())
+                        Spacer()
+                    }
+                }
+                else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(credentials) { credential in
+                                VStack(alignment: .leading) {
+                                    Text(LocalizedStringKey(credential.credentialType))
+                                        .font(.headline)
+                                        .padding(.leading, 16)
+                                    CredentialRow(credential: credential)
+                                        .aspectRatio(1.6, contentMode: .fit)
+                                        .frame(maxWidth: .infinity)
+                                        .onTapGesture {
+                                            onSelect(credential)
+                                            dismiss()
+                                        }
+                                }
+                            }
+                        }
+                        .padding(.vertical, 16)
+                    }
+                }
+            }
+            .navigationTitle("select_a_certificate")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Previews
 
 #Preview("ID Token Sharing") {
     let args = SharingCredentialArgs()

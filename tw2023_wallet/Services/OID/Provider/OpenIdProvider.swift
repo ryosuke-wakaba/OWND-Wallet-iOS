@@ -32,7 +32,7 @@ class OpenIdProvider {
     var state: String?
     var redirectUri: String?
     var responseUri: String?
-    var presentationDefinition: PresentationDefinition?
+    var dcqlQuery: DcqlQuery?
 
     init(_ option: ProviderOption) {
         self.option = option
@@ -70,66 +70,95 @@ class OpenIdProvider {
                     print("verify request jwt")
                     let clientScheme = requestObj!.clientIdScheme
                     let jwt = processedRequestData.requestObjectJwt
-                    if clientScheme == "x509_san_dns" {
-                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt)
+
+                    // OID4VP 1.0: Check Client Identifier Prefix format
+                    let isX509SanDns = clientScheme == "x509_san_dns" || _clientId.hasPrefix("x509_san_dns:")
+                    let isX509Hash = _clientId.hasPrefix("x509_hash:")
+
+                    if isX509SanDns || isX509Hash {
+                        // Verify certificate chain using custom trust anchors (built-in intermediate + root)
+                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
                         switch result {
                             case .success(let verifedX5CJwt):
                                 print("verify request jwt success")
-                                // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
-                                /*
-                            the Client Identifier MUST be a DNS name and match a dNSName Subject Alternative Name (SAN) [RFC5280] entry in the leaf certificate passed with the request.
-                             */
                                 let (decoded, certificates) = verifedX5CJwt
 
-                                guard let url = URL(string: _clientId),
-                                    let domainName = url.host
-                                else {
-                                    return .failure(
-                                        .authRequestInputError(
-                                            reason: .compliantError(
-                                                reason: "Unable to get host name")))
-                                }
-
-                                if isDomainInSAN(certificate: certificates[0], domain: domainName) {
-                                    print("verify san entry success")
-                                }
-                                else {
-                                    return .failure(
-                                        .authRequestInputError(
-                                            reason: .compliantError(
-                                                reason: "Invalid client_id not in san entry of cert"
-                                            )
-                                        ))
-                                }
-
-                                if let urlString = requestObj?.responseUri
-                                    ?? requestObj?.redirectUri,
-                                    let url = URL(string: urlString)
-                                {
-                                    if let clientUrl = URL(string: _clientId),
-                                        let urlHost = url.host, let clientIdHost = clientUrl.host,
-                                        urlHost == clientIdHost
-                                    {
-
-                                        print("verify client_id and url success")
-                                    }
-                                    else {
+                                if isX509SanDns {
+                                    // x509_san_dns: Verify SAN DNS name
+                                    // Extract domain from client_id (with or without prefix)
+                                    let domainName: String
+                                    if _clientId.hasPrefix("x509_san_dns:") {
+                                        domainName = String(_clientId.dropFirst("x509_san_dns:".count))
+                                    } else if let url = URL(string: _clientId), let host = url.host {
+                                        domainName = host
+                                    } else {
                                         return .failure(
                                             .authRequestInputError(
                                                 reason: .compliantError(
-                                                    reason:
-                                                        "Invalid client_id or response_uri(redirect_uri)"
+                                                    reason: "Unable to get domain name from client_id")))
+                                    }
+
+                                    if isDomainInSAN(certificate: certificates[0], domain: domainName) {
+                                        print("verify san entry success")
+                                    } else {
+                                        return .failure(
+                                            .authRequestInputError(
+                                                reason: .compliantError(
+                                                    reason: "Invalid client_id not in san entry of cert"
                                                 )
                                             ))
                                     }
+
+                                    // Verify response_uri/redirect_uri host matches client_id domain
+                                    if let urlString = requestObj?.responseUri ?? requestObj?.redirectUri,
+                                       let url = URL(string: urlString),
+                                       let urlHost = url.host {
+                                        if urlHost == domainName {
+                                            print("verify client_id and url success")
+                                        } else {
+                                            return .failure(
+                                                .authRequestInputError(
+                                                    reason: .compliantError(
+                                                        reason: "Invalid client_id or response_uri(redirect_uri)"
+                                                    )
+                                                ))
+                                        }
+                                    }
+                                } else if isX509Hash {
+                                    // x509_hash: Verify certificate hash matches client_id
+                                    let validationResult = validateX509HashClientId(
+                                        clientId: _clientId,
+                                        certificates: certificates
+                                    )
+
+                                    switch validationResult {
+                                    case .success:
+                                        print("verify x509_hash success")
+                                    default:
+                                        let errorMessage = validationResult.errorMessage ?? "x509_hash validation failed"
+                                        print("x509_hash validation failed: \(errorMessage)")
+                                        return .failure(
+                                            .authRequestInputError(
+                                                reason: .compliantError(reason: errorMessage)
+                                            ))
+                                    }
+                                    // Note: For x509_hash, response_uri/redirect_uri host validation is not required
+                                    print("x509_hash client_id verified")
                                 }
 
                             case .failure(let error):
                                 print("\(error)")
+                                // Extract detailed error message for certificate validation failures
+                                let errorMessage: String
+                                if case .certificateValidationFailed(let certError) = error {
+                                    errorMessage = certError.errorDescription ?? "Certificate validation failed"
+                                } else {
+                                    errorMessage = "JWT verification failed"
+                                }
                                 return .failure(
                                     .authRequestInputError(
                                         reason: .compliantError(
-                                            reason: "Invalid client_id or response_uri")
+                                            reason: errorMessage)
                                     ))
                         }
                     }
@@ -146,17 +175,32 @@ class OpenIdProvider {
                     }
                 }
 
-                let clientScheme =
-                    requestObj?.clientIdScheme ?? authRequest.clientIdScheme ?? "redirect_uri"
+                // OID4VP 1.0: Determine client scheme from client_id prefix or client_id_scheme
+                let clientScheme: String
+                if _clientId.hasPrefix("x509_san_dns:") {
+                    clientScheme = "x509_san_dns"
+                } else if _clientId.hasPrefix("x509_hash:") {
+                    clientScheme = "x509_hash"
+                } else if _clientId.hasPrefix("redirect_uri:") {
+                    clientScheme = "redirect_uri"
+                } else {
+                    clientScheme = requestObj?.clientIdScheme ?? authRequest.clientIdScheme ?? "redirect_uri"
+                }
+
                 if clientScheme == "redirect_uri" {
+                    // For redirect_uri scheme, client_id must match response_uri
                     let responseUri = requestObj?.responseUri ?? authRequest.responseUri
-                    if clientId != responseUri {
+                    let clientIdValue = _clientId.hasPrefix("redirect_uri:")
+                        ? String(_clientId.dropFirst("redirect_uri:".count))
+                        : _clientId
+                    if clientIdValue != responseUri {
                         return .failure(
                             .authRequestInputError(
                                 reason: .compliantError(reason: "Invalid client_id or response_uri")
                             ))
                     }
                 }
+                // Note: x509_san_dns and x509_hash schemes are already validated above
 
                 guard let _responseType = requestObj?.responseType ?? authRequest.responseType
                 else {
@@ -182,15 +226,18 @@ class OpenIdProvider {
                 }
                 nonce = _nonce
                 state = requestObj?.state ?? authRequest.state ?? ""
+                print("[OpenIdProvider] Parsed state from request: '\(state ?? "nil")'")
+                print("[OpenIdProvider] requestObj?.state: '\(requestObj?.state ?? "nil")'")
+                print("[OpenIdProvider] authRequest.state: '\(authRequest.state ?? "nil")'")
                 if _responseType.contains("vp_token") {
-                    guard let _presentationDefinition = processedRequestData.presentationDefinition
+                    guard let _dcqlQuery = processedRequestData.dcqlQuery
                     else {
                         return .failure(
                             .authRequestInputError(
                                 reason: .compliantError(
-                                    reason: "can not get presentation definition")))
+                                    reason: "can not get dcql query")))
                     }
-                    presentationDefinition = _presentationDefinition
+                    dcqlQuery = _dcqlQuery
                 }
                 if responseMode == ResponseMode.directPost
                     || responseMode == ResponseMode.directPostJwt
@@ -293,6 +340,7 @@ class OpenIdProvider {
                 formData: mergedFormData,
                 url: URL(string: whereToRespond)!,
                 responseMode: responseMode,
+                clientMetadata: authRequestProcessedData?.clientMetadata,
                 using: session
             )
 
@@ -377,9 +425,9 @@ class OpenIdProvider {
 
         guard let clientId = clientId,
             let responseMode = responseMode,
-            let nonce = nonce,
-            let presentationDefinition = presentationDefinition
+            let nonce = nonce
         else {
+            print("[createVpToken] illegalState - clientId: \(String(describing: self.clientId)), responseMode: \(String(describing: self.responseMode)), nonce: \(String(describing: self.nonce))")
             return .failure(OpenIdProviderIllegalStateException.illegalState)
         }
 
@@ -416,19 +464,6 @@ class OpenIdProvider {
             return .failure(OpenIdProviderIllegalStateException.illegalJsonState)
         }
 
-        let presentationSubmission = PresentationSubmission(
-            id: UUID().uuidString,
-            definitionId: presentationDefinition.id,
-            descriptorMap: preparedSubmissionData.map { $0.descriptorMap }
-        )
-
-        let jsonEncoder = JSONEncoder()
-        jsonEncoder.keyEncodingStrategy = .convertToSnakeCase
-
-        // オブジェクトをJSON文字列にエンコード
-        let jsonData = try! jsonEncoder.encode(presentationSubmission)
-        let jsonString = String(data: jsonData, encoding: .utf8)!
-
         let sharedCredentials = preparedSubmissionData.map {
             SharedCredential(
                 id: $0.credentialId,
@@ -436,9 +471,13 @@ class OpenIdProvider {
                 sharedClaims: $0.disclosedClaims)
         }
 
-        var formData = ["vp_token": vpTokenValue, "presentation_submission": jsonString]
+        // OID4VP 1.0: vp_token only, no presentation_submission
+        var formData = ["vp_token": vpTokenValue]
         if let state = state {
             formData["state"] = state
+            print("[createVpToken] Adding state to formData: '\(state)'")
+        } else {
+            print("[createVpToken] No state to add (state is nil)")
         }
 
         return .success((formData, sharedCredentials))
@@ -464,98 +503,4 @@ class OpenIdProvider {
         }
         return (statusCode, nil, nil)
     }
-
-    /*
-
-    The following code contains an implementation that is contrary to the current specification.
-    During initial development, a special implementation was required for the purpose of connecting to Matrix's Synapse server.
-    The following code needs to be removed at an appropriate time.
-
-    Specification:
-
-     https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.2
-     If the Response Endpoint has successfully processed the request, it MUST respond with HTTPS status code 200.
-
-     https://openid.net/specs/openid-connect-self-issued-v2-1_0.html#section-10.2
-     The Self-Issued OP MUST NOT follow redirects on this request
-
-
-    func convertIdTokenResponseResponse(data: Data, response: HTTPURLResponse, requestURL: URL)
-        throws -> (Int, String?, [String]?)
-    {
-        //        print("response body of siop response: \(String(data: data, encoding: .utf8) ?? "no utf string value")")
-        var cookies: [String]? = nil
-        if let setCookieHeader = response.allHeaderFields["Set-Cookie"] as? String {
-            cookies = [setCookieHeader]
-        }
-        else if let setCookieHeaders = response.allHeaderFields["Set-Cookie"] as? [String] {
-            cookies = setCookieHeaders
-        }
-        if response.statusCode == 302 {
-            if let locationHeader = response.allHeaderFields["Location"] as? String {
-                print("Location Header: \(locationHeader)")
-                let location: String
-                if locationHeader.starts(with: "http://") || locationHeader.starts(with: "https://")
-                {
-                    location = locationHeader
-                }
-                else {
-                    let scheme = requestURL.scheme ?? "http"
-                    let host = requestURL.host ?? ""
-                    let port = requestURL.port.map { ":\($0)" } ?? ""
-                    location = "\(scheme)://\(host)\(port)\(locationHeader)"
-                }
-                return (response.statusCode, location, cookies)
-            }
-            else {
-                throw NetworkError.invalidResponse  // 適切なエラー処理を行う
-            }
-        }
-        else {
-            return (response.statusCode, nil, cookies)
-        }
-    }
-
-    func convertVpTokenResponseResponse(data: Data, response: HTTPURLResponse, requestURL: URL)
-        throws -> (Int, String?, [String]?)
-    {
-        let statusCode = response.statusCode
-        if statusCode == 200 {
-            if let contentType = response.allHeaderFields["Content-Type"] as? String {
-                if contentType.hasPrefix("application/json") {
-                    guard
-                        let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
-                        let jsonDict = jsonObject as? [String: Any]
-                    else {
-                        throw AuthorizationError.invalidData
-                    }
-                    let location = jsonDict["redirect_uri"] as? String
-                    return (statusCode, location, nil)
-                }
-            }
-        }
-        if response.statusCode == 302 {
-            if let locationHeader = response.allHeaderFields["Location"] as? String {
-                var location: String? = nil
-                if locationHeader.starts(with: "http://") || locationHeader.starts(with: "https://")
-                {
-                    location = locationHeader
-                }
-                else {
-                    let scheme = requestURL.scheme ?? "http"
-                    let host = requestURL.host ?? ""
-                    let port = requestURL.port.map { ":\($0)" } ?? ""
-                    location = "\(scheme)://\(host)\(port)\(locationHeader)"
-                }
-                return (response.statusCode, location, nil)
-            }
-            else {
-                throw NetworkError.invalidResponse
-            }
-        }
-
-        return (statusCode, nil, nil)
-    }
-     */
-
 }

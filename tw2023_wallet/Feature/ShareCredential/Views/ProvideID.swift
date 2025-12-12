@@ -37,6 +37,6 @@ struct ProvideID: View {
 #Preview {
     let modelData = ModelData()
     modelData.loadClientInfoList()
-    modelData.loadPresentationDefinitions()
+    modelData.loadDcqlQueries()
     return ProvideID(clientInfo: modelData.clientInfoList[0])
 }

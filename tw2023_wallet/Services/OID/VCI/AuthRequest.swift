@@ -55,9 +55,23 @@ protocol AuthorizationRequestCommonPayload {
     var clientMetadata: RPRegistrationMetadataPayload? { get }
     var clientMetadataUri: String? { get }
     var responseUri: String? { get }
-    var presentationDefinition: PresentationDefinition? { get }
-    var presentationDefinitionUri: String? { get }
+    var dcqlQuery: DcqlQuery? { get }
     var clientIdScheme: String? { get }
+}
+
+/// VP format algorithm values per OID4VP 1.0 Section 11.1
+struct VpFormatAlgorithms: Codable {
+    var sdJwtAlgValues: [String]?
+    var kbJwtAlgValues: [String]?
+    var algValues: [String]?
+    var proofType: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case sdJwtAlgValues = "sd-jwt_alg_values"
+        case kbJwtAlgValues = "kb-jwt_alg_values"
+        case algValues = "alg_values"
+        case proofType = "proof_type"
+    }
 }
 
 struct RPRegistrationMetadataPayload: Codable {
@@ -70,14 +84,29 @@ struct RPRegistrationMetadataPayload: Codable {
     var requestObjectEncryptionEncValuesSupported: [String]?
     var clientId: String?
     var clientName: String?
-    var vpFormats: [String: [String: [String]]]?
     var logoUri: String?
     var policyUri: String?
     var tosUri: String?
     var clientPurpose: String?
-    var jwks: String?  // todo jwksの配列型を指定する
+    var jwks: ClientJWKSet?
     var jwksUri: String?
-    var vpFormatsSupported: Format?
+    var vpFormatsSupported: [String: VpFormatAlgorithms]?
+    var authorizationEncryptedResponseAlg: String?
+    var authorizationEncryptedResponseEnc: String?
+}
+
+struct ClientJWKSet: Codable {
+    var keys: [ClientJWK]
+}
+
+struct ClientJWK: Codable {
+    var kty: String
+    var crv: String?
+    var x: String?
+    var y: String?
+    var kid: String?
+    var use: String?
+    var alg: String?
 }
 
 protocol RequestObjectPayload: AuthorizationRequestCommonPayload, JWTPayload {}
@@ -108,8 +137,7 @@ struct RequestObjectPayloadImpl: RequestObjectPayload {
     var clientMetadata: RPRegistrationMetadataPayload?
     var clientMetadataUri: String?
     var responseUri: String?
-    var presentationDefinition: PresentationDefinition?
-    var presentationDefinitionUri: String?
+    var dcqlQuery: DcqlQuery?
     var clientIdScheme: String?
 }
 
@@ -138,8 +166,7 @@ struct AuthorizationRequestPayloadImpl: AuthorizationRequestPayload, Codable {
     var request: String?
     var requestUri: String?
     var responseUri: String?
-    var presentationDefinition: PresentationDefinition?
-    var presentationDefinitionUri: String?
+    var dcqlQuery: DcqlQuery?
     var clientIdScheme: String?
 }
 

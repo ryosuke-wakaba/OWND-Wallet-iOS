@@ -11,6 +11,7 @@ enum ScreensOnFullScreen: Identifiable, Hashable {
     case root
     case credentialList
     case credentialDetail(Credential)
+    case issuerDetail(Credential)
     case credentialOffer
     case sharingRequest
     case verification
@@ -20,9 +21,10 @@ enum ScreensOnFullScreen: Identifiable, Hashable {
             case .root: return 0
             case .credentialList: return 1
             case .credentialDetail: return 2
-            case .credentialOffer: return 3
-            case .sharingRequest: return 4
-            case .verification: return 5
+            case .issuerDetail: return 3
+            case .credentialOffer: return 4
+            case .sharingRequest: return 5
+            case .verification: return 6
         }
     }
 }

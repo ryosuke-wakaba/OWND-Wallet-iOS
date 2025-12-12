@@ -16,7 +16,7 @@ class ModelData {
     var issuerMetaDataList: [CredentialIssuerMetadata] = []  // IssureMetaDataを呼ぶため仮
     var authorizationMetaDataList: [AuthorizationServerMetadata] = []
     var clientInfoList: [ClientInfo] = []
-    var presentationDefinitions: [PresentationDefinition] = []
+    var dcqlQueries: [DcqlQuery] = []
 
     func loadCredentials() {
         self.credentials = load("credentialData.json")
@@ -50,8 +50,8 @@ class ModelData {
         self.clientInfoList = load("clientInfo.json")
     }
 
-    func loadPresentationDefinitions() {
-        self.presentationDefinitions = load("presentationDefinition.json")
+    func loadDcqlQueries() {
+        self.dcqlQueries = load("dcqlQuery.json")
     }
 }
 

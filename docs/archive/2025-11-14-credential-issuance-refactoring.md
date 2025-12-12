@@ -1,5 +1,23 @@
 # Credential Issuance リファクタリング計画
 
+## ステータス
+
+**アーカイブ済み** (2025-12-02)
+
+以下のフェーズは完了済み：
+- Phase 1: 基盤改善 ✅
+- Phase 2.1: Service層導入 ✅
+
+以下のフェーズは実施しない：
+- Phase 2.2: データ変換ロジックの分離
+- Phase 3: テスト強化
+- Phase 4: ドキュメント・最適化
+- Future Work: 非同期処理のキャンセルサポート
+
+関連ADR: [0002-refactor-credential-issuance-architecture.md](../adr/0002-refactor-credential-issuance-architecture.md)
+
+---
+
 ## 概要
 
 このドキュメントは、Credential Issuance (OID4VCI) 機能のリファクタリング計画を定義します。主な目的は、コードの保守性、テスタビリティ、拡張性を向上させることです。
