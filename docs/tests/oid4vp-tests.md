@@ -269,11 +269,13 @@ tw2023_walletTests/Resources/
 
 **パス**: `tw2023_walletTests/Signature/X509ChainValidationTests.swift`
 
-**対応実装**: `tw2023_wallet/Signature/SignatureUtil.swift`
+**対応実装**: `tw2023_wallet/Signature/SignatureUtil.swift`, `tw2023_wallet/Signature/JWTUtil.swift`
 
 **概要**: X.509証明書チェーンの検証をテストします。カスタム信頼アンカーを使用したJWTのx5cヘッダー検証に対応しています。
 
 ### テストケース
+
+#### 基本テスト
 
 | テストメソッド | 説明 | 検証内容 |
 |--------------|------|---------|
@@ -284,6 +286,38 @@ tw2023_walletTests/Resources/
 | `testInvalidChainWithUnknownRoot` | 未知のルート証明書 | 信頼されていないルートで検証が失敗すること |
 | `testJwtWithX5CHeaderValidation` | JWT x5c検証 | x5cヘッダー付きJWTが検証できること |
 | `testJwtWithX5CHeaderInvalidChain` | JWT x5c無効チェーン | 無効なチェーンでJWT検証が失敗すること |
+
+#### x5c中間証明書対応テスト（2025-12-12追加）
+
+x5cヘッダーに中間証明書が含まれるケースに対応したテストです。
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testX5cWithChain_LeafAndIntermediate` | x5cにチェーン含む | x5cにリーフ＋中間証明書がある場合、TrustAnchorManagerの中間証明書なしで検証成功すること |
+| `testX5cWithLeafOnly_FailsWithoutIntermediate` | x5cにリーフのみ | x5cにリーフのみ、TrustAnchorManagerに中間証明書なしの場合は検証失敗すること |
+| `testJwtWithX5CChain_LeafAndIntermediate` | JWT検証：x5cにチェーン | JWTのx5cにリーフ＋中間証明書がある場合の検証が成功すること |
+| `testJwtWithX5CLeafOnly_SucceedsWithTrustAnchorManagerIntermediate` | JWT検証：TrustAnchorManager補完 | x5cにリーフのみでもTrustAnchorManagerから中間証明書を補完して検証成功すること |
+
+#### x5c形式検証テスト（2025-12-12追加）
+
+RFC 7515違反（不正なx5c形式）の検出テストです。
+
+| テストメソッド | 説明 | 検証内容 |
+|--------------|------|---------|
+| `testInvalidX5cFormat_CommaSeparatedCertificates` | カンマ区切り形式検出 | x5cが配列要素ではなくカンマ区切り文字列の場合、`invalidX5cFormat`エラーが発生すること |
+
+### x5c証明書チェーン処理ロジック（2025-12-12実装）
+
+RFC 7515に準拠したx5c処理：
+
+| x5c内容 | 処理 |
+|--------|------|
+| `[leaf]` のみ | TrustAnchorManagerの中間証明書で補完 |
+| `[leaf, intermediate, ...]` | x5cチェーンをそのまま使用（TrustAnchorManager中間証明書は追加しない） |
+| カンマ区切り形式 | `SignatureUtilError.invalidX5cFormat`エラー |
+
+**RFC 7515 Section 4.1.6**:
+> Each string in the array is a **base64-encoded** (Section 4 of [RFC4648] -- **not base64url-encoded**) DER PKIX certificate value.
 
 ### テスト証明書チェーン構成
 
@@ -495,6 +529,8 @@ OID4VP機能とテストの対応関係：
 | 共有履歴保存 | ModelDataTests.swift | ✅ |
 | X.509信頼アンカー管理 | TrustAnchorManagerTests.swift | ✅ |
 | X.509証明書チェーン検証 | X509ChainValidationTests.swift | ✅ |
+| x5c中間証明書対応 | X509ChainValidationTests.swift | ✅ |
+| x5c形式検証（RFC 7515） | X509ChainValidationTests.swift | ✅ |
 | x509_hash Client ID検証 | X509HashValidationTests.swift | ✅ |
 | x509_san_dns Client ID検証 | X509HashValidationTests.swift | ✅ |
 | SD-JWT解析 | SDJwtUtilTest.swift | ✅ |
@@ -518,6 +554,8 @@ OID4VP機能とテストの対応関係：
 | Client ID Scheme検証（x509_hash） | ✅ | ✅ | 必須 | X509HashValidationTests.swift |
 | Client ID Scheme検証（x509_san_dns） | ✅ | ✅ | 必須 | X509HashValidationTests.swift |
 | Client ID Scheme検証（redirect_uri） | ✅ | - | 必須 | OpenIdProvider.swift |
+| x5c中間証明書対応 | ✅ | ✅ | 必須 | X509ChainValidationTests.swift（2025-12-12追加） |
+| x5c形式検証（RFC 7515準拠） | ✅ | ✅ | 必須 | X509ChainValidationTests.swift（2025-12-12追加） |
 | VCT値マッチング | ✅ | ✅ | オプション | DCQLMatcherTests.swift |
 | claim_sets対応 | ❌ | - | オプション | 未実装（優先度低） |
 | values制限対応 | ❌ | - | オプション | 未実装（優先度低） |

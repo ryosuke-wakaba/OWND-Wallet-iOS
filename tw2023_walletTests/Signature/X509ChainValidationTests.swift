@@ -232,7 +232,7 @@ final class X509ChainValidationTests: XCTestCase {
 
         // Validate chain with only leaf certificate (intermediate and root from TrustAnchorManager)
         let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
-            leafCertificates: [leafSecCert]
+            certificates: [leafSecCert]
         )
 
         switch result {
@@ -296,7 +296,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         let resultA = SignatureUtil.validateCertificateChainWithCustomAnchors(
-            leafCertificates: [leafASecCert]
+            certificates: [leafASecCert]
         )
         switch resultA {
         case .success:
@@ -312,7 +312,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         let resultB = SignatureUtil.validateCertificateChainWithCustomAnchors(
-            leafCertificates: [leafBSecCert]
+            certificates: [leafBSecCert]
         )
         switch resultB {
         case .success:
@@ -338,7 +338,7 @@ final class X509ChainValidationTests: XCTestCase {
 
         // This should fail because intermediate is missing
         let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
-            leafCertificates: [leafSecCert]
+            certificates: [leafSecCert]
         )
 
         switch result {
@@ -372,7 +372,7 @@ final class X509ChainValidationTests: XCTestCase {
 
         // This should fail because the root CA is not trusted
         let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
-            leafCertificates: [unknownLeafSecCert]
+            certificates: [unknownLeafSecCert]
         )
 
         switch result {
@@ -432,6 +432,185 @@ final class X509ChainValidationTests: XCTestCase {
         case .failure:
             // Expected - chain should be invalid without proper trust anchors
             break
+        }
+    }
+
+    // MARK: - x5c Chain Tests (Intermediate Certificates in x5c)
+
+    /// Test that x5c containing leaf + intermediate is validated correctly
+    /// When x5c has multiple certificates, they should be used as-is (TrustAnchorManager intermediates not appended)
+    func testX5cWithChain_LeafAndIntermediate() throws {
+        // Clear TrustAnchorManager and only add root (no intermediate)
+        let manager = TrustAnchorManager.shared
+        manager.clear()
+
+        let rootDerData = try rootCertificate.serializeAsPEM().derBytes
+        _ = manager.addAnchorCertificate(derData: Data(rootDerData))
+        // Note: NOT adding intermediate certificate to TrustAnchorManager
+
+        // Convert certificates to SecCertificate
+        guard let leafSecCert = certificateToSecCertificate(leafCertificate),
+              let intermediateSecCert = certificateToSecCertificate(intermediateCertificate) else {
+            XCTFail("Failed to convert certificates")
+            return
+        }
+
+        // Pass chain with leaf + intermediate (x5c order: leaf first, then intermediate)
+        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
+            certificates: [leafSecCert, intermediateSecCert]
+        )
+
+        switch result {
+        case .success:
+            break // Test passes - chain should be valid because intermediate is in x5c
+        case .failure(let error):
+            XCTFail("Certificate chain should be valid with intermediate in x5c, but got error: \(error.errorDescription ?? "unknown")")
+        }
+    }
+
+    /// Test that x5c with only leaf fails when TrustAnchorManager has no intermediate
+    /// This verifies the fallback behavior works correctly
+    func testX5cWithLeafOnly_FailsWithoutIntermediate() throws {
+        // Clear TrustAnchorManager and only add root (no intermediate)
+        let manager = TrustAnchorManager.shared
+        manager.clear()
+
+        let rootDerData = try rootCertificate.serializeAsPEM().derBytes
+        _ = manager.addAnchorCertificate(derData: Data(rootDerData))
+        // Note: NOT adding intermediate certificate
+
+        guard let leafSecCert = certificateToSecCertificate(leafCertificate) else {
+            XCTFail("Failed to convert leaf certificate")
+            return
+        }
+
+        // Pass only leaf certificate (no intermediate in x5c)
+        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
+            certificates: [leafSecCert]
+        )
+
+        switch result {
+        case .success:
+            XCTFail("Certificate chain should fail without intermediate")
+        case .failure:
+            break // Test passes - expected to fail because intermediate is missing
+        }
+    }
+
+    /// Test JWT with x5c containing full chain (leaf + intermediate)
+    func testJwtWithX5CChain_LeafAndIntermediate() throws {
+        // Clear TrustAnchorManager and only add root (no intermediate)
+        let manager = TrustAnchorManager.shared
+        manager.clear()
+
+        let rootDerData = try rootCertificate.serializeAsPEM().derBytes
+        _ = manager.addAnchorCertificate(derData: Data(rootDerData))
+        // Note: NOT adding intermediate certificate to TrustAnchorManager
+
+        // Create JWT with x5c containing both leaf and intermediate
+        let jwt = try createJwtWithX5CChain(
+            privateKey: leafPrivateKey,
+            certificates: [leafCertificate, intermediateCertificate],
+            payload: ["sub": "test-subject", "iss": "test-issuer"]
+        )
+
+        // Verify JWT - should succeed because intermediate is in x5c
+        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+
+        switch result {
+        case .success(let verified):
+            XCTAssertEqual(verified.decoded.body["sub"] as? String, "test-subject")
+            XCTAssertEqual(verified.decoded.body["iss"] as? String, "test-issuer")
+        case .failure(let error):
+            XCTFail("JWT verification should succeed with intermediate in x5c: \(error)")
+        }
+    }
+
+    /// Test JWT with x5c containing only leaf when TrustAnchorManager has intermediate
+    func testJwtWithX5CLeafOnly_SucceedsWithTrustAnchorManagerIntermediate() throws {
+        // Setup TrustAnchorManager with root and intermediate
+        setupTrustAnchorManager()
+
+        // Create JWT with x5c containing only leaf
+        let jwt = try createJwtWithX5C(
+            privateKey: leafPrivateKey,
+            certificate: leafCertificate,
+            payload: ["sub": "test-subject"]
+        )
+
+        // Verify JWT - should succeed because TrustAnchorManager provides intermediate
+        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+
+        switch result {
+        case .success:
+            break // Test passes
+        case .failure(let error):
+            XCTFail("JWT verification should succeed with TrustAnchorManager intermediate: \(error)")
+        }
+    }
+
+    // MARK: - JWT Creation Helpers
+
+    private func createJwtWithX5CChain(
+        privateKey: P256.Signing.PrivateKey,
+        certificates: [Certificate],
+        payload: [String: Any]
+    ) throws -> String {
+        // Get all certificates as base64 array (for x5c header)
+        let certBase64Array = try certificates.map { cert -> String in
+            let certPem = try cert.serializeAsPEM()
+            return Data(certPem.derBytes).base64EncodedString()
+        }
+
+        // Create header with certificate chain
+        let header: [String: Any] = [
+            "alg": "ES256",
+            "typ": "JWT",
+            "x5c": certBase64Array,
+        ]
+
+        // Encode header and payload
+        let headerData = try JSONSerialization.data(withJSONObject: header)
+        let payloadData = try JSONSerialization.data(withJSONObject: payload)
+
+        let headerBase64 = headerData.base64URLEncodedString()
+        let payloadBase64 = payloadData.base64URLEncodedString()
+
+        let tbsContent = "\(headerBase64).\(payloadBase64)"
+        guard let tbsData = tbsContent.data(using: .utf8) else {
+            throw NSError(domain: "JWTCreation", code: 1, userInfo: nil)
+        }
+
+        // Sign with P256 private key
+        let signature = try privateKey.signature(for: tbsData)
+        let signatureData = signature.rawRepresentation
+        let signatureBase64 = signatureData.base64URLEncodedString()
+
+        return "\(tbsContent).\(signatureBase64)"
+    }
+
+    // MARK: - Invalid x5c Format Tests
+
+    /// Test that comma-separated certificates in x5c string throws an error
+    func testInvalidX5cFormat_CommaSeparatedCertificates() throws {
+        // Create comma-separated certificate string (invalid format)
+        let cert1Pem = try leafCertificate.serializeAsPEM()
+        let cert1Base64 = Data(cert1Pem.derBytes).base64EncodedString()
+
+        let cert2Pem = try intermediateCertificate.serializeAsPEM()
+        let cert2Base64 = Data(cert2Pem.derBytes).base64EncodedString()
+
+        // Invalid: certificates joined with comma instead of being separate array elements
+        let invalidX5c = "\(cert1Base64),\(cert2Base64)"
+
+        // This should throw invalidX5cFormat error
+        XCTAssertThrowsError(try SignatureUtil.convertPemToX509Certificates(pemChain: [invalidX5c])) { error in
+            guard let sigError = error as? SignatureUtilError else {
+                XCTFail("Expected SignatureUtilError, got \(error)")
+                return
+            }
+            XCTAssertEqual(sigError, .invalidX5cFormat)
+            XCTAssertTrue(sigError.localizedDescription.contains("comma-separated"))
         }
     }
 
