@@ -192,10 +192,15 @@ enum JWTUtil {
         }
         print("[verifyJwtByX5C] x5c found, count: \(x5c.count)")
 
-        guard let certificates = try? SignatureUtil.convertPemToX509Certificates(pemChain: x5c)
-        else {
-            print("[verifyJwtByX5C] Failed to convert x5c to certificates")
-            return .failure(.verificationFailed("Unable to convert x5c"))
+        let certificates: [Certificate]
+        do {
+            certificates = try SignatureUtil.convertPemToX509Certificates(pemChain: x5c)
+        } catch let error as SignatureUtilError {
+            print("[verifyJwtByX5C] Failed to convert x5c to certificates: \(error.localizedDescription)")
+            return .failure(.verificationFailed(error.localizedDescription))
+        } catch {
+            print("[verifyJwtByX5C] Failed to convert x5c to certificates: \(error)")
+            return .failure(.verificationFailed("Unable to convert x5c: \(error.localizedDescription)"))
         }
         print("[verifyJwtByX5C] Certificates converted: \(certificates.count)")
 
@@ -235,9 +240,10 @@ enum JWTUtil {
                     return .failure(.verificationFailed("Unable to convert certificates"))
                 }
 
-                // Use custom anchor validation (leaf from x5c, intermediate + root from TrustAnchorManager)
+                // Use custom anchor validation
+                // If x5c contains chain (leaf + intermediates), use as-is; otherwise supplement from TrustAnchorManager
                 let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
-                    leafCertificates: secCertificates
+                    certificates: secCertificates
                 )
 
                 switch chainValidation {
@@ -300,8 +306,9 @@ enum JWTUtil {
         }
 
         // Use custom anchor validation
+        // If x5c contains chain (leaf + intermediates), use as-is; otherwise supplement from TrustAnchorManager
         let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
-            leafCertificates: secCertificates
+            certificates: secCertificates
         )
 
         switch chainValidation {

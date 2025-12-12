@@ -111,7 +111,7 @@ class IssuerDetailViewModel {
         guard let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) else {
             return
         }
-        let validationResult = SignatureUtil.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts)
+        let validationResult = SignatureUtil.validateCertificateChainWithCustomAnchors(certificates: secCerts)
         switch validationResult {
         case .success:
             let pemCertificateInData = pemCertificate.data(using: .ascii)

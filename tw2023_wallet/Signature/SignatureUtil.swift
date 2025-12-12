@@ -40,9 +40,21 @@ extension String {
     }
 }
 
-enum SignatureUtilError: Error {
+enum SignatureUtilError: LocalizedError, Equatable {
     case KeyConversionError
     case X509CertificateConversionError
+    case invalidX5cFormat
+
+    var errorDescription: String? {
+        switch self {
+        case .KeyConversionError:
+            return "Failed to convert key"
+        case .X509CertificateConversionError:
+            return "Failed to convert X.509 certificate"
+        case .invalidX5cFormat:
+            return "Invalid x5c format in JWT: certificates must be separate array elements, not comma-separated. Please contact the service provider."
+        }
+    }
 }
 
 /// 証明書チェーン検証エラー
@@ -201,7 +213,9 @@ enum SignatureUtil {
     }
 
     static func base64strToPem(base64str: String) -> String? {
-        guard let raw = Data(base64Encoded: base64str) else {
+        // RFC 7515: x5c certificates are standard base64-encoded (not base64url)
+        // Use ignoreUnknownCharacters to handle whitespace, newlines, and padding issues
+        guard let raw = Data(base64Encoded: base64str, options: .ignoreUnknownCharacters) else {
             return nil
         }
         let encoded = raw.base64EncodedString()
@@ -219,10 +233,25 @@ enum SignatureUtil {
     }
 
     static func decodeBase64ToX509Certificate(base64str: String) throws -> Certificate {
-        guard let pem = base64strToPem(base64str: base64str) else {
+        // RFC 7515: x5c certificates are standard base64-encoded (not base64url)
+        // Use ignoreUnknownCharacters to handle whitespace and newlines
+        guard let derData = Data(base64Encoded: base64str, options: .ignoreUnknownCharacters) else {
             throw SignatureUtilError.X509CertificateConversionError
         }
-        return try Certificate(pemEncoded: pem)
+
+        do {
+            return try Certificate(derEncoded: Array(derData))
+        } catch {
+            // Try PEM format as fallback
+            guard let pem = base64strToPem(base64str: base64str) else {
+                throw SignatureUtilError.X509CertificateConversionError
+            }
+            do {
+                return try Certificate(pemEncoded: pem)
+            } catch {
+                throw SignatureUtilError.X509CertificateConversionError
+            }
+        }
     }
 
     static func convertPemWithDelimitersToX509Certificates(pemChain: String) throws -> [Certificate]
@@ -246,12 +275,17 @@ enum SignatureUtil {
                     )
             }
 
-        return try! convertPemToX509Certificates(pemChain: cleaned)
+        return try convertPemToX509Certificates(pemChain: cleaned)
     }
 
     static func convertPemToX509Certificates(pemChain: [String]) throws -> [Certificate] {
-        return pemChain.map {
-            try! decodeBase64ToX509Certificate(base64str: $0)
+        return try pemChain.map { certString in
+            // Check for invalid x5c format: certificates should be separate array elements,
+            // not comma-separated within a single string (RFC 7515)
+            if certString.contains(",") {
+                throw SignatureUtilError.invalidX5cFormat
+            }
+            return try decodeBase64ToX509Certificate(base64str: certString)
         }
     }
 
@@ -369,29 +403,35 @@ enum SignatureUtil {
     /// This method builds the chain by combining the leaf certificate (from x5c) with
     /// built-in intermediate certificates.
     ///
+    /// When x5c contains multiple certificates (leaf + intermediates), the provided chain is used as-is.
+    /// When x5c contains only the leaf certificate, TrustAnchorManager's intermediate certificates are appended.
+    ///
     /// - Parameters:
-    ///   - leafCertificates: Certificates from x5c header (typically just the leaf)
+    ///   - certificates: Certificates from x5c header (leaf, or leaf + intermediates)
     ///   - useCustomAnchorsOnly: If true, only use custom anchors; if false, use custom anchors + system CA
     /// - Returns: Result with success or detailed validation error
     static func validateCertificateChainWithCustomAnchors(
-        leafCertificates: [SecCertificate],
+        certificates: [SecCertificate],
         useCustomAnchorsOnly: Bool = false
     ) -> Result<Void, CertificateValidationError> {
         let manager = TrustAnchorManager.shared
 
         // If no custom anchors available, fall back to system CA validation
         guard manager.hasCustomAnchors else {
-            print("SignatureUtil: No custom anchors available, falling back to system CA")
             return validateTrust(
-                leafCertificates,
+                certificates,
                 customAnchors: nil,
                 useCustomAnchorsOnly: false
             )
         }
 
-        // Build full chain: leaf + intermediates
-        var fullChain = leafCertificates
-        fullChain.append(contentsOf: manager.intermediateCertificates)
+        // Build certificate chain based on x5c content:
+        // - If x5c has only leaf (count == 1): supplement with TrustAnchorManager's intermediates
+        // - If x5c has chain (count > 1): use x5c chain as-is (it already contains intermediates)
+        var fullChain = certificates
+        if certificates.count == 1 {
+            fullChain.append(contentsOf: manager.intermediateCertificates)
+        }
 
         return validateTrust(
             fullChain,

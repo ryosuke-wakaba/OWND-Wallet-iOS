@@ -137,7 +137,7 @@ class SharingRequestViewModel {
                         print("verify cert chain")
                         if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
                             if case .success = SignatureUtil.validateCertificateChainWithCustomAnchors(
-                                leafCertificates: secCerts) {
+                                certificates: secCerts) {
                                 verified = true
                             }
                         }
