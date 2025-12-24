@@ -38,7 +38,11 @@ enum DPoPService {
     /// Ensure DPoP key pair exists, create if not
     static func ensureKeyPairExists() throws {
         if !KeyPairUtil.isKeyPairExist(alias: keyAlias) {
+            print("[DPoP] Creating new DPoP key pair...")
             try KeyPairUtil.generateSignVerifyKeyPair(alias: keyAlias)
+            print("[DPoP] DPoP key pair created successfully")
+        } else {
+            print("[DPoP] Using existing DPoP key pair")
         }
     }
 
@@ -89,6 +93,13 @@ enum DPoPService {
         accessToken: String?,
         nonce: String?
     ) throws -> String {
+        print("[DPoP] ========== Creating DPoP Proof ==========")
+        print("[DPoP] HTTP Method: \(httpMethod.uppercased())")
+        print("[DPoP] HTTP URI: \(httpUri)")
+        print("[DPoP] Normalized URI: \(normalizeUri(httpUri))")
+        print("[DPoP] Has Access Token: \(accessToken != nil)")
+        print("[DPoP] Has Nonce: \(nonce != nil)")
+
         // Ensure key exists
         try ensureKeyPairExists()
 
@@ -96,8 +107,15 @@ enum DPoPService {
         guard let publicKey = KeyPairUtil.getPublicKey(alias: keyAlias),
             let jwk = KeyPairUtil.publicKeyToJwk(publicKey: publicKey)
         else {
+            print("[DPoP] ERROR: DPoP key not found")
             throw DPoPError.keyNotFound
         }
+
+        print("[DPoP] Public Key JWK:")
+        print("[DPoP]   kty: \(jwk["kty"] ?? "N/A")")
+        print("[DPoP]   crv: \(jwk["crv"] ?? "N/A")")
+        print("[DPoP]   x: \(jwk["x"]?.prefix(20) ?? "N/A")...")
+        print("[DPoP]   y: \(jwk["y"]?.prefix(20) ?? "N/A")...")
 
         // Build header
         // RFC 9449: typ MUST be "dpop+jwt", alg MUST be asymmetric, jwk contains public key
@@ -107,31 +125,49 @@ enum DPoPService {
             "jwk": jwk,
         ]
 
+        print("[DPoP] Header: typ=dpop+jwt, alg=ES256")
+
         // Build payload
+        let jti = generateJti()
+        let iat = Int(Date().timeIntervalSince1970)
         var payload: [String: Any] = [
-            "jti": generateJti(),
+            "jti": jti,
             "htm": httpMethod.uppercased(),
             "htu": normalizeUri(httpUri),
-            "iat": Int(Date().timeIntervalSince1970),
+            "iat": iat,
         ]
+
+        print("[DPoP] Payload:")
+        print("[DPoP]   jti: \(jti)")
+        print("[DPoP]   htm: \(httpMethod.uppercased())")
+        print("[DPoP]   htu: \(normalizeUri(httpUri))")
+        print("[DPoP]   iat: \(iat)")
 
         // Add ath if access token is provided (for resource server requests)
         if let accessToken = accessToken {
             let ath = try calculateAth(accessToken: accessToken)
             payload["ath"] = ath
+            print("[DPoP]   ath: \(ath)")
+            print("[DPoP]   (Access Token Hash - SHA256 Base64URL)")
         }
 
         // Add nonce if provided
         if let nonce = nonce {
             payload["nonce"] = nonce
+            print("[DPoP]   nonce: \(nonce)")
         }
 
         // Sign and return JWT
         let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
         switch result {
         case .success(let jwt):
+            print("[DPoP] DPoP Proof created successfully")
+            print("[DPoP] JWT length: \(jwt.count) characters")
+            print("[DPoP] JWT (first 100 chars): \(String(jwt.prefix(100)))...")
+            print("[DPoP] ==========================================")
             return jwt
-        case .failure:
+        case .failure(let error):
+            print("[DPoP] ERROR: Failed to sign DPoP Proof - \(error)")
             throw DPoPError.unableToCreateProof
         }
     }
@@ -141,14 +177,21 @@ enum DPoPService {
     /// - Parameter accessToken: The access token string
     /// - Returns: Base64URL-encoded SHA256 hash of the access token
     static func calculateAth(accessToken: String) throws -> String {
+        print("[DPoP] Calculating ath (Access Token Hash)...")
+        print("[DPoP]   Access Token length: \(accessToken.count) characters")
+        print("[DPoP]   Access Token (first 30 chars): \(String(accessToken.prefix(30)))...")
+
         guard let data = accessToken.data(using: .ascii) else {
+            print("[DPoP] ERROR: Invalid access token encoding")
             throw DPoPError.invalidAccessToken
         }
 
         let hash = SHA256.hash(data: data)
         let hashData = Data(hash)
+        let ath = hashData.base64URLEncodedString()
 
-        return hashData.base64URLEncodedString()
+        print("[DPoP]   ath result: \(ath)")
+        return ath
     }
 
     /// Generate unique JWT ID (jti)

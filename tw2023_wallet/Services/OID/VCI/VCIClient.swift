@@ -303,22 +303,27 @@ func postTokenRequest(
     request.httpBody = try encoder.encode(tokenRequest)
 
     // Debug: Log request details
+    print("[VCI] ========== Token Request ==========")
+    print("[VCI] URL: \(url)")
     if let bodyString = String(data: request.httpBody ?? Data(), encoding: .utf8) {
-        print("Token Request URL: \(url)")
-        print("Token Request Body: \(bodyString)")
-        if dpopProof != nil {
-            print("Token Request with DPoP header")
-        }
+        print("[VCI] Body: \(bodyString)")
     }
+    if let dpopProof = dpopProof {
+        print("[VCI] DPoP: Enabled")
+        print("[VCI] DPoP header length: \(dpopProof.count) characters")
+    } else {
+        print("[VCI] DPoP: Disabled (no DPoP header)")
+    }
+    print("[VCI] =====================================")
 
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
         // Log error details
         if let httpResponse = response as? HTTPURLResponse {
-            print("Token Request Error - Status Code: \(httpResponse.statusCode)")
+            print("[VCI] Token Request Error - Status Code: \(httpResponse.statusCode)")
             if let errorBody = String(data: data, encoding: .utf8) {
-                print("Token Request Error - Response Body: \(errorBody)")
+                print("[VCI] Token Request Error - Response Body: \(errorBody)")
             }
 
             // Try to parse OAuth error response
@@ -335,9 +340,20 @@ func postTokenRequest(
         throw URLError(.badServerResponse)
     }
 
+    print("[VCI] Token Request Success - Status Code: 200")
+    if let responseBody = String(data: data, encoding: .utf8) {
+        print("[VCI] Token Response: \(responseBody)")
+    }
+
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
-    return try decoder.decode(OAuthTokenResponse.self, from: data)
+    let tokenResponse = try decoder.decode(OAuthTokenResponse.self, from: data)
+    print("[VCI] Token Type: \(tokenResponse.tokenType)")
+    print("[VCI] Access Token (first 30 chars): \(String(tokenResponse.accessToken.prefix(30)))...")
+    if let cNonce = tokenResponse.cNonce {
+        print("[VCI] c_nonce: \(cNonce)")
+    }
+    return tokenResponse
 }
 
 func postCredentialRequest(
@@ -363,21 +379,29 @@ func postCredentialRequest(
     let payload = try encoder.encode(credentialRequest)
     request.httpBody = payload
 
+    print("[VCI] ========== Credential Request ==========")
+    print("[VCI] URL: \(url)")
     if let jsonString = String(data: payload, encoding: .utf8) {
-        print("Credential Request JSON: \(jsonString)")
-        if dpopProof != nil {
-            print("Credential Request with DPoP header")
-        }
+        print("[VCI] Body: \(jsonString)")
     }
+    if let dpopProof = dpopProof {
+        print("[VCI] DPoP: Enabled")
+        print("[VCI] Authorization: DPoP <access_token>")
+        print("[VCI] DPoP header length: \(dpopProof.count) characters")
+    } else {
+        print("[VCI] DPoP: Disabled")
+        print("[VCI] Authorization: Bearer <access_token>")
+    }
+    print("[VCI] ============================================")
 
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
         // Log error details
         if let httpResponse = response as? HTTPURLResponse {
-            print("Credential Request Error - Status Code: \(httpResponse.statusCode)")
+            print("[VCI] Credential Request Error - Status Code: \(httpResponse.statusCode)")
             if let errorBody = String(data: data, encoding: .utf8) {
-                print("Credential Request Error - Response Body: \(errorBody)")
+                print("[VCI] Credential Request Error - Response Body: \(errorBody)")
             }
 
             // Try to parse OAuth error response
@@ -394,10 +418,22 @@ func postCredentialRequest(
         throw URLError(.badServerResponse)
     }
 
+    print("[VCI] Credential Request Success - Status Code: 200")
+    if let responseBody = String(data: data, encoding: .utf8) {
+        print("[VCI] Credential Response: \(responseBody)")
+    }
+
     // レスポンスデータをデコード
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
-    return try decoder.decode(CredentialResponse.self, from: data)
+    let credentialResponse = try decoder.decode(CredentialResponse.self, from: data)
+    if credentialResponse.credential != nil {
+        print("[VCI] Credential received successfully")
+    }
+    if let transactionId = credentialResponse.transactionId {
+        print("[VCI] Transaction ID: \(transactionId) (deferred issuance)")
+    }
+    return credentialResponse
 }
 
 // OID4VCI 1.0: Nonce Endpoint (not a protected resource)
@@ -408,16 +444,18 @@ func postNonceRequest(
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
 
-    print("Nonce Request URL: \(url)")
+    print("[VCI] ========== Nonce Request ==========")
+    print("[VCI] URL: \(url)")
+    print("[VCI] =====================================")
 
     let (data, response) = try await session.data(for: request)
 
     guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
         // Log error details
         if let httpResponse = response as? HTTPURLResponse {
-            print("Nonce Request Error - Status Code: \(httpResponse.statusCode)")
+            print("[VCI] Nonce Request Error - Status Code: \(httpResponse.statusCode)")
             if let errorBody = String(data: data, encoding: .utf8) {
-                print("Nonce Request Error - Response Body: \(errorBody)")
+                print("[VCI] Nonce Request Error - Response Body: \(errorBody)")
             }
 
             // Try to parse OAuth error response
@@ -434,16 +472,24 @@ func postNonceRequest(
         throw URLError(.badServerResponse)
     }
 
+    print("[VCI] Nonce Request Success - Status Code: 200")
+    if let responseBody = String(data: data, encoding: .utf8) {
+        print("[VCI] Nonce Response Body: \(responseBody)")
+    }
+
     // Extract DPoP-Nonce from response header if present
     let dpopNonce = httpResponse.value(forHTTPHeaderField: "DPoP-Nonce")
     if let dpopNonce = dpopNonce {
-        print("Received DPoP-Nonce: \(dpopNonce)")
+        print("[VCI] DPoP-Nonce Header: \(dpopNonce)")
+    } else {
+        print("[VCI] DPoP-Nonce Header: Not present")
     }
 
     // Decode nonce response body
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
     let nonceResponse = try decoder.decode(NonceResponse.self, from: data)
+    print("[VCI] c_nonce: \(nonceResponse.cNonce)")
 
     return NonceResponseWithDPoPNonce(cNonce: nonceResponse.cNonce, dpopNonce: dpopNonce)
 }
