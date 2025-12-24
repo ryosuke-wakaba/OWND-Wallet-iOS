@@ -248,6 +248,12 @@ struct NonceResponse: Codable {
     let cNonce: String
 }
 
+// OID4VCI 1.0 + DPoP: Extended nonce response with DPoP-Nonce
+struct NonceResponseWithDPoPNonce {
+    let cNonce: String
+    let dpopNonce: String?
+}
+
 // OID4VCI 1.0: Simplified credential request
 struct CredentialRequestV1: Codable {
     let credentialConfigurationId: String
@@ -281,11 +287,17 @@ func createCredentialRequest(
 }
 
 func postTokenRequest(
-    to url: URL, with tokenRequest: OAuthTokenRequest, using session: URLSession = URLSession.shared
+    to url: URL, with tokenRequest: OAuthTokenRequest, dpopProof: String? = nil,
+    using session: URLSession = URLSession.shared
 ) async throws -> OAuthTokenResponse {
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+
+    // Add DPoP header if provided
+    if let dpopProof = dpopProof {
+        request.setValue(dpopProof, forHTTPHeaderField: "DPoP")
+    }
 
     let encoder = URLEncodedFormEncoder()
     request.httpBody = try encoder.encode(tokenRequest)
@@ -294,6 +306,9 @@ func postTokenRequest(
     if let bodyString = String(data: request.httpBody ?? Data(), encoding: .utf8) {
         print("Token Request URL: \(url)")
         print("Token Request Body: \(bodyString)")
+        if dpopProof != nil {
+            print("Token Request with DPoP header")
+        }
     }
 
     let (data, response) = try await session.data(for: request)
@@ -327,12 +342,19 @@ func postTokenRequest(
 
 func postCredentialRequest(
     _ credentialRequest: CredentialRequestV1, to url: URL, accessToken: String,
-    using session: URLSession = URLSession.shared
+    dpopProof: String? = nil, using session: URLSession = URLSession.shared
 ) async throws -> CredentialResponse {
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+    // Use DPoP authorization scheme if DPoP proof is provided
+    if let dpopProof = dpopProof {
+        request.setValue("DPoP \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(dpopProof, forHTTPHeaderField: "DPoP")
+    } else {
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+    }
 
     // OID4VCI 1.0: Simplified request encoding
     let encoder = JSONEncoder()
@@ -343,6 +365,9 @@ func postCredentialRequest(
 
     if let jsonString = String(data: payload, encoding: .utf8) {
         print("Credential Request JSON: \(jsonString)")
+        if dpopProof != nil {
+            print("Credential Request with DPoP header")
+        }
     }
 
     let (data, response) = try await session.data(for: request)
@@ -376,9 +401,10 @@ func postCredentialRequest(
 }
 
 // OID4VCI 1.0: Nonce Endpoint (not a protected resource)
+// Returns both c_nonce (body) and DPoP-Nonce (header) if present
 func postNonceRequest(
     to url: URL, using session: URLSession = URLSession.shared
-) async throws -> NonceResponse {
+) async throws -> NonceResponseWithDPoPNonce {
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
 
@@ -408,10 +434,18 @@ func postNonceRequest(
         throw URLError(.badServerResponse)
     }
 
-    // Decode nonce response
+    // Extract DPoP-Nonce from response header if present
+    let dpopNonce = httpResponse.value(forHTTPHeaderField: "DPoP-Nonce")
+    if let dpopNonce = dpopNonce {
+        print("Received DPoP-Nonce: \(dpopNonce)")
+    }
+
+    // Decode nonce response body
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
-    return try decoder.decode(NonceResponse.self, from: data)
+    let nonceResponse = try decoder.decode(NonceResponse.self, from: data)
+
+    return NonceResponseWithDPoPNonce(cNonce: nonceResponse.cNonce, dpopNonce: dpopNonce)
 }
 
 class VCIClient {
@@ -443,7 +477,13 @@ class VCIClient {
         credentialEndpoint = credentialEndpointUrl
     }
 
-    func issueToken(txCode: String?, using session: URLSession = URLSession.shared) async throws
+    /// Issue token with optional DPoP support
+    /// - Parameters:
+    ///   - txCode: Transaction code if required
+    ///   - useDPoP: Whether to use DPoP for sender-constrained tokens
+    ///   - session: URLSession to use
+    /// - Returns: OAuth token response
+    func issueToken(txCode: String?, useDPoP: Bool = false, using session: URLSession = URLSession.shared) async throws
         -> OAuthTokenResponse
     {
         let grants = credentialOffer.grants
@@ -457,20 +497,49 @@ class VCIClient {
             txCode: txCode
         )
 
+        var dpopProof: String? = nil
+        if useDPoP {
+            dpopProof = try DPoPService.createProof(
+                httpMethod: "POST",
+                httpUri: tokenEndpoint.absoluteString
+            )
+        }
+
         return try await postTokenRequest(
-            to: tokenEndpoint, with: tokenRequest, using: session)
+            to: tokenEndpoint, with: tokenRequest, dpopProof: dpopProof, using: session)
     }
 
+    /// Issue credential with optional DPoP support
+    /// - Parameters:
+    ///   - payload: Credential request payload
+    ///   - accessToken: Access token
+    ///   - dpopNonce: DPoP nonce from server (if using DPoP)
+    ///   - useDPoP: Whether to use DPoP
+    ///   - session: URLSession to use
+    /// - Returns: Credential response
     func issueCredential(
         payload: CredentialRequestV1, accessToken: String,
+        dpopNonce: String? = nil, useDPoP: Bool = false,
         using session: URLSession = URLSession.shared
     ) async throws -> CredentialResponse {
+        var dpopProof: String? = nil
+        if useDPoP {
+            dpopProof = try DPoPService.createProofWithAccessToken(
+                httpMethod: "POST",
+                httpUri: credentialEndpoint.absoluteString,
+                accessToken: accessToken,
+                nonce: dpopNonce
+            )
+        }
+
         return try await postCredentialRequest(
-            payload, to: credentialEndpoint, accessToken: accessToken, using: session)
+            payload, to: credentialEndpoint, accessToken: accessToken,
+            dpopProof: dpopProof, using: session)
     }
 
     // OID4VCI 1.0: Fetch nonce from dedicated nonce endpoint
-    func fetchNonce(using session: URLSession = URLSession.shared) async throws -> NonceResponse {
+    // Returns both c_nonce and DPoP-Nonce if present
+    func fetchNonce(using session: URLSession = URLSession.shared) async throws -> NonceResponseWithDPoPNonce {
         guard let nonceEndpointString = metadata.credentialIssuerMetadata.nonceEndpoint,
             let nonceEndpointUrl = URL(string: nonceEndpointString)
         else {
@@ -478,5 +547,15 @@ class VCIClient {
         }
 
         return try await postNonceRequest(to: nonceEndpointUrl, using: session)
+    }
+
+    /// Get the token endpoint URL (for DPoP proof generation)
+    func getTokenEndpoint() -> URL {
+        return tokenEndpoint
+    }
+
+    /// Get the credential endpoint URL (for DPoP proof generation)
+    func getCredentialEndpoint() -> URL {
+        return credentialEndpoint
     }
 }

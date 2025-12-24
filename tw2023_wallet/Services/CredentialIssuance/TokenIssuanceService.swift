@@ -10,13 +10,13 @@ import Foundation
 /// Default implementation of TokenIssuanceServiceProtocol
 class TokenIssuanceService: TokenIssuanceServiceProtocol {
 
-    func issueToken(vciClient: VCIClient, txCode: String?) async throws -> String {
-        let token = try await vciClient.issueToken(txCode: txCode)
-        return token.accessToken
+    func issueToken(vciClient: VCIClient, txCode: String?, useDPoP: Bool) async throws -> TokenIssuanceResult {
+        let token = try await vciClient.issueToken(txCode: txCode, useDPoP: useDPoP)
+        return TokenIssuanceResult(accessToken: token.accessToken, tokenType: token.tokenType)
     }
 
-    func fetchNonce(vciClient: VCIClient) async throws -> String {
+    func fetchNonce(vciClient: VCIClient) async throws -> NonceResult {
         let nonceResponse = try await vciClient.fetchNonce()
-        return nonceResponse.cNonce
+        return NonceResult(cNonce: nonceResponse.cNonce, dpopNonce: nonceResponse.dpopNonce)
     }
 }

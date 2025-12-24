@@ -28,12 +28,13 @@ class CredentialOfferViewModel: ObservableObject {
             throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
-        // Delegate to service layer
+        // Delegate to service layer with DPoP enabled by default
         try await issuanceService.issueCredential(
             credentialOffer: offer,
             metadata: metadata,
             credentialConfigurationId: configId,
-            txCode: txCode
+            txCode: txCode,
+            useDPoP: true
         )
     }
 

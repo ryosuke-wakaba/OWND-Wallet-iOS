@@ -31,41 +31,48 @@ class CredentialIssuanceService: CredentialIssuanceServiceProtocol {
         credentialOffer: CredentialOffer,
         metadata: Metadata,
         credentialConfigurationId: String,
-        txCode: String?
+        txCode: String?,
+        useDPoP: Bool = true
     ) async throws {
         // Initialize VCI Client
         let vciClient = try await VCIClient(credentialOffer: credentialOffer, metaData: metadata)
 
-        // Step 1: Issue token
-        let accessToken = try await tokenService.issueToken(vciClient: vciClient, txCode: txCode)
+        // Step 1: Issue token (with optional DPoP)
+        let tokenResult = try await tokenService.issueToken(
+            vciClient: vciClient,
+            txCode: txCode,
+            useDPoP: useDPoP
+        )
 
-        // Step 2: Fetch nonce
-        let nonce = try await tokenService.fetchNonce(vciClient: vciClient)
+        // Step 2: Fetch nonce (returns both c_nonce and DPoP-Nonce)
+        let nonceResult = try await tokenService.fetchNonce(vciClient: vciClient)
 
         // Step 3: Get credential configuration
         guard let credentialConfig = metadata.credentialIssuerMetadata.credentialConfigurationsSupported[credentialConfigurationId] else {
             throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
-        // Step 4: Generate proof
+        // Step 4: Generate proof (using c_nonce for key binding)
         let proofs = try proofService.generateProof(
             credentialConfig: credentialConfig,
             credentialIssuer: credentialOffer.credentialIssuer,
-            nonce: nonce
+            nonce: nonceResult.cNonce
         )
 
-        // Step 5: Request credential
+        // Step 5: Request credential (with optional DPoP using DPoP-Nonce)
         let credentialResponse = try await requestService.requestCredential(
             vciClient: vciClient,
             credentialConfigurationId: credentialConfigurationId,
             proofs: proofs,
-            accessToken: accessToken
+            accessToken: tokenResult.accessToken,
+            dpopNonce: nonceResult.dpopNonce,
+            useDPoP: useDPoP
         )
 
         // Step 6: Save credential
         try storageService.saveCredential(
             credentialResponse: credentialResponse,
-            accessToken: accessToken,
+            accessToken: tokenResult.accessToken,
             metadata: metadata,
             credentialConfigurationId: credentialConfigurationId
         )

@@ -263,6 +263,39 @@ final class VCIClientTests: XCTestCase {
             do {
                 let nonceResponse = try await postNonceRequest(to: testURL, using: mockSession)
                 XCTAssertEqual(nonceResponse.cNonce, "example-nonce-value")
+                XCTAssertNil(nonceResponse.dpopNonce, "DPoP-Nonce should be nil when not in header")
+            }
+            catch {
+                XCTFail("Request should not fail: \(error)")
+            }
+        }
+    }
+
+    // OID4VCI 1.0 + DPoP: Test nonce endpoint with DPoP-Nonce header
+    func testPostNonceRequestWithDPoPNonce() {
+        runAsyncTest {
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [MockURLProtocol.self]
+            let mockSession = URLSession(configuration: configuration)
+
+            let testURL = URL(string: "https://example.com/nonce")!
+
+            let mockNonceResponse = """
+            {
+                "c_nonce": "example-nonce-value"
+            }
+            """.data(using: .utf8)!
+
+            // Include DPoP-Nonce in response header
+            let headers = ["DPoP-Nonce": "dpop-nonce-from-server"]
+            let response = HTTPURLResponse(
+                url: testURL, statusCode: 200, httpVersion: nil, headerFields: headers)
+            MockURLProtocol.mockResponses[testURL.absoluteString] = (mockNonceResponse, response)
+
+            do {
+                let nonceResponse = try await postNonceRequest(to: testURL, using: mockSession)
+                XCTAssertEqual(nonceResponse.cNonce, "example-nonce-value")
+                XCTAssertEqual(nonceResponse.dpopNonce, "dpop-nonce-from-server", "DPoP-Nonce should be extracted from header")
             }
             catch {
                 XCTFail("Request should not fail: \(error)")

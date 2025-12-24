@@ -22,6 +22,9 @@
 		8B0E0AAD2B3FD6660080F6A3 /* client_metadata.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B0E0AAB2B3FD6660080F6A3 /* client_metadata.json */; };
 		8B0E0AB22B4054E80080F6A3 /* presentation_definition.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B0E0AB12B4054E80080F6A3 /* presentation_definition.json */; };
 		8B0E0AB32B4054E80080F6A3 /* presentation_definition.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B0E0AB12B4054E80080F6A3 /* presentation_definition.json */; };
+		8B27ECCF2EFB86E100A00345 /* DPoPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B27ECCE2EFB86E100A00345 /* DPoPService.swift */; };
+		8B27ECD02EFB86E100A00345 /* DPoPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B27ECCE2EFB86E100A00345 /* DPoPService.swift */; };
+		8B27ECD22EFB86FE00A00345 /* DPoPServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B27ECD12EFB86FE00A00345 /* DPoPServiceTests.swift */; };
 		8B297C342B393BC200D2998D /* VCIMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B297C332B393BC200D2998D /* VCIMetadata.swift */; };
 		8B297C372B39538500D2998D /* VCIMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B297C362B39538500D2998D /* VCIMetadataTests.swift */; };
 		8B297C382B3953D700D2998D /* VCIMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B297C332B393BC200D2998D /* VCIMetadata.swift */; };
@@ -336,6 +339,8 @@
 		8B0E0AA82B3ED7D20080F6A3 /* AuthorizationRquestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationRquestTests.swift; sourceTree = "<group>"; };
 		8B0E0AAB2B3FD6660080F6A3 /* client_metadata.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = client_metadata.json; sourceTree = "<group>"; };
 		8B0E0AB12B4054E80080F6A3 /* presentation_definition.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = presentation_definition.json; sourceTree = "<group>"; };
+		8B27ECCE2EFB86E100A00345 /* DPoPService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPoPService.swift; sourceTree = "<group>"; };
+		8B27ECD12EFB86FE00A00345 /* DPoPServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPoPServiceTests.swift; sourceTree = "<group>"; };
 		8B297C332B393BC200D2998D /* VCIMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VCIMetadata.swift; sourceTree = "<group>"; };
 		8B297C362B39538500D2998D /* VCIMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VCIMetadataTests.swift; sourceTree = "<group>"; };
 		8B297C3D2B39745400D2998D /* credential_supported_jwt_vc.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_supported_jwt_vc.json; sourceTree = "<group>"; };
@@ -657,6 +662,7 @@
 		8B297C352B393BC800D2998D /* VCI */ = {
 			isa = PBXGroup;
 			children = (
+				8B27ECCE2EFB86E100A00345 /* DPoPService.swift */,
 				8B297C332B393BC200D2998D /* VCIMetadata.swift */,
 				8B43AE2B2B3A5A730016CF83 /* VCIMetadataClient.swift */,
 				8BB5138B2B3AD0CC00D4EFB3 /* VCIClient.swift */,
@@ -761,6 +767,7 @@
 		8B81E2AC2B33CC4300ED3B4E /* tw2023_walletTests */ = {
 			isa = PBXGroup;
 			children = (
+				8B27ECD12EFB86FE00A00345 /* DPoPServiceTests.swift */,
 				8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */,
 				A8EF7F2E2C75D76100BA9D9C /* Models */,
 				A88779B92C33DBDA002EE9C2 /* Feature */,
@@ -1797,6 +1804,7 @@
 				8B8964982EC70CF100DD917E /* MetadataDecoder.swift in Sources */,
 				8B8964992EC70CF100DD917E /* JWTParsingUtil.swift in Sources */,
 				8B774A542B7B7B5400F5ED55 /* QRReaderViewLauncher.swift in Sources */,
+				8B27ECD02EFB86E100A00345 /* DPoPService.swift in Sources */,
 				F6BB10432B50FC100063DBBF /* ActionButtonBlack.swift in Sources */,
 				F6CC769C2B57CDB900FA26A8 /* QRCodeGenerator.swift in Sources */,
 				F6CC768D2B567A7B00FA26A8 /* QrCodeCameraDelegate.swift in Sources */,
@@ -1883,6 +1891,7 @@
 				8BEE638F2C19A48D00821543 /* CertificateUtil.swift in Sources */,
 				A84AB70D2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift in Sources */,
 				8BB2BA7A2B4BC95700C668BA /* AuthenticationView.swift in Sources */,
+				8B27ECCF2EFB86E100A00345 /* DPoPService.swift in Sources */,
 				8B5C659F2B552C2700D72289 /* VerificationArgs.swift in Sources */,
 				8BB2BA752B4BC46400C668BA /* BiometricAuth.swift in Sources */,
 				8B5370942EDEB9D800E87858 /* X509HashValidationTests.swift in Sources */,
@@ -1912,6 +1921,7 @@
 				A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */,
 				A88D323A2C26997700429E75 /* Metadata.swift in Sources */,
 				8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */,
+				8B27ECD22EFB86FE00A00345 /* DPoPServiceTests.swift in Sources */,
 				8B43AE382B3A93C60016CF83 /* AuthServerMetadata.swift in Sources */,
 				A88779BD2C33DC08002EE9C2 /* WebViewTests.swift in Sources */,
 				8B297C372B39538500D2998D /* VCIMetadataTests.swift in Sources */,

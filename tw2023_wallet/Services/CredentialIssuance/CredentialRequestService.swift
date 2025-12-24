@@ -14,7 +14,9 @@ class CredentialRequestService: CredentialRequestServiceProtocol {
         vciClient: VCIClient,
         credentialConfigurationId: String,
         proofs: Proofs?,
-        accessToken: String
+        accessToken: String,
+        dpopNonce: String?,
+        useDPoP: Bool
     ) async throws -> CredentialResponse {
         // Create credential request
         let credentialRequest = createCredentialRequest(
@@ -22,10 +24,12 @@ class CredentialRequestService: CredentialRequestServiceProtocol {
             proofs: proofs
         )
 
-        // Issue credential
+        // Issue credential with optional DPoP
         let credentialResponse = try await vciClient.issueCredential(
             payload: credentialRequest,
-            accessToken: accessToken
+            accessToken: accessToken,
+            dpopNonce: dpopNonce,
+            useDPoP: useDPoP
         )
 
         // Validate response
