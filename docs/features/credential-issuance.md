@@ -13,6 +13,8 @@ OID4VCI (OpenID for Verifiable Credential Issuance) プロトコルを使用し�
 
 **現在の実装状況**:
 - ✅ Pre-Authorized Code Flow (実装済み)
+- ✅ DPoP (RFC 9449) - Sender-Constrained Access Tokens (実装済み)
+- ✅ Nonce Endpoint (OID4VCI 1.0) (実装済み)
 - ⏳ Authorization Code Flow (将来対応予定)
 
 ## User Stories
@@ -119,14 +121,56 @@ graph TD
     E -->|Yes| F{Flow Type?}
     F -->|Pre-Authorized| G[Exchange Pre-Auth Code]
     F -->|Authorization| H[Authorization Flow - 未実装]
-    G --> I[Get Access Token]
+    G --> I[Get Access Token with DPoP]
     H -.-> I
-    I --> J[Generate Key Pair]
-    J --> K[Create KB-JWT]
-    K --> L[Request Credential]
-    L --> M[Validate Credential]
-    M --> N[Store in CoreData]
-    N --> O[Show Success]
+    I --> J[Fetch Nonce + DPoP-Nonce]
+    J --> K[Generate Key Pair]
+    K --> L[Create KB-JWT]
+    L --> M[Request Credential with DPoP]
+    M --> N[Validate Credential]
+    N --> O[Store in CoreData]
+    O --> P[Show Success]
+```
+
+### DPoP (Demonstrating Proof of Possession)
+
+RFC 9449に基づくDPoPを使用して、アクセストークンを送信者に紐付けます。
+
+**DPoP統合フロー**:
+
+```
+1. Token Endpoint
+   Request:  DPoP: <dpop_proof_jwt>
+   Response: access_token, token_type="DPoP"
+
+2. Nonce Endpoint (OID4VCI 1.0)
+   Request:  POST /nonce
+   Response: c_nonce (body), DPoP-Nonce (header)
+
+3. Credential Endpoint
+   Request:  Authorization: DPoP <access_token>
+             DPoP: <dpop_proof_jwt_with_ath_and_nonce>
+   Response: credential
+```
+
+**DPoP Proof JWT構造**:
+
+```json
+{
+  "header": {
+    "typ": "dpop+jwt",
+    "alg": "ES256",
+    "jwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "..." }
+  },
+  "payload": {
+    "jti": "<unique-id>",
+    "htm": "POST",
+    "htu": "https://issuer.example.com/credential",
+    "iat": 1234567890,
+    "ath": "<base64url(sha256(access_token))>",
+    "nonce": "<server-provided-dpop-nonce>"
+  }
+}
 ```
 
 ### Sequence Diagram
@@ -144,6 +188,8 @@ graph TD
 - [x] Credential Request実装
 - [x] Credential検証
 - [x] CoreData保存
+- [x] DPoP (RFC 9449) Sender-Constrained Access Tokens
+- [x] Nonce Endpoint (OID4VCI 1.0)
 - [ ] UI/UX改善
 - [ ] エラーハンドリング強化
 
@@ -151,7 +197,7 @@ graph TD
 
 ### VCI Client
 
-**Note**: 現在はPre-Authorized Code Flowのみサポート。`issueToken()`はPre-Authorized Code Grantを使用。
+**Note**: 現在はPre-Authorized Code Flowのみサポート。`issueToken()`はPre-Authorized Code Grantを使用。DPoPはデフォルトで有効。
 
 ```swift
 // tw2023_wallet/Services/OID/VCI/VCIClient.swift
@@ -163,15 +209,52 @@ class VCIClient {
 
     init(credentialOffer: CredentialOffer, metaData: Metadata) async throws
 
-    // Pre-Authorized Code Flow用
-    func issueToken(txCode: String?, using session: URLSession = URLSession.shared) async throws
-        -> OAuthTokenResponse
+    // Pre-Authorized Code Flow用（DPoP対応）
+    func issueToken(
+        txCode: String?,
+        useDPoP: Bool = true,  // DPoPデフォルト有効
+        using session: URLSession = URLSession.shared
+    ) async throws -> OAuthTokenResponse
 
+    // Nonce取得（OID4VCI 1.0 Nonce Endpoint）
+    func fetchNonce(
+        accessToken: String,
+        using session: URLSession = URLSession.shared
+    ) async throws -> NonceResponseWithDPoPNonce
+
+    // Credential発行（DPoP対応）
     func issueCredential(
         payload: any CredentialRequest,
         accessToken: String,
+        dpopNonce: String? = nil,  // DPoP-Nonce
+        useDPoP: Bool = true,       // DPoPデフォルト有効
         using session: URLSession = URLSession.shared
     ) async throws -> CredentialResponse
+}
+```
+
+### DPoP Service
+
+```swift
+// tw2023_wallet/Services/OID/VCI/DPoPService.swift
+enum DPoPService {
+    /// Token Endpoint用のDPoP Proof生成（athなし）
+    static func createProof(
+        httpMethod: String,
+        httpUri: String,
+        nonce: String? = nil
+    ) throws -> String
+
+    /// Resource Server用のDPoP Proof生成（ath付き）
+    static func createProofWithAccessToken(
+        httpMethod: String,
+        httpUri: String,
+        accessToken: String,
+        nonce: String? = nil
+    ) throws -> String
+
+    /// Access Token Hash計算
+    static func calculateAth(accessToken: String) throws -> String
 }
 ```
 
@@ -273,10 +356,34 @@ class CredentialDataManager {
    - Mitigation: Issuer署名検証、Metadata検証
 
 3. **Replay Attack**
-   - Mitigation: Nonce使用、タイムスタンプ検証
+   - Mitigation: Nonce使用、タイムスタンプ検証、DPoP-Nonce
 
 4. **Key Compromise**
    - Mitigation: Secure Enclave使用、Key Rotation
+
+5. **Access Token Theft** (NEW)
+   - Mitigation: DPoP (Sender-Constrained Access Tokens)
+   - 盗まれたトークン単体では使用不可（秘密鍵が必要）
+
+### DPoP Security Benefits
+
+DPoP (RFC 9449) は以下のセキュリティ強化を提供:
+
+1. **Sender-Constrained Access Tokens**
+   - Access Tokenは発行時のクライアントにバインド
+   - 盗まれたトークンは攻撃者が使用不可
+
+2. **Proof of Possession**
+   - 各リクエストでクライアントの秘密鍵による署名が必要
+   - トークン漏洩リスクの大幅な軽減
+
+3. **Replay Protection**
+   - DPoP-Nonce によるリプレイ攻撃防止
+   - jti (JWT ID) によるProof再利用防止
+
+4. **HAIP Compliance**
+   - OID4VCI High Assurance Interoperability Profile準拠
+   - 高セキュリティ環境での相互運用性
 
 ### Security Checklist
 
@@ -286,6 +393,9 @@ class CredentialDataManager {
 - [ ] Certificate Pinning
 - [x] KB-JWTのNonce検証
 - [x] Credential有効期限チェック
+- [x] DPoP Sender-Constrained Access Tokens
+- [x] DPoP-Nonce によるリプレイ攻撃防止
+- [x] DPoP鍵のSecure Enclave保存
 
 ## Testing Strategy
 
@@ -526,8 +636,22 @@ private func matchClaims(
 
 ## References
 
+### Specifications
+
 - [OID4VCI 1.0 Final Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html)
+- [RFC 9449: OAuth 2.0 DPoP](https://www.rfc-editor.org/rfc/rfc9449.html)
+- [HAIP (High Assurance Interoperability Profile)](https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0-05.html)
+
+### Documentation
+
 - [ADR: OID4VCI 1.0 Upgrade](../../docs/adr/0001-upgrade-oid4vci-to-version-1.0.md)
-- Implementation: `tw2023_wallet/Services/OID/VCI/`
+- [DPoP Implementation Work Document](../work/dpop-implementation.md)
+- [OID4VCI Test Documentation](../tests/oid4vci-tests.md)
+
+### Implementation
+
+- VCI Client: `tw2023_wallet/Services/OID/VCI/VCIClient.swift`
+- DPoP Service: `tw2023_wallet/Services/OID/VCI/DPoPService.swift`
+- Credential Issuance: `tw2023_wallet/Services/CredentialIssuance/`
 - Data Manager: `tw2023_wallet/datastore/CredentialDataManager.swift`
 - Protocol Buffers: `tw2023_wallet/proto/credential_data.proto`
