@@ -7,6 +7,20 @@
 
 import Foundation
 
+// MARK: - Token Issuance Result
+
+/// Result of token issuance including DPoP-related information
+struct TokenIssuanceResult {
+    let accessToken: String
+    let tokenType: String
+}
+
+/// Result of nonce fetch including DPoP nonce
+struct NonceResult {
+    let cNonce: String
+    let dpopNonce: String?
+}
+
 // MARK: - Token Issuance Service
 
 /// Service responsible for issuing OAuth tokens
@@ -15,13 +29,14 @@ protocol TokenIssuanceServiceProtocol {
     /// - Parameters:
     ///   - vciClient: The VCI client
     ///   - txCode: Optional transaction code (PIN)
-    /// - Returns: The access token string
-    func issueToken(vciClient: VCIClient, txCode: String?) async throws -> String
+    ///   - useDPoP: Whether to use DPoP for sender-constrained tokens
+    /// - Returns: The token issuance result
+    func issueToken(vciClient: VCIClient, txCode: String?, useDPoP: Bool) async throws -> TokenIssuanceResult
 
     /// Fetch a fresh nonce for proof generation
     /// - Parameter vciClient: The VCI client
-    /// - Returns: The nonce string
-    func fetchNonce(vciClient: VCIClient) async throws -> String
+    /// - Returns: The nonce result including DPoP nonce if available
+    func fetchNonce(vciClient: VCIClient) async throws -> NonceResult
 }
 
 // MARK: - Proof Generation Service
@@ -51,12 +66,16 @@ protocol CredentialRequestServiceProtocol {
     ///   - credentialConfigurationId: The credential configuration ID
     ///   - proofs: Optional proofs object
     ///   - accessToken: The access token
+    ///   - dpopNonce: DPoP nonce from server (if using DPoP)
+    ///   - useDPoP: Whether to use DPoP
     /// - Returns: The credential response
     func requestCredential(
         vciClient: VCIClient,
         credentialConfigurationId: String,
         proofs: Proofs?,
-        accessToken: String
+        accessToken: String,
+        dpopNonce: String?,
+        useDPoP: Bool
     ) async throws -> CredentialResponse
 }
 
@@ -88,10 +107,12 @@ protocol CredentialIssuanceServiceProtocol {
     ///   - metadata: The credential issuer metadata
     ///   - credentialConfigurationId: The credential configuration ID
     ///   - txCode: Optional transaction code (PIN)
+    ///   - useDPoP: Whether to use DPoP for sender-constrained tokens (default: true)
     func issueCredential(
         credentialOffer: CredentialOffer,
         metadata: Metadata,
         credentialConfigurationId: String,
-        txCode: String?
+        txCode: String?,
+        useDPoP: Bool
     ) async throws
 }
