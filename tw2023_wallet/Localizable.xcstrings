@@ -623,6 +623,23 @@
     "Error" : {
 
     },
+    "error_server_authentication_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server authentication failed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーを認証できませんでした"
+          }
+        }
+      }
+    },
     "eventName" : {
       "extractionState" : "manual",
       "localizations" : {
