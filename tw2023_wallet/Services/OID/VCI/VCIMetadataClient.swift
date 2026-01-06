@@ -20,6 +20,7 @@ enum MetadataError: LocalizedError {
 
     // signed metadata error
     case signedMetadataValidationFailed(SignedMetadataError)
+    case contentTypeMismatch(expected: String, actual: String)
 
     case unexpectedError
 
@@ -39,6 +40,8 @@ enum MetadataError: LocalizedError {
             return "Token endpoint not found. Please contact the service provider."
         case .signedMetadataValidationFailed(let signedMetadataError):
             return signedMetadataError.errorDescription
+        case .contentTypeMismatch(let expected, let actual):
+            return "Content-Type mismatch: expected \(expected), but received \(actual)."
         case .unexpectedError:
             return "An unexpected error occurred. Please try again."
         }
@@ -74,20 +77,23 @@ func fetchMetadata<T: Decodable>(
     }
 }
 
-/// Fetches Credential Issuer Metadata with Signed Metadata support (OID4VCI Section 12.2.3)
+/// Fetches Credential Issuer Metadata with Signed Metadata support (OID4VCI Section 12.2.2, 12.2.3)
 /// - Parameters:
 ///   - url: The metadata endpoint URL
 ///   - issuerIdentifier: The credential issuer identifier (for sub validation in signed metadata)
+///   - preferSignedMetadata: If true, requests signed metadata (application/jwt). Default is false (application/json).
 ///   - session: URLSession to use for the request
 /// - Returns: CredentialIssuerMetadata
 func fetchCredentialIssuerMetadata(
     from url: URL,
     issuerIdentifier: String,
+    preferSignedMetadata: Bool = false,
     using session: URLSession = URLSession.shared
 ) async throws -> CredentialIssuerMetadata {
-    // Create request with Accept header preferring signed metadata
+    // Set Accept header based on preference (OID4VCI Section 12.2.2)
     var request = URLRequest(url: url)
-    request.setValue("application/jwt, application/json;q=0.9", forHTTPHeaderField: "Accept")
+    let acceptHeader = preferSignedMetadata ? "application/jwt" : "application/json"
+    request.setValue(acceptHeader, forHTTPHeaderField: "Accept")
 
     var data: Data
     var response: URLResponse
@@ -105,7 +111,18 @@ func fetchCredentialIssuerMetadata(
     // Check Content-Type to determine response format
     let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? ""
 
-    if contentType.contains("application/jwt") {
+    // Validate Content-Type matches the requested Accept header
+    let isJwtResponse = contentType.contains("application/jwt")
+    let isJsonResponse = contentType.contains("application/json")
+
+    if preferSignedMetadata && !isJwtResponse {
+        throw MetadataError.contentTypeMismatch(expected: "application/jwt", actual: contentType)
+    }
+    if !preferSignedMetadata && !isJsonResponse {
+        throw MetadataError.contentTypeMismatch(expected: "application/json", actual: contentType)
+    }
+
+    if isJwtResponse {
         // Signed Metadata response
         guard let jwtString = String(data: data, encoding: .utf8) else {
             throw MetadataError.decodingError(data: data)
@@ -157,10 +174,11 @@ func fetchAuthServerMetadata(from url: URL, using session: URLSession = URLSessi
     return try await fetchMetadata(from: url, to: AuthorizationServerMetadata.self, using: session)
 }
 
-func retrieveAllMetadata(issuer: String, using session: URLSession = URLSession.shared)
-    async
-    throws -> Metadata
-{
+func retrieveAllMetadata(
+    issuer: String,
+    preferSignedMetadata: Bool = false,
+    using session: URLSession = URLSession.shared
+) async throws -> Metadata {
     guard let issuerUrl = URL(string: issuer) else {
         throw MetadataError.invalidIssuerUrl(issuer: issuer)
     }
@@ -174,6 +192,7 @@ func retrieveAllMetadata(issuer: String, using session: URLSession = URLSession.
     let credentialIssuerMetadata = try await fetchCredentialIssuerMetadata(
         from: credentialIssuerMetadataUrl,
         issuerIdentifier: issuer,
+        preferSignedMetadata: preferSignedMetadata,
         using: session
     )
 
