@@ -43,6 +43,10 @@ OID4VCI 1.0仕様 Section 12.2.2に準拠するため、Signed Metadata取得時
 | File | Change |
 |------|--------|
 | `tw2023_wallet/Services/OID/VCI/VCIMetadataClient.swift` | Accept header control via parameter |
+| `tw2023_wallet/datastore/PreferencesDataStore.swift` | 設定の保存・取得メソッド追加 |
+| `tw2023_wallet/Feature/Settings/Setting.swift` | 発行設定セクション追加 |
+| `tw2023_wallet/Feature/IssueCredential/ViewModels/CredentialOfferViewModel.swift` | 設定値を使用してメタデータ取得 |
+| `tw2023_wallet/Localizable.xcstrings` | ローカライズ文字列追加 |
 
 ### API Changes
 
@@ -96,6 +100,8 @@ case contentTypeMismatch(expected: String, actual: String)
 | 2026-01-06 | 調査完了、設計ドキュメント作成 |
 | 2026-01-06 | 実装完了: `preferSignedMetadata`パラメータ追加 |
 | 2026-01-06 | Content-Type検証追加: 要求と応答の不一致時にエラー |
+| 2026-01-06 | 設定UI追加: 発行設定セクションとトグル |
+| 2026-01-06 | CredentialOfferViewModelに設定を統合 |
 
 ## References
 

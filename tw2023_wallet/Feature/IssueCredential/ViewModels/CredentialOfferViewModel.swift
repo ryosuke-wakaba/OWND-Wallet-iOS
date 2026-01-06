@@ -66,14 +66,23 @@ class CredentialOfferViewModel: ObservableObject {
         dataModel.credentialOffer = credentialOffer
 
         do {
-            dataModel.metaData = try await retrieveAllMetadata(issuer: credentialOffer.credentialIssuer)
+            let preferSignedMetadata = PreferencesDataStore.shared.getPreferSignedMetadata()
+            dataModel.metaData = try await retrieveAllMetadata(
+                issuer: credentialOffer.credentialIssuer,
+                preferSignedMetadata: preferSignedMetadata
+            )
         } catch let error as MetadataError {
             // Convert signed metadata errors to user-facing error
-            if case .signedMetadataValidationFailed = error {
+            switch error {
+            case .signedMetadataValidationFailed:
                 print("Signed metadata validation failed: \(error)")
                 throw CredentialOfferViewError.serverAuthenticationFailed
+            case .contentTypeMismatch:
+                print("Content-Type mismatch: \(error)")
+                throw CredentialOfferViewError.serverAuthenticationFailed
+            default:
+                throw error
             }
-            throw error
         }
 
         try interpretMetadataAndCredentialOffer()
