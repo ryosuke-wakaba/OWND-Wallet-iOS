@@ -14,6 +14,7 @@ class PreferencesDataStore {
     private let defaults = UserDefaults.standard
     private let seedKey = "seed"
     private let lastBackupAtKey = "last_backup_at_key"
+    private let preferSignedMetadataKey = "prefer_signed_metadata"
 
     func saveLastBackupAtKey(_ value: String) {
         defaults.set(value, forKey: lastBackupAtKey)
@@ -21,6 +22,14 @@ class PreferencesDataStore {
 
     func getLastBackupAtKey() -> String? {
         defaults.string(forKey: lastBackupAtKey)
+    }
+
+    func setPreferSignedMetadata(_ value: Bool) {
+        defaults.set(value, forKey: preferSignedMetadataKey)
+    }
+
+    func getPreferSignedMetadata() -> Bool {
+        defaults.bool(forKey: preferSignedMetadataKey)
     }
 
     func saveSeed(_ value: String) throws {

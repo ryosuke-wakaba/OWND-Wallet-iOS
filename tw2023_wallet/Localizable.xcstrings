@@ -623,6 +623,23 @@
     "Error" : {
 
     },
+    "error_server_authentication_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server authentication failed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーを認証できませんでした"
+          }
+        }
+      }
+    },
     "eventName" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -912,6 +929,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "20歳以上"
+          }
+        }
+      }
+    },
+    "issuance_settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Issuance Settings"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行設定"
           }
         }
       }
@@ -1486,6 +1520,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提供先情報"
+          }
+        }
+      }
+    },
+    "require_server_authentication" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Require server authentication"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバー認証を要求する"
           }
         }
       }

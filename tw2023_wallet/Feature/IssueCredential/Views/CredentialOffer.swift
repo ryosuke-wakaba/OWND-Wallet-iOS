@@ -59,12 +59,14 @@ struct CredentialOfferView: View {
                         try await viewModel.loadData(credentialOffer)
                     }
                     catch {
-                        print("Failed to prepare data for issuing credential: \(error)")
+                        print("Failed to prepare data for issuing credential: \(error.localizedDescription)")
+                        viewModel.errorMessage = error.localizedDescription
                         showErrorDialog = true
                     }
                 }
                 else {
                     print("Invalid credential offer format")
+                    viewModel.errorMessage = nil
                     showErrorDialog = true
                 }
             }
@@ -72,7 +74,7 @@ struct CredentialOfferView: View {
         .alert(isPresented: $showErrorDialog) {
             Alert(
                 title: Text("error"),
-                message: Text("failed_to_load_info_for_issuance"),
+                message: Text(viewModel.errorMessage ?? NSLocalizedString("failed_to_load_info_for_issuance", comment: "")),
                 dismissButton: .default(Text("OK")) {
                     presentationMode.wrappedValue.dismiss()
                 }

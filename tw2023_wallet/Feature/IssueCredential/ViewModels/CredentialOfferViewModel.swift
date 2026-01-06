@@ -8,10 +8,25 @@
 import Foundation
 import SwiftUI
 
+/// User-facing errors for credential offer view
+enum CredentialOfferViewError: LocalizedError {
+    case serverAuthenticationFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .serverAuthenticationFailed:
+            return NSLocalizedString("error_server_authentication_failed", comment: "")
+        }
+    }
+}
+
 class CredentialOfferViewModel: ObservableObject {
     var dataModel: CredentialOfferModel = .init()
 
     var credentialConfigurationId: String? = nil
+
+    /// Error message to display in alert dialog
+    @Published var errorMessage: String?
 
     private let issuanceService: CredentialIssuanceServiceProtocol
 
@@ -50,7 +65,25 @@ class CredentialOfferViewModel: ObservableObject {
 
         dataModel.credentialOffer = credentialOffer
 
-        dataModel.metaData = try await retrieveAllMetadata(issuer: credentialOffer.credentialIssuer)
+        do {
+            let preferSignedMetadata = PreferencesDataStore.shared.getPreferSignedMetadata()
+            dataModel.metaData = try await retrieveAllMetadata(
+                issuer: credentialOffer.credentialIssuer,
+                preferSignedMetadata: preferSignedMetadata
+            )
+        } catch let error as MetadataError {
+            // Convert signed metadata errors to user-facing error
+            switch error {
+            case .signedMetadataValidationFailed:
+                print("Signed metadata validation failed: \(error)")
+                throw CredentialOfferViewError.serverAuthenticationFailed
+            case .contentTypeMismatch:
+                print("Content-Type mismatch: \(error)")
+                throw CredentialOfferViewError.serverAuthenticationFailed
+            default:
+                throw error
+            }
+        }
 
         try interpretMetadataAndCredentialOffer()
 

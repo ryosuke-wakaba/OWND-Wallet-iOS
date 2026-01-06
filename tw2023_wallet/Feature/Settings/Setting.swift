@@ -10,6 +10,7 @@ import SwiftUI
 struct Setting: View {
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfUse = false
+    @State private var preferSignedMetadata = false
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,17 @@ struct Setting: View {
                     }
                 }
                 .padding(.vertical, 16)
+
+                // issuance settings section
+                Text("issuance_settings").modifier(Title3Black())
+
+                Toggle(isOn: $preferSignedMetadata) {
+                    Text("require_server_authentication").modifier(BodyBlack())
+                }
+                .padding(.vertical, 16)
+                .onChange(of: preferSignedMetadata) { _, newValue in
+                    PreferencesDataStore.shared.setPreferSignedMetadata(newValue)
+                }
 
                 // this app section
                 Text("about_this_app").modifier(Title3Black())
@@ -91,6 +103,9 @@ struct Setting: View {
             .padding(.vertical, 32)
             .padding(.horizontal, 16)
             .navigationBarTitle("Setting", displayMode: .inline)
+            .onAppear {
+                preferSignedMetadata = PreferencesDataStore.shared.getPreferSignedMetadata()
+            }
         }
     }
 }
