@@ -128,8 +128,8 @@ func fetchCredentialIssuerMetadata(
             throw MetadataError.decodingError(data: data)
         }
 
-        // Validate signed metadata
-        let validationResult = SignedMetadataValidator.validate(
+        // Validate signed metadata (async version with TrustedList support)
+        let validationResult = await SignedMetadataValidator.validate(
             jwt: jwtString,
             expectedIssuerIdentifier: issuerIdentifier
         )

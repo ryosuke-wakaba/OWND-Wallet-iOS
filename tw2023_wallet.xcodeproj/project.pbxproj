@@ -136,6 +136,12 @@
 		8BA7D7762F0BB08D0054F75E /* SignedMetadataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7752F0BB08D0054F75E /* SignedMetadataValidator.swift */; };
 		8BA7D7772F0BB08D0054F75E /* SignedMetadataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7752F0BB08D0054F75E /* SignedMetadataValidator.swift */; };
 		8BA7D7792F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7782F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift */; };
+		8BA7D77D2F0DF2AE0054F75E /* TrustedListModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D77B2F0DF2AE0054F75E /* TrustedListModels.swift */; };
+		8BA7D77E2F0DF2AE0054F75E /* TrustedListManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D77A2F0DF2AE0054F75E /* TrustedListManager.swift */; };
+		8BA7D77F2F0DF2AE0054F75E /* TrustedListModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D77B2F0DF2AE0054F75E /* TrustedListModels.swift */; };
+		8BA7D7802F0DF2AE0054F75E /* TrustedListManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D77A2F0DF2AE0054F75E /* TrustedListManager.swift */; };
+		8BA7D7852F0DF2DA0054F75E /* TrustedListModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */; };
+		8BA7D7862F0DF2DA0054F75E /* TrustedListManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */; };
 		8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8B2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8C2C10045300B579A4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A89463E02B555C910069EF21 /* Constants.swift */; };
@@ -427,6 +433,10 @@
 		8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensOnFullScreen.swift; sourceTree = "<group>"; };
 		8BA7D7752F0BB08D0054F75E /* SignedMetadataValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignedMetadataValidator.swift; sourceTree = "<group>"; };
 		8BA7D7782F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignedMetadataValidatorTests.swift; sourceTree = "<group>"; };
+		8BA7D77A2F0DF2AE0054F75E /* TrustedListManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListManager.swift; sourceTree = "<group>"; };
+		8BA7D77B2F0DF2AE0054F75E /* TrustedListModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListModels.swift; sourceTree = "<group>"; };
+		8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListManagerTests.swift; sourceTree = "<group>"; };
+		8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListModelsTests.swift; sourceTree = "<group>"; };
 		8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JwtVpJsonGeneratorImpl.swift; sourceTree = "<group>"; };
 		8BAD97B82B831F6300B60358 /* BackupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupModel.swift; sourceTree = "<group>"; };
 		8BB2BA732B4BC46400C668BA /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
@@ -639,6 +649,7 @@
 		8B297C312B393B5600D2998D /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				8BA7D77C2F0DF2AE0054F75E /* TrustedList */,
 				8B8964A22EC7150600DD917E /* CredentialIssuance */,
 				8B0E0A952B3BC3790080F6A3 /* Pairwise */,
 				8B297C322B393B6700D2998D /* OID */,
@@ -773,6 +784,7 @@
 		8B81E2AC2B33CC4300ED3B4E /* tw2023_walletTests */ = {
 			isa = PBXGroup;
 			children = (
+				8BA7D7842F0DF2DA0054F75E /* Services */,
 				8BA7D7782F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift */,
 				8B27ECD12EFB86FE00A00345 /* DPoPServiceTests.swift */,
 				8B2AF5D02ED5A51F00F5FE17 /* DCQLMatcherTests.swift */,
@@ -1041,6 +1053,32 @@
 				8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */,
 			);
 			path = CredentialIssuance;
+			sourceTree = "<group>";
+		};
+		8BA7D77C2F0DF2AE0054F75E /* TrustedList */ = {
+			isa = PBXGroup;
+			children = (
+				8BA7D77A2F0DF2AE0054F75E /* TrustedListManager.swift */,
+				8BA7D77B2F0DF2AE0054F75E /* TrustedListModels.swift */,
+			);
+			path = TrustedList;
+			sourceTree = "<group>";
+		};
+		8BA7D7832F0DF2DA0054F75E /* TrustedList */ = {
+			isa = PBXGroup;
+			children = (
+				8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */,
+				8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */,
+			);
+			path = TrustedList;
+			sourceTree = "<group>";
+		};
+		8BA7D7842F0DF2DA0054F75E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				8BA7D7832F0DF2DA0054F75E /* TrustedList */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		8BB2BA772B4BC93400C668BA /* Lock */ = {
@@ -1455,7 +1493,7 @@
 				8B81E2962B33CC4000ED3B4E /* Frameworks */,
 				8B81E2972B33CC4000ED3B4E /* Resources */,
 				A84AB6F12B4FFB7200E8C88B /* Copy Certificates */,
-				8B2AF5ED2ED6F63400F5FE17 /* ShellScript */,
+				8B2AF5ED2ED6F63400F5FE17 /* Copy Trusted List URLs */,
 			);
 			buildRules = (
 			);
@@ -1664,7 +1702,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		8B2AF5ED2ED6F63400F5FE17 /* ShellScript */ = {
+		8B2AF5ED2ED6F63400F5FE17 /* Copy Trusted List URLs */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1673,13 +1711,14 @@
 			);
 			inputPaths = (
 			);
+			name = "Copy Trusted List URLs";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n";
+			shellScript = "# Copy TrustedListURLs.txt to app bundle\nURLS_SOURCE=\"${SRCROOT}/TrustedListURLs.txt\"\nURLS_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TrustedListURLs.txt\"\n\nif [ -f \"$URLS_SOURCE\" ]; then\n    cp \"$URLS_SOURCE\" \"$URLS_DEST\"\n    echo \"TrustedListURLs.txt copied to bundle\"\nelse\n    echo \"TrustedListURLs.txt not found (optional)\"\nfi\n";
 		};
 		A84AB6F12B4FFB7200E8C88B /* Copy Certificates */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1697,7 +1736,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = " # Copy certificates from certs-pub if they exist\n  echo \"SRCROOT: ${SRCROOT}\"\n  echo \"Looking for: ${SRCROOT}/Certificates\"\n  ls -la \"${SRCROOT}/Certificates\" || echo \"Directory not found\"\n  CERT_SOURCE=\"${SRCROOT}/Certificates\"\n  CERT_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Certificates\"\n\n  if [ -d \"$CERT_SOURCE\" ]; then\n      mkdir -p \"$CERT_DEST\"\n      cp -R \"$CERT_SOURCE\"/*.cer \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.pem \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.crt \"$CERT_DEST/\" 2>/dev/null || true\n      echo \"Certificates copied from $CERT_SOURCE to $CERT_DEST\"\n  else\n      echo \"No certificates directory found at $CERT_SOURCE (skipping)\"\n  fi\n";
+			shellScript = " # Copy certificates from certs-pub if they exist\n  echo \"SRCROOT: ${SRCROOT}\"\n  echo \"Looking for: ${SRCROOT}/Certificates\"\n  ls -la \"${SRCROOT}/Certificates\" || echo \"Directory not found\"\n  CERT_SOURCE=\"${SRCROOT}/Certificates\"\n  CERT_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Certificates\"\n\n  # Clear destination directory first\n  rm -rf \"$CERT_DEST\"\n\n  if [ -d \"$CERT_SOURCE\" ]; then\n      mkdir -p \"$CERT_DEST\"\n      cp -R \"$CERT_SOURCE\"/*.cer \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.pem \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.crt \"$CERT_DEST/\" 2>/dev/null || true\n      echo \"Certificates copied from $CERT_SOURCE to $CERT_DEST\"\n  else\n      echo \"No certificates directory found at $CERT_SOURCE (skipping)\"\n  fi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1802,6 +1841,8 @@
 				F6EECE542B6B82DD00011E12 /* RecipientList.swift in Sources */,
 				8B2AF5D52ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */,
 				8B4CAB6E2B7F60440006FF4D /* FileDocument.swift in Sources */,
+				8BA7D77D2F0DF2AE0054F75E /* TrustedListModels.swift in Sources */,
+				8BA7D77E2F0DF2AE0054F75E /* TrustedListManager.swift in Sources */,
 				8B81E2E32B34330D00ED3B4E /* ModelData.swift in Sources */,
 				F657D5CB2B3C456600901A6A /* HistoryRow.swift in Sources */,
 				F6A239AE2B4E744300B09F17 /* IdenticonView.swift in Sources */,
@@ -1930,6 +1971,8 @@
 				8B0E0AA02B3D69240080F6A3 /* PairwiseAccount.swift in Sources */,
 				A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */,
 				A88D323A2C26997700429E75 /* Metadata.swift in Sources */,
+				8BA7D7852F0DF2DA0054F75E /* TrustedListModelsTests.swift in Sources */,
+				8BA7D7862F0DF2DA0054F75E /* TrustedListManagerTests.swift in Sources */,
 				8BB513982B3BB88900D4EFB3 /* VCIMetadataUtil.swift in Sources */,
 				8B27ECD22EFB86FE00A00345 /* DPoPServiceTests.swift in Sources */,
 				8B43AE382B3A93C60016CF83 /* AuthServerMetadata.swift in Sources */,
@@ -1943,6 +1986,8 @@
 				8BF1A1C42ED03FE9008CE820 /* DCQLMatcher.swift in Sources */,
 				8BF1A1C52ED03FE9008CE820 /* DCQL.swift in Sources */,
 				8B43AE2D2B3A5A730016CF83 /* VCIMetadataClient.swift in Sources */,
+				8BA7D77F2F0DF2AE0054F75E /* TrustedListModels.swift in Sources */,
+				8BA7D7802F0DF2AE0054F75E /* TrustedListManager.swift in Sources */,
 				F6CC769E2B580EF600FA26A8 /* QRCodeGeneratorTest.swift in Sources */,
 				8BB513922B3BB4B900D4EFB3 /* VCIClientTests.swift in Sources */,
 				A88D323C2C26B0DF00429E75 /* UrlEncoder.swift in Sources */,

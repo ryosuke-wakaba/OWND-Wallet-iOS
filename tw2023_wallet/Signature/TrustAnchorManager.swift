@@ -29,8 +29,83 @@ class TrustAnchorManager {
     /// Whether custom certificates have been loaded
     private(set) var isLoaded: Bool = false
 
+    /// Whether this is a disposable instance (not singleton)
+    private let isDisposableInstance: Bool
+
     private init() {
+        self.isDisposableInstance = false
         loadBuiltInCertificates()
+    }
+
+    /// Private initializer for creating disposable instances
+    private init(skipAutoLoad: Bool) {
+        self.isDisposableInstance = skipAutoLoad
+        if !skipAutoLoad {
+            loadBuiltInCertificates()
+        }
+        isLoaded = true
+    }
+
+    // MARK: - Factory Methods for Disposable Instances
+
+    /// Create a disposable instance with additional certificates from trusted list.
+    /// The instance inherits all certificates from the singleton plus the provided certificates.
+    ///
+    /// - Parameter additionalCertificates: Certificates from trusted list to add
+    /// - Returns: A new TrustAnchorManager instance with combined certificates
+    static func createInstance(withAdditionalCertificates additionalCertificates: [SecCertificate]) -> TrustAnchorManager {
+        let instance = TrustAnchorManager(skipAutoLoad: true)
+
+        // Copy certificates from singleton
+        for cert in shared.anchorCertificates {
+            instance.anchorCertificates.append(cert)
+        }
+        for cert in shared.intermediateCertificates {
+            instance.intermediateCertificates.append(cert)
+        }
+
+        // Add additional certificates (auto-classify by self-signed check)
+        for cert in additionalCertificates {
+            if instance.isSelfSignedCertificate(cert) {
+                instance.anchorCertificates.append(cert)
+            } else {
+                instance.intermediateCertificates.append(cert)
+            }
+        }
+
+        let sharedAnchors = shared.anchorCertificates.count
+        let sharedIntermediates = shared.intermediateCertificates.count
+        let additionalAnchors = instance.anchorCertificates.count - sharedAnchors
+        let additionalIntermediates = instance.intermediateCertificates.count - sharedIntermediates
+
+        print("🔐 [TrustAnchor] ========== Created Disposable Instance ==========")
+        print("🔐 [TrustAnchor] Inherited from singleton:")
+        print("🔐 [TrustAnchor]   Anchors: \(sharedAnchors), Intermediates: \(sharedIntermediates)")
+        print("🔐 [TrustAnchor] Added from TrustedList:")
+        print("🔐 [TrustAnchor]   Anchors: \(additionalAnchors), Intermediates: \(additionalIntermediates)")
+        print("🔐 [TrustAnchor] Total:")
+        print("🔐 [TrustAnchor]   Anchors: \(instance.anchorCertificates.count), Intermediates: \(instance.intermediateCertificates.count)")
+        print("🔐 [TrustAnchor] ====================================================")
+
+        return instance
+    }
+
+    /// Create a disposable instance with certificates fetched from trusted list for a specific issuer.
+    ///
+    /// - Parameters:
+    ///   - issuerURL: The issuer URL to search for in trusted lists
+    ///   - serviceType: The service type to match (default: CredentialIssuance)
+    /// - Returns: A new TrustAnchorManager instance with certificates for the issuer
+    /// - Throws: TrustedListError if service not found or certificates unavailable
+    static func createInstance(
+        forIssuerURL issuerURL: String,
+        serviceType: String = TrustedListServiceType.credentialIssuance
+    ) async throws -> TrustAnchorManager {
+        let certificates = try await TrustedListManager.shared.getCertificates(
+            forIssuerURL: issuerURL,
+            serviceType: serviceType
+        )
+        return createInstance(withAdditionalCertificates: certificates)
     }
 
     /// Load certificates from the app bundle's Resources/Certificates directory.

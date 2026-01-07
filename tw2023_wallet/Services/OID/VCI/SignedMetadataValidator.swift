@@ -94,7 +94,7 @@ enum SignedMetadataValidator {
     /// Expected typ header value for signed issuer metadata
     static let expectedTyp = "openidvci-issuer-metadata+jwt"
 
-    /// Validates a signed metadata JWT
+    /// Validates a signed metadata JWT (sync version - uses singleton TrustAnchorManager)
     /// - Parameters:
     ///   - jwt: The signed metadata JWT string
     ///   - expectedIssuerIdentifier: The expected credential issuer identifier (for sub validation)
@@ -149,6 +149,97 @@ enum SignedMetadataValidator {
         }
 
         // 5. Validate payload claims
+        return validatePayloadClaims(decodedJwt: decodedJwt, expectedIssuerIdentifier: expectedIssuerIdentifier)
+    }
+
+    /// Validates a signed metadata JWT with TrustedList support (async version)
+    /// - Parameters:
+    ///   - jwt: The signed metadata JWT string
+    ///   - expectedIssuerIdentifier: The expected credential issuer identifier (for sub validation)
+    /// - Returns: Validation result containing the decoded payload
+    static func validate(
+        jwt: String,
+        expectedIssuerIdentifier: String
+    ) async -> Result<SignedMetadataValidationResult, SignedMetadataError> {
+        print("🔐 [SignedMetadata] ========== Validating Signed Metadata ==========")
+        print("🔐 [SignedMetadata] Issuer Identifier: \(expectedIssuerIdentifier)")
+
+        // 1. Decode JWT to inspect header
+        guard let decodedJwt = try? decode(jwt: jwt) else {
+            print("🔐 [SignedMetadata] ❌ Failed to decode JWT")
+            return .failure(.signatureVerificationFailed("Unable to decode JWT"))
+        }
+
+        // 2. Validate typ header
+        if let typ = decodedJwt.header["typ"] as? String {
+            if typ != expectedTyp {
+                print("🔐 [SignedMetadata] ❌ Invalid typ: \(typ)")
+                return .failure(.invalidTyp(typ))
+            }
+        } else {
+            print("🔐 [SignedMetadata] ❌ Missing typ header")
+            return .failure(.missingRequiredClaim("typ"))
+        }
+        print("🔐 [SignedMetadata] ✓ typ header valid")
+
+        // 3. Check signature method - only x5c is supported
+        let hasX5c = decodedJwt.header["x5c"] != nil
+        let hasKid = decodedJwt.header["kid"] != nil
+        let hasTrustChain = decodedJwt.header["trust_chain"] != nil
+
+        if !hasX5c {
+            if hasKid {
+                print("🔐 [SignedMetadata] ❌ Unsupported method: kid")
+                return .failure(.unsupportedSignatureMethod("kid"))
+            } else if hasTrustChain {
+                print("🔐 [SignedMetadata] ❌ Unsupported method: trust_chain")
+                return .failure(.unsupportedSignatureMethod("trust_chain"))
+            } else {
+                print("🔐 [SignedMetadata] ❌ x5c not found")
+                return .failure(.unsupportedSignatureMethod("unknown (x5c not found)"))
+            }
+        }
+        print("🔐 [SignedMetadata] ✓ x5c header found")
+
+        // 4. Verify JWT signature using x5c with TrustedList support
+        print("🔐 [SignedMetadata] Verifying signature with TrustedList lookup...")
+        let verificationResult = await JWTUtil.verifyJwtByX5C(
+            jwt: jwt,
+            issuerURL: expectedIssuerIdentifier,
+            verifyCertChain: true
+        )
+
+        switch verificationResult {
+        case .failure(let error):
+            switch error {
+            case .certificateValidationFailed(let certError):
+                print("🔐 [SignedMetadata] ❌ Certificate validation failed")
+                return .failure(.certificateValidationFailed(certError.errorDescription ?? "Unknown certificate error"))
+            default:
+                print("🔐 [SignedMetadata] ❌ Signature verification failed: \(error)")
+                return .failure(.signatureVerificationFailed(String(describing: error)))
+            }
+        case .success:
+            print("🔐 [SignedMetadata] ✓ Signature and certificate chain valid")
+        }
+
+        // 5. Validate payload claims
+        let result = validatePayloadClaims(decodedJwt: decodedJwt, expectedIssuerIdentifier: expectedIssuerIdentifier)
+        switch result {
+        case .success:
+            print("🔐 [SignedMetadata] ✅ Signed metadata validation PASSED")
+        case .failure(let error):
+            print("🔐 [SignedMetadata] ❌ Payload validation failed: \(error.technicalDescription)")
+        }
+        print("🔐 [SignedMetadata] ====================================================")
+        return result
+    }
+
+    /// Validate JWT payload claims (shared logic)
+    private static func validatePayloadClaims(
+        decodedJwt: JWT,
+        expectedIssuerIdentifier: String
+    ) -> Result<SignedMetadataValidationResult, SignedMetadataError> {
         let payload = decodedJwt.body
 
         // sub is REQUIRED and must match credential issuer identifier
