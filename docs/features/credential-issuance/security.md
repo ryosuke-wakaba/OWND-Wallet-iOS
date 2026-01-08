@@ -1,103 +1,82 @@
 # Credential Issuance - Security Considerations
 
-## Threats
+## Threat Model
 
 ### 1. Man-in-the-Middle Attack
 
-**Description**: 通信経路上でのデータ傍受・改ざん
+**Threat**: 通信経路上でのデータ傍受・改ざん
 
 **Mitigation**:
-- HTTPS強制
-- Certificate Pinning（将来）
+- HTTPS通信の強制（iOS App Transport Security）
 
-### 2. Credential Injection
+### 2. Rogue Issuer
 
-**Description**: 不正なCredentialの注入
+**Threat**: 悪意のあるIssuerからの不正なCredential発行
 
 **Mitigation**:
-- Issuer署名検証
-- Metadata検証
+- Issuer署名検証（JWT署名をJWKで検証）
+- Issuer Metadataの検証
+- TrustedList による信頼性確認
 
 ### 3. Replay Attack
 
-**Description**: キャプチャしたリクエストの再送
+**Threat**: キャプチャしたリクエスト/トークンの再送
 
 **Mitigation**:
-- Nonce使用
-- タイムスタンプ検証
-- DPoP-Nonce
+- c_nonce使用（Credential Request時）
+- DPoP-Nonce（RFC 9449）
+- jti (JWT ID) によるProof再利用防止
+- iat (発行時刻) によるタイムスタンプ検証
 
-### 4. Key Compromise
+### 4. Access Token Theft
 
-**Description**: 秘密鍵の漏洩
-
-**Mitigation**:
-- Secure Enclave使用
-- Key Rotation
-
-### 5. Access Token Theft
-
-**Description**: Access Tokenの盗難・不正使用
+**Threat**: Access Tokenの盗難・不正使用
 
 **Mitigation**:
 - DPoP (Sender-Constrained Access Tokens)
-- 盗まれたトークン単体では使用不可（秘密鍵が必要）
+- トークン単体では使用不可（DPoP秘密鍵が必要）
 
-## DPoP Security Benefits
+### 5. Key Compromise
 
-DPoP (RFC 9449) は以下のセキュリティ強化を提供:
+**Threat**: 秘密鍵の漏洩
 
-### 1. Sender-Constrained Access Tokens
-
-- Access Tokenは発行時のクライアントにバインド
-- 盗まれたトークンは攻撃者が使用不可
-
-### 2. Proof of Possession
-
-- 各リクエストでクライアントの秘密鍵による署名が必要
-- トークン漏洩リスクの大幅な軽減
-
-### 3. Replay Protection
-
-- DPoP-Nonce によるリプレイ攻撃防止
-- jti (JWT ID) によるProof再利用防止
-
-### 4. HAIP Compliance
-
-- OID4VCI High Assurance Interoperability Profile準拠
-- 高セキュリティ環境での相互運用性
+**Mitigation**:
+- Secure Enclaveでの鍵生成・保管
+- 秘密鍵はデバイス外に出ない
 
 ## Security Checklist
 
-| Check | Status | Description |
-|-------|--------|-------------|
-| HTTPS通信 | ✅ | すべてのHTTP通信がHTTPS |
-| Issuer署名検証 | ✅ | Credentialの署名を検証 |
-| Keychain保存 | ✅ | 秘密鍵のKeychain保存 |
-| Certificate Pinning | ⬜ | 将来実装予定 |
-| KB-JWT Nonce検証 | ✅ | Key Binding JWTのNonce検証 |
-| Credential有効期限 | ✅ | 有効期限チェック |
-| DPoP | ✅ | Sender-Constrained Access Tokens |
+| Check | Status | Notes |
+|-------|--------|-------|
+| HTTPS通信 | ✅ | iOS ATS (App Transport Security) |
+| Issuer署名検証 | ✅ | `JWTUtil.verifyJwt()` |
+| Secure Enclave | ✅ | `KeyPairUtil.generateSignVerifyKeyPair()` |
+| DPoP | ✅ | `DPoPService.swift` |
 | DPoP-Nonce | ✅ | リプレイ攻撃防止 |
-| Secure Enclave | ✅ | DPoP鍵のSecure Enclave保存 |
+| c_nonce検証 | ✅ | Credential Request Proof |
+| Certificate Pinning | ⬜ | 未実装 |
 
 ## Key Storage
 
-| Key Type | Storage Location |
-|----------|------------------|
-| DPoP Key Pair | Secure Enclave |
-| Credential Binding Key | Keychain |
-| Access Token | Memory (temporary) |
+| Key | Storage | Purpose |
+|-----|---------|---------|
+| DPoP Key Pair | Secure Enclave | Sender-Constrained Tokens |
+| Credential Binding Key | Secure Enclave | KB-JWT署名 |
+| DataStore Encryption Key | Keychain | CoreData暗号化 |
 
-## Best Practices
+## DPoP Security
 
-1. **最小権限の原則**: 必要最小限のスコープでトークンを要求
-2. **トークン有効期限**: 短い有効期限を設定し、必要に応じて更新
-3. **エラーハンドリング**: セキュリティ関連のエラーを適切に処理（詳細をユーザーに漏らさない）
-4. **ログ記録**: セキュリティイベントを適切にログ記録（センシティブ情報は除く）
+DPoPによるセキュリティ強化の詳細は [dpop.md](./dpop.md) を参照。
 
-## References
+## Implementation References
+
+| File | Security Feature |
+|------|------------------|
+| `tw2023_wallet/Utils/KeyPairUtil.swift` | Secure Enclave鍵管理 |
+| `tw2023_wallet/Services/OID/VCI/DPoPService.swift` | DPoP Proof生成 |
+| `tw2023_wallet/Signature/JWTUtil.swift` | JWT署名・検証 |
+
+## External References
 
 - [RFC 9449: OAuth 2.0 DPoP](https://www.rfc-editor.org/rfc/rfc9449.html)
-- [OWASP Mobile Security](https://owasp.org/www-project-mobile-security/)
-- [Apple Security Guidelines](https://developer.apple.com/documentation/security)
+- [Apple Secure Enclave](https://developer.apple.com/documentation/security/certificate_key_and_trust_services/keys/protecting_keys_with_the_secure_enclave)
