@@ -232,6 +232,28 @@ enum SignatureUtil {
         return pem
     }
 
+    /// Extract DER data from PEM-encoded certificate string.
+    /// This function parses PEM format and extracts the base64-encoded DER data.
+    ///
+    /// - Parameter pem: PEM-encoded certificate string with BEGIN/END markers
+    /// - Returns: DER-encoded certificate data, or nil if parsing fails
+    static func extractDERFromPEM(_ pem: String) -> Data? {
+        let beginMarker = "-----BEGIN CERTIFICATE-----"
+        let endMarker = "-----END CERTIFICATE-----"
+
+        guard let beginRange = pem.range(of: beginMarker),
+              let endRange = pem.range(of: endMarker) else {
+            return nil
+        }
+
+        let base64String = pem[beginRange.upperBound..<endRange.lowerBound]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+
+        return Data(base64Encoded: base64String)
+    }
+
     static func decodeBase64ToX509Certificate(base64str: String) throws -> Certificate {
         // RFC 7515: x5c certificates are standard base64-encoded (not base64url)
         // Use ignoreUnknownCharacters to handle whitespace and newlines

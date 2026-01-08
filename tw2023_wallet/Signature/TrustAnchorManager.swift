@@ -208,32 +208,12 @@ class TrustAnchorManager {
         }
 
         // Try PEM format
-        if let pemString = String(data: data, encoding: .utf8) {
-            let derData = extractDERFromPEM(pemString)
-            if let derData = derData {
-                return SecCertificateCreateWithData(nil, derData as CFData)
-            }
+        if let pemString = String(data: data, encoding: .utf8),
+           let derData = SignatureUtil.extractDERFromPEM(pemString) {
+            return SecCertificateCreateWithData(nil, derData as CFData)
         }
 
         return nil
-    }
-
-    /// Extract DER data from PEM-encoded certificate
-    private func extractDERFromPEM(_ pem: String) -> Data? {
-        let beginMarker = "-----BEGIN CERTIFICATE-----"
-        let endMarker = "-----END CERTIFICATE-----"
-
-        guard let beginRange = pem.range(of: beginMarker),
-              let endRange = pem.range(of: endMarker) else {
-            return nil
-        }
-
-        let base64String = pem[beginRange.upperBound..<endRange.lowerBound]
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "\n", with: "")
-            .replacingOccurrences(of: "\r", with: "")
-
-        return Data(base64Encoded: base64String)
     }
 
     /// Check if custom trust anchors are available

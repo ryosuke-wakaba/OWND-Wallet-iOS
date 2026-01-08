@@ -142,6 +142,7 @@
 		8BA7D7802F0DF2AE0054F75E /* TrustedListManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D77A2F0DF2AE0054F75E /* TrustedListManager.swift */; };
 		8BA7D7852F0DF2DA0054F75E /* TrustedListModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */; };
 		8BA7D7862F0DF2DA0054F75E /* TrustedListManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */; };
+		8BA7D7892F0F7F900054F75E /* SignatureUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */; };
 		8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8B2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8C2C10045300B579A4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A89463E02B555C910069EF21 /* Constants.swift */; };
@@ -437,6 +438,7 @@
 		8BA7D77B2F0DF2AE0054F75E /* TrustedListModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListModels.swift; sourceTree = "<group>"; };
 		8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListManagerTests.swift; sourceTree = "<group>"; };
 		8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListModelsTests.swift; sourceTree = "<group>"; };
+		8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureUtilTests.swift; sourceTree = "<group>"; };
 		8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JwtVpJsonGeneratorImpl.swift; sourceTree = "<group>"; };
 		8BAD97B82B831F6300B60358 /* BackupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupModel.swift; sourceTree = "<group>"; };
 		8BB2BA732B4BC46400C668BA /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
@@ -784,6 +786,7 @@
 		8B81E2AC2B33CC4300ED3B4E /* tw2023_walletTests */ = {
 			isa = PBXGroup;
 			children = (
+				8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */,
 				8BA7D7842F0DF2DA0054F75E /* Services */,
 				8BA7D7782F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift */,
 				8B27ECD12EFB86FE00A00345 /* DPoPServiceTests.swift */,
@@ -1955,6 +1958,7 @@
 				8B80569D2B5F7815009A87C8 /* SharingCredentialArgs.swift in Sources */,
 				8BA7D7792F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift in Sources */,
 				8BA7D7762F0BB08D0054F75E /* SignedMetadataValidator.swift in Sources */,
+				8BA7D7892F0F7F900054F75E /* SignatureUtilTests.swift in Sources */,
 				8B43AE302B3A5B2C0016CF83 /* MockURLProtocol.swift in Sources */,
 				A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */,
 				8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */,

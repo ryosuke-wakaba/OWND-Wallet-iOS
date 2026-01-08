@@ -354,28 +354,10 @@ class TrustedListManager {
 
     /// Create SecCertificate from PEM string
     private func createCertificate(from pem: String) -> SecCertificate? {
-        guard let derData = extractDERFromPEM(pem) else {
+        guard let derData = SignatureUtil.extractDERFromPEM(pem) else {
             return nil
         }
         return SecCertificateCreateWithData(nil, derData as CFData)
-    }
-
-    /// Extract DER data from PEM-encoded certificate
-    private func extractDERFromPEM(_ pem: String) -> Data? {
-        let beginMarker = "-----BEGIN CERTIFICATE-----"
-        let endMarker = "-----END CERTIFICATE-----"
-
-        guard let beginRange = pem.range(of: beginMarker),
-              let endRange = pem.range(of: endMarker) else {
-            return nil
-        }
-
-        let base64String = pem[beginRange.upperBound..<endRange.lowerBound]
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "\n", with: "")
-            .replacingOccurrences(of: "\r", with: "")
-
-        return Data(base64Encoded: base64String)
     }
 
     // MARK: - Convenience Methods

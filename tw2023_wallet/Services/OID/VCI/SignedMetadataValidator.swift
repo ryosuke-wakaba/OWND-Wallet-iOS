@@ -94,65 +94,7 @@ enum SignedMetadataValidator {
     /// Expected typ header value for signed issuer metadata
     static let expectedTyp = "openidvci-issuer-metadata+jwt"
 
-    /// Validates a signed metadata JWT (sync version - uses singleton TrustAnchorManager)
-    /// - Parameters:
-    ///   - jwt: The signed metadata JWT string
-    ///   - expectedIssuerIdentifier: The expected credential issuer identifier (for sub validation)
-    /// - Returns: Validation result containing the decoded payload
-    static func validate(
-        jwt: String,
-        expectedIssuerIdentifier: String
-    ) -> Result<SignedMetadataValidationResult, SignedMetadataError> {
-
-        // 1. Decode JWT to inspect header
-        guard let decodedJwt = try? decode(jwt: jwt) else {
-            return .failure(.signatureVerificationFailed("Unable to decode JWT"))
-        }
-
-        // 2. Validate typ header
-        if let typ = decodedJwt.header["typ"] as? String {
-            if typ != expectedTyp {
-                return .failure(.invalidTyp(typ))
-            }
-        } else {
-            return .failure(.missingRequiredClaim("typ"))
-        }
-
-        // 3. Check signature method - only x5c is supported
-        let hasX5c = decodedJwt.header["x5c"] != nil
-        let hasKid = decodedJwt.header["kid"] != nil
-        let hasTrustChain = decodedJwt.header["trust_chain"] != nil
-
-        if !hasX5c {
-            if hasKid {
-                return .failure(.unsupportedSignatureMethod("kid"))
-            } else if hasTrustChain {
-                return .failure(.unsupportedSignatureMethod("trust_chain"))
-            } else {
-                return .failure(.unsupportedSignatureMethod("unknown (x5c not found)"))
-            }
-        }
-
-        // 4. Verify JWT signature using x5c
-        let verificationResult = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
-
-        switch verificationResult {
-        case .failure(let error):
-            switch error {
-            case .certificateValidationFailed(let certError):
-                return .failure(.certificateValidationFailed(certError.errorDescription ?? "Unknown certificate error"))
-            default:
-                return .failure(.signatureVerificationFailed(String(describing: error)))
-            }
-        case .success:
-            break
-        }
-
-        // 5. Validate payload claims
-        return validatePayloadClaims(decodedJwt: decodedJwt, expectedIssuerIdentifier: expectedIssuerIdentifier)
-    }
-
-    /// Validates a signed metadata JWT with TrustedList support (async version)
+    /// Validates a signed metadata JWT with TrustedList support
     /// - Parameters:
     ///   - jwt: The signed metadata JWT string
     ///   - expectedIssuerIdentifier: The expected credential issuer identifier (for sub validation)
