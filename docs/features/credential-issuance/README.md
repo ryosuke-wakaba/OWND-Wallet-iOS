@@ -15,6 +15,8 @@ OID4VCI (OpenID for Verifiable Credential Issuance) プロトコルを使用し�
 - ✅ Pre-Authorized Code Flow (実装済み)
 - ✅ DPoP (RFC 9449) - Sender-Constrained Access Tokens (実装済み)
 - ✅ Nonce Endpoint (OID4VCI 1.0) (実装済み)
+- ✅ Signed Metadata (OID4VCI 1.0 Section 12.2.3) (実装済み)
+- ✅ Trust List (ETSI TS 119 602 LoTE) (実装済み)
 - ⏳ Authorization Code Flow (将来対応予定)
 
 ## User Stories
@@ -105,6 +107,7 @@ OID4VCI (OpenID for Verifiable Credential Issuance) プロトコルを使用し�
 
 - [Design](./design.md) - UI/UX、クラス図、データフロー
 - [DPoP](./dpop.md) - RFC 9449 DPoP実装詳細
+- [Metadata Verification](./metadata-verification.md) - Signed Metadata、Trust List対応
 - [API Reference](./api.md) - VCIClient、DPoPService、データモデル
 - [Data Model](./data-model.md) - Protocol Buffers、CoreData
 - [Security](./security.md) - セキュリティ考慮事項
@@ -115,6 +118,8 @@ OID4VCI (OpenID for Verifiable Credential Issuance) プロトコルを使用し�
 ### Specifications
 
 - [OID4VCI 1.0 Final Specification](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html)
+- [OID4VCI 1.0 Section 12.2.3 - Signed Metadata](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.3)
+- [ETSI TS 119 602 - Trusted Lists](https://www.etsi.org/deliver/etsi_ts/119600_119699/119602/01.01.01_60/ts_119602v010101p.pdf)
 - [RFC 9449: OAuth 2.0 DPoP](https://www.rfc-editor.org/rfc/rfc9449.html)
 - [HAIP (High Assurance Interoperability Profile)](https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0-05.html)
 
@@ -127,7 +132,11 @@ OID4VCI (OpenID for Verifiable Credential Issuance) プロトコルを使用し�
 ### Implementation
 
 - VCI Client: `tw2023_wallet/Services/OID/VCI/VCIClient.swift`
+- VCI Metadata Client: `tw2023_wallet/Services/OID/VCI/VCIMetadataClient.swift`
+- Signed Metadata Validator: `tw2023_wallet/Services/OID/VCI/SignedMetadataValidator.swift`
 - DPoP Service: `tw2023_wallet/Services/OID/VCI/DPoPService.swift`
+- Trust List Manager: `tw2023_wallet/Services/TrustedList/TrustedListManager.swift`
+- Trust Anchor Manager: `tw2023_wallet/Signature/TrustAnchorManager.swift`
 - Credential Issuance: `tw2023_wallet/Services/CredentialIssuance/`
 - Data Manager: `tw2023_wallet/datastore/CredentialDataManager.swift`
 - Protocol Buffers: `tw2023_wallet/proto/credential_data.proto`
