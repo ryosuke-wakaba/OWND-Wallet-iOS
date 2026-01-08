@@ -65,7 +65,7 @@ final class JWTUtilTest: XCTestCase {
 
     }
 
-    func testVerifyJwtByX5C() {
+    func testVerifyJwtByX5C() async {
         let subjectKey = KeyPairUtil.generateRandomP256KeyPair()
         let issuerKey = KeyPairUtil.generateRandomP256KeyPair()
 
@@ -131,7 +131,7 @@ final class JWTUtilTest: XCTestCase {
             // let signatureBase64 = signature.derRepresentation.base64EncodedString()
             let jwt = "\(unsignedToken).\(signatureBase64)"
 
-            let verifyResult = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: false)
+            let verifyResult = await JWTUtil.verifyJwtByX5C(jwt: jwt, issuerURL: nil, verifyCertChain: false)
 
             switch verifyResult {
                 case .success(let verifedX5CJwt):

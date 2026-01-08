@@ -77,7 +77,9 @@ class OpenIdProvider {
 
                     if isX509SanDns || isX509Hash {
                         // Verify certificate chain using custom trust anchors (built-in intermediate + root)
-                        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+                        // Use async version with nil issuerURL to use singleton TrustAnchorManager
+                        // (TrustedList is for issuers, not verifiers)
+                        let result = await JWTUtil.verifyJwtByX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
                         switch result {
                             case .success(let verifedX5CJwt):
                                 print("verify request jwt success")

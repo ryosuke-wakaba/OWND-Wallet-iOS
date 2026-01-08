@@ -351,7 +351,7 @@ final class X509HashValidationTests: XCTestCase {
 
     // MARK: - JWT with x5c Header Integration Tests
 
-    func testJwtX5cIntegration_ValidClientId() throws {
+    func testJwtX5cIntegration_ValidClientId() async throws {
         // Create JWT signed with leaf certificate
         let jwt = try createJwtWithX5C(
             privateKey: leafPrivateKey,
@@ -359,8 +359,8 @@ final class X509HashValidationTests: XCTestCase {
             payload: ["sub": "test-subject", "client_id": "x509_hash:placeholder"]
         )
 
-        // Verify JWT and get certificates
-        let jwtResult = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+        // Verify JWT and get certificates (use async version with nil issuerURL)
+        let jwtResult = await JWTUtil.verifyJwtByX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
 
         switch jwtResult {
         case .success(let verified):
@@ -377,7 +377,7 @@ final class X509HashValidationTests: XCTestCase {
         }
     }
 
-    func testJwtX5cIntegration_AttackerCertificate() throws {
+    func testJwtX5cIntegration_AttackerCertificate() async throws {
         // Simulate attack: attacker creates JWT with their own certificate
         // but uses client_id hash from legitimate certificate
 
@@ -392,8 +392,8 @@ final class X509HashValidationTests: XCTestCase {
         let legitimateHash = calculateX509CertificateHash(leafCertificate)!
         let clientId = "x509_hash:\(legitimateHash)"
 
-        // Verify attacker's JWT
-        let jwtResult = JWTUtil.verifyJwtByX5C(jwt: attackerJwt, verifyCertChain: true)
+        // Verify attacker's JWT (use async version with nil issuerURL)
+        let jwtResult = await JWTUtil.verifyJwtByX5C(jwt: attackerJwt, issuerURL: nil, verifyCertChain: true)
 
         switch jwtResult {
         case .success(let verified):

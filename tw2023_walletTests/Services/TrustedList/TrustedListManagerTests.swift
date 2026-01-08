@@ -35,7 +35,7 @@ final class TrustedListManagerTests: XCTestCase {
                   "ServiceName": [{ "lang": "en", "value": "Test Issuer" }],
                   "ServiceDigitalIdentity": {
                     "X509Certificates": [
-                      "-----BEGIN CERTIFICATE-----\\nMIIBkTCB+wIJAKHBfpegmI8lMA0GCSqGSIb3DQEBCwUAMBExDzANBgNVBAMMBnRl\\nc3RjYTAeFw0yNDAxMDEwMDAwMDBaFw0yNTAxMDEwMDAwMDBaMBExDzANBgNVBAMM\\nBnRlc3RjYTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJgNRPs1JGTTR/SX/Y/q\\nPmKqOPuACAQy5vwDhgOKzVZRJ6rIl2mfPvRmVPvfyH+xHMXhIe5Gy+5I9X0X2H5X\\nZp2jUzBRMB0GA1UdDgQWBBQlxBOOO3ygAfIh8HqR7hVqy5M8vjAfBgNVHSMEGDAW\\ngBQlxBOOO3ygAfIh8HqR7hVqy5M8vjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3\\nDQEBCwUAA0EAGdJgK6FhCQVXn6HxSOdNJ9WkMRaPRnD8YNT+5IgLk5D1TA1WRhJ8\\nHHJKq3cDxQrS7yNQvULUkR8E5dQk+RLQEQ==\\n-----END CERTIFICATE-----"
+                      "-----BEGIN CERTIFICATE-----\\nMIIBdzCCAR2gAwIBAgIUU5zz087ESNzLz0l0luR5JvFPo38wCgYIKoZIzj0EAwIwETEPMA0GA1UEAwwGdGVzdGNhMB4XDTI2MDEwODA2MjE0MFoXDTI3MDEwODA2MjE0MFowETEPMA0GA1UEAwwGdGVzdGNhMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEeqf0vRgYFn1x8n2/Y+ucsy0Vlb40w1HbvausSpllS4hsmhDwTNQY7OdozBIDU33V1kvBjJ6+KQDO8S2Ca8xHXaNTMFEwHQYDVR0OBBYEFCO/bo5hyffXWVlGEsqXDvTj2IYLMB8GA1UdIwQYMBaAFCO/bo5hyffXWVlGEsqXDvTj2IYLMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDSAAwRQIgLKOhMsiUBdLXgwkSVSYlJQ2CqNEKA12hZMCZgi5wPywCIQClCC8E6Y4Bh2XEzSkd3aoc6gwJG18tMPF+AZ91M7oecg==\\n-----END CERTIFICATE-----"
                     ]
                   },
                   "ServiceTypeIdentifier": "http://example.com/SvcType/CredentialIssuance",
@@ -261,6 +261,8 @@ final class TrustedListManagerTests: XCTestCase {
             } else {
                 XCTFail("Expected serviceNotFound error")
             }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
         }
     }
 
@@ -288,6 +290,8 @@ final class TrustedListManagerTests: XCTestCase {
             } else {
                 XCTFail("Expected serviceNotFound error")
             }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
         }
     }
 

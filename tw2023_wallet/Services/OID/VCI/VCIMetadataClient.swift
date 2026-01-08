@@ -161,13 +161,6 @@ func fetchCredentialIssuerMetadata(
     }
 }
 
-/// Legacy function for backward compatibility (without signed metadata validation)
-func fetchCredentialIssuerMetadata(from url: URL, using session: URLSession = URLSession.shared)
-    async throws -> CredentialIssuerMetadata
-{
-    return try await fetchMetadata(from: url, to: CredentialIssuerMetadata.self, using: session)
-}
-
 func fetchAuthServerMetadata(from url: URL, using session: URLSession = URLSession.shared)
     async throws -> AuthorizationServerMetadata
 {
