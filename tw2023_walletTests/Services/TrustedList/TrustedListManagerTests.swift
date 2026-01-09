@@ -211,7 +211,7 @@ final class TrustedListManagerTests: XCTestCase {
         )
         MockURLProtocol.mockResponses[".*search-list\\.json"] = (responseData, response)
 
-        let result = try await manager.findService(issuerURL: "https://issuer.test.example.com")
+        let result = try await manager.findService(serviceURL: "https://issuer.test.example.com")
 
         XCTAssertEqual(result.entity.TrustedEntityInformation.TEName.first?.value, "Test Entity")
         XCTAssertEqual(result.service.ServiceInformation.ServiceName.first?.value, "Test Issuer")
@@ -233,7 +233,7 @@ final class TrustedListManagerTests: XCTestCase {
         MockURLProtocol.mockResponses[".*slash-list\\.json"] = (responseData, response)
 
         // Should match even with trailing slash
-        let result = try await manager.findService(issuerURL: "https://issuer.test.example.com/")
+        let result = try await manager.findService(serviceURL: "https://issuer.test.example.com/")
 
         XCTAssertEqual(result.service.ServiceInformation.ServiceName.first?.value, "Test Issuer")
     }
@@ -253,11 +253,11 @@ final class TrustedListManagerTests: XCTestCase {
         MockURLProtocol.mockResponses[".*notfound-list\\.json"] = (responseData, response)
 
         do {
-            _ = try await manager.findService(issuerURL: "https://nonexistent.example.com")
+            _ = try await manager.findService(serviceURL: "https://nonexistent.example.com")
             XCTFail("Should throw serviceNotFound error")
         } catch let error as TrustedListError {
-            if case .serviceNotFound(let issuerURL, _) = error {
-                XCTAssertEqual(issuerURL, "https://nonexistent.example.com")
+            if case .serviceNotFound(let serviceURL, _) = error {
+                XCTAssertEqual(serviceURL, "https://nonexistent.example.com")
             } else {
                 XCTFail("Expected serviceNotFound error")
             }
@@ -282,7 +282,7 @@ final class TrustedListManagerTests: XCTestCase {
 
         // Should not find withdrawn service
         do {
-            _ = try await manager.findService(issuerURL: "https://withdrawn.test.example.com")
+            _ = try await manager.findService(serviceURL: "https://withdrawn.test.example.com")
             XCTFail("Should throw serviceNotFound error for withdrawn service")
         } catch let error as TrustedListError {
             if case .serviceNotFound = error {
@@ -301,7 +301,7 @@ final class TrustedListManagerTests: XCTestCase {
 
         let result = try manager.findService(
             in: document,
-            issuerURL: "https://issuer.test.example.com"
+            serviceURL: "https://issuer.test.example.com"
         )
 
         XCTAssertEqual(result.service.ServiceInformation.ServiceTypeIdentifier,
@@ -325,7 +325,7 @@ final class TrustedListManagerTests: XCTestCase {
         MockURLProtocol.mockResponses[".*certs-list\\.json"] = (responseData, response)
 
         let certificates = try await manager.getCertificates(
-            forIssuerURL: "https://issuer.test.example.com"
+            forServiceURL: "https://issuer.test.example.com"
         )
 
         // Certificate in sample is a dummy, but structure should be correct

@@ -49,8 +49,8 @@ classDiagram
         +shared: TrustedListManager
         +trustedListURLs: [URL]
         +fetchTrustedList(url) async LoTEDocument
-        +findService(issuerURL, serviceType) async TrustedServiceResult
-        +getCertificates(forIssuerURL, serviceType) async [SecCertificate]
+        +findService(serviceURL, serviceType) async TrustedServiceResult
+        +getCertificates(forServiceURL, serviceType) async [SecCertificate]
     }
 
     class TrustedListModels {
@@ -74,7 +74,6 @@ classDiagram
         +anchorCertificates: [SecCertificate]
         +intermediateCertificates: [SecCertificate]
         +createInstance(withAdditionalCertificates) TrustAnchorManager
-        +createInstance(forIssuerURL) async TrustAnchorManager
     }
 
     class X5CJWTVerifier {
@@ -107,10 +106,9 @@ classDiagram
     X5CJWTVerifier --> JWTUtil : uses (decode, verify)
     X5CJWTVerifier --> SignatureUtil : uses (chain validation)
     X5CJWTVerifier --> TrustAnchorManager : uses
+    X5CJWTVerifier --> TrustedListManager : uses (get certificates)
 
     SignatureUtil --> TrustAnchorManager : uses
-
-    TrustAnchorManager --> TrustedListManager : uses (async factory)
 
     TrustedListManager --> TrustedListModels : uses
     TrustedListManager ..> LoTEDocument : fetches
@@ -155,7 +153,7 @@ sequenceDiagram
         X5C->>JWT: verifyJwt(jwt, publicKey)
         JWT-->>X5C: Result<JWT>
 
-        X5C->>TLM: getCertificates(forIssuerURL)
+        X5C->>TLM: getCertificates(forServiceURL)
 
         alt Trust List URLが設定済み
             TLM->>TL: GET trusted-list.json
@@ -195,8 +193,8 @@ sequenceDiagram
     participant TL as Trust List Server
     participant SIG as SignatureUtil
 
-    Caller->>TLM: getCertificates(forIssuerURL)
-    TLM->>TLM: findService(issuerURL, serviceType)
+    Caller->>TLM: getCertificates(forServiceURL)
+    TLM->>TLM: findService(serviceURL, serviceType)
 
     Note over TLM: trustedListURLsをループ
 
@@ -214,13 +212,13 @@ sequenceDiagram
 
         TLM->>TLM: JSONDecoder.decode(LoTEDocument)
 
-        TLM->>TLM: searchInDocument(document, issuerURL)
+        TLM->>TLM: searchInDocument(document, serviceURL)
 
         Note over TLM: TrustedEntitiesListをループ
 
         loop 各Entity/Service
             Note over TLM: ServiceStatus == "granted" を確認
-            Note over TLM: ServiceSupplyPointsにissuerURLが含まれるか確認
+            Note over TLM: ServiceSupplyPointsにserviceURLが含まれるか確認
 
             alt マッチした場合
                 TLM->>TLM: extractCertificates(ServiceDigitalIdentity)
@@ -347,15 +345,15 @@ class TrustedListManager {
     /// トラストリストをフェッチ (JSON/JWT両形式対応)
     func fetchTrustedList(from url: URL) async throws -> LoTEDocument
 
-    /// 発行者URLに対応するサービスエントリを検索
+    /// サービスURLに対応するサービスエントリを検索
     func findService(
-        issuerURL: String,
+        serviceURL: String,
         serviceType: String = TrustedListServiceType.credentialIssuance
     ) async throws -> TrustedServiceResult
 
-    /// 発行者URLから証明書を取得
+    /// サービスURLから証明書を取得
     func getCertificates(
-        forIssuerURL issuerURL: String,
+        forServiceURL serviceURL: String,
         serviceType: String = TrustedListServiceType.credentialIssuance
     ) async throws -> [SecCertificate]
 }
@@ -392,12 +390,6 @@ class TrustAnchorManager {
     static func createInstance(
         withAdditionalCertificates additionalCertificates: [SecCertificate]
     ) -> TrustAnchorManager
-
-    /// 発行者URLからトラストリストの証明書を取得してインスタンス生成
-    static func createInstance(
-        forIssuerURL issuerURL: String,
-        serviceType: String = TrustedListServiceType.credentialIssuance
-    ) async throws -> TrustAnchorManager
 }
 ```
 
@@ -495,7 +487,7 @@ enum TrustedListError: Error {
     case invalidURL(String)
     case fetchFailed(URL, Error)
     case parseError(Error)
-    case serviceNotFound(issuerURL: String, serviceType: String)
+    case serviceNotFound(serviceURL: String, serviceType: String)
     case noCertificatesInService
     case certificateParseError
 }

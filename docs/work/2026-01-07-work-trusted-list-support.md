@@ -97,15 +97,15 @@ class TrustedListManager {
     /// トラストリストをフェッチ（JSON/JWT両形式対応）
     func fetchTrustedList(from url: URL) async throws -> LoTEDocument
 
-    /// 発行者URLに対応するサービスエントリを検索
+    /// サービスURLに対応するサービスエントリを検索
     func findService(
-        issuerURL: String,
+        serviceURL: String,
         serviceType: String = TrustedListServiceType.credentialIssuance
     ) async throws -> TrustedServiceResult
 
-    /// 発行者URLから証明書を取得
+    /// サービスURLから証明書を取得
     func getCertificates(
-        forIssuerURL issuerURL: String,
+        forServiceURL serviceURL: String,
         serviceType: String = TrustedListServiceType.credentialIssuance
     ) async throws -> [SecCertificate]
 }
@@ -125,12 +125,6 @@ class TrustedListManager {
 static func createInstance(
     withAdditionalCertificates additionalCertificates: [SecCertificate]
 ) -> TrustAnchorManager
-
-/// 発行者URLからトラストリストの証明書を取得して使い捨てインスタンスを生成
-static func createInstance(
-    forIssuerURL issuerURL: String,
-    serviceType: String = TrustedListServiceType.credentialIssuance
-) async throws -> TrustAnchorManager
 ```
 
 ### SignatureUtil の拡張
@@ -153,9 +147,11 @@ static func validateCertificateChainWithCustomAnchors(
    └─ TrustedListManager.loadTrustedListURLs()
       └─ バンドルからURLリストを読み込み
 
-2. 発行者署名検証時
-   ├─ TrustAnchorManager.createInstance(forIssuerURL: "https://issuer.example.com")
-   │   ├─ TrustedListManager.getCertificates() を内部で呼び出し
+2. 発行者署名検証時 (X5CJWTVerifier経由)
+   ├─ TrustedListManager.getCertificates(forServiceURL: "https://issuer.example.com")
+   │   └─ トラストリストから証明書を取得
+   │
+   ├─ TrustAnchorManager.createInstance(withAdditionalCertificates: certificates)
    │   ├─ シングルトンの証明書をコピー
    │   └─ トラストリストの証明書を追加
    │

@@ -90,24 +90,6 @@ class TrustAnchorManager {
         return instance
     }
 
-    /// Create a disposable instance with certificates fetched from trusted list for a specific issuer.
-    ///
-    /// - Parameters:
-    ///   - issuerURL: The issuer URL to search for in trusted lists
-    ///   - serviceType: The service type to match (default: CredentialIssuance)
-    /// - Returns: A new TrustAnchorManager instance with certificates for the issuer
-    /// - Throws: TrustedListError if service not found or certificates unavailable
-    static func createInstance(
-        forIssuerURL issuerURL: String,
-        serviceType: String = TrustedListServiceType.credentialIssuance
-    ) async throws -> TrustAnchorManager {
-        let certificates = try await TrustedListManager.shared.getCertificates(
-            forIssuerURL: issuerURL,
-            serviceType: serviceType
-        )
-        return createInstance(withAdditionalCertificates: certificates)
-    }
-
     /// Load certificates from the app bundle's Resources/Certificates directory.
     /// Certificates are categorized by content analysis:
     /// - Self-signed certificates (Issuer == Subject) -> anchor certificates (root CAs)

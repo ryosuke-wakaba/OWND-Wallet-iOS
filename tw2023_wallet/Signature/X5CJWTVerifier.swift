@@ -193,7 +193,7 @@ enum X5CJWTVerifier {
             print("🔐 [X5CJWTVerifier] ========== Using TrustedList for issuer: \(issuerURL) ==========")
             do {
                 let additionalCerts = try await TrustedListManager.shared.getCertificates(
-                    forIssuerURL: issuerURL
+                    forServiceURL: issuerURL
                 )
                 trustAnchorManager = TrustAnchorManager.createInstance(
                     withAdditionalCertificates: additionalCerts
