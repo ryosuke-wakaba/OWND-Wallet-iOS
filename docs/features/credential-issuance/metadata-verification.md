@@ -74,7 +74,6 @@ classDiagram
         +anchorCertificates: [SecCertificate]
         +intermediateCertificates: [SecCertificate]
         +createInstance(withAdditionalCertificates) TrustAnchorManager
-        +createInstance(forIssuerURL) async TrustAnchorManager
     }
 
     class X5CJWTVerifier {
@@ -107,10 +106,9 @@ classDiagram
     X5CJWTVerifier --> JWTUtil : uses (decode, verify)
     X5CJWTVerifier --> SignatureUtil : uses (chain validation)
     X5CJWTVerifier --> TrustAnchorManager : uses
+    X5CJWTVerifier --> TrustedListManager : uses (get certificates)
 
     SignatureUtil --> TrustAnchorManager : uses
-
-    TrustAnchorManager --> TrustedListManager : uses (async factory)
 
     TrustedListManager --> TrustedListModels : uses
     TrustedListManager ..> LoTEDocument : fetches

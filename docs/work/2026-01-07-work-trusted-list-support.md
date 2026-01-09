@@ -153,9 +153,11 @@ static func validateCertificateChainWithCustomAnchors(
    └─ TrustedListManager.loadTrustedListURLs()
       └─ バンドルからURLリストを読み込み
 
-2. 発行者署名検証時
-   ├─ TrustAnchorManager.createInstance(forIssuerURL: "https://issuer.example.com")
-   │   ├─ TrustedListManager.getCertificates() を内部で呼び出し
+2. 発行者署名検証時 (X5CJWTVerifier経由)
+   ├─ TrustedListManager.getCertificates(forIssuerURL: "https://issuer.example.com")
+   │   └─ トラストリストから証明書を取得
+   │
+   ├─ TrustAnchorManager.createInstance(withAdditionalCertificates: certificates)
    │   ├─ シングルトンの証明書をコピー
    │   └─ トラストリストの証明書を追加
    │
