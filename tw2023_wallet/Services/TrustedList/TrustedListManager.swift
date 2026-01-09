@@ -3,7 +3,7 @@
 //  tw2023_wallet
 //
 //  Manages trusted lists (LoTE format) for certificate validation.
-//  Fetches, caches, and searches trusted lists by issuer URL and service type.
+//  Fetches, caches, and searches trusted lists by service URL and service type.
 //
 
 import Foundation
@@ -15,7 +15,7 @@ enum TrustedListError: Error, LocalizedError {
     case invalidURL(String)
     case fetchFailed(URL, Error)
     case parseError(Error)
-    case serviceNotFound(issuerURL: String, serviceType: String)
+    case serviceNotFound(serviceURL: String, serviceType: String)
     case noCertificatesInService
     case certificateParseError
 
@@ -29,8 +29,8 @@ enum TrustedListError: Error, LocalizedError {
             return "Failed to fetch trusted list from \(url): \(error.localizedDescription)"
         case .parseError(let error):
             return "Failed to parse trusted list: \(error.localizedDescription)"
-        case .serviceNotFound(let issuerURL, let serviceType):
-            return "Service not found for issuer \(issuerURL) with type \(serviceType)"
+        case .serviceNotFound(let serviceURL, let serviceType):
+            return "Service not found for \(serviceURL) with type \(serviceType)"
         case .noCertificatesInService:
             return "No certificates found in service digital identity"
         case .certificateParseError:
@@ -235,20 +235,20 @@ class TrustedListManager {
 
     // MARK: - Service Search
 
-    /// Find a service matching the issuer URL and service type
+    /// Find a service matching the service URL and service type
     func findService(
-        issuerURL: String,
+        serviceURL: String,
         serviceType: String = TrustedListServiceType.credentialIssuance
     ) async throws -> TrustedServiceResult {
         print("🔐 [TrustedList] ========== Searching Service ==========")
-        print("🔐 [TrustedList] Issuer URL: \(issuerURL)")
+        print("🔐 [TrustedList] Service URL: \(serviceURL)")
         print("🔐 [TrustedList] Service Type: \(serviceType)")
 
         // Search in all trusted lists
         for url in trustedListURLs {
             do {
                 let document = try await fetchTrustedList(from: url)
-                if let result = searchInDocument(document, issuerURL: issuerURL, serviceType: serviceType) {
+                if let result = searchInDocument(document, serviceURL: serviceURL, serviceType: serviceType) {
                     print("🔐 [TrustedList] ✅ Found matching service!")
                     print("🔐 [TrustedList]   Entity: \(result.entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown")")
                     print("🔐 [TrustedList]   Service: \(result.service.ServiceInformation.ServiceName.first?.value ?? "Unknown")")
@@ -261,30 +261,30 @@ class TrustedListManager {
             }
         }
 
-        print("🔐 [TrustedList] ❌ Service not found for issuer: \(issuerURL)")
+        print("🔐 [TrustedList] ❌ Service not found: \(serviceURL)")
         print("🔐 [TrustedList] ============================================")
-        throw TrustedListError.serviceNotFound(issuerURL: issuerURL, serviceType: serviceType)
+        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceType)
     }
 
     /// Find a service in a specific trusted list document
     func findService(
         in document: LoTEDocument,
-        issuerURL: String,
+        serviceURL: String,
         serviceType: String = TrustedListServiceType.credentialIssuance
     ) throws -> TrustedServiceResult {
-        if let result = searchInDocument(document, issuerURL: issuerURL, serviceType: serviceType) {
+        if let result = searchInDocument(document, serviceURL: serviceURL, serviceType: serviceType) {
             return result
         }
-        throw TrustedListError.serviceNotFound(issuerURL: issuerURL, serviceType: serviceType)
+        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceType)
     }
 
     /// Search for a matching service in a document
     private func searchInDocument(
         _ document: LoTEDocument,
-        issuerURL: String,
+        serviceURL: String,
         serviceType: String
     ) -> TrustedServiceResult? {
-        let normalizedIssuerURL = normalizeURL(issuerURL)
+        let normalizedServiceURL = normalizeURL(serviceURL)
 
         for entity in document.LoTE.TrustedEntitiesList {
             for service in entity.TrustedEntityServices {
@@ -300,11 +300,11 @@ class TrustedListManager {
                     continue
                 }
 
-                // Check ServiceSupplyPoints contains the issuer URL
+                // Check ServiceSupplyPoints contains the service URL
                 if let supplyPoints = info.ServiceSupplyPoints {
                     for point in supplyPoints {
                         let normalizedPoint = normalizeURL(point.uriValue)
-                        if normalizedPoint == normalizedIssuerURL {
+                        if normalizedPoint == normalizedServiceURL {
                             // Found matching service, extract certificates
                             if let certificates = extractCertificates(from: info.ServiceDigitalIdentity) {
                                 return TrustedServiceResult(
@@ -362,12 +362,12 @@ class TrustedListManager {
 
     // MARK: - Convenience Methods
 
-    /// Get certificates for an issuer URL from trusted lists
+    /// Get certificates for a service URL from trusted lists
     func getCertificates(
-        forIssuerURL issuerURL: String,
+        forServiceURL serviceURL: String,
         serviceType: String = TrustedListServiceType.credentialIssuance
     ) async throws -> [SecCertificate] {
-        let result = try await findService(issuerURL: issuerURL, serviceType: serviceType)
+        let result = try await findService(serviceURL: serviceURL, serviceType: serviceType)
         return result.certificates
     }
 }
