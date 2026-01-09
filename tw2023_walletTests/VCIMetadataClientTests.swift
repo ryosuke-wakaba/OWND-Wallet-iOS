@@ -103,7 +103,7 @@ final class CredentialIssuerMetadataTests: XCTestCase {
                     url: testURL1.absoluteURL,
                     statusCode: 200,
                     httpVersion: nil,
-                    headerFields: nil)
+                    headerFields: ["Content-Type": "application/json"])
             )
             MockURLProtocol.mockResponses[testURL2.absoluteString] = (
                 mockData2,
@@ -111,10 +111,10 @@ final class CredentialIssuerMetadataTests: XCTestCase {
                     url: testURL2.absoluteURL,
                     statusCode: 200,
                     httpVersion: nil,
-                    headerFields: nil)
+                    headerFields: ["Content-Type": "application/json"])
             )
             do {
-                let metadata = try await retrieveAllMetadata(issuer: issuer, using: mockSession)
+                let metadata = try await retrieveAllMetadata(issuer: issuer, loteSearchInfos: [], using: mockSession)
                 XCTAssertEqual(metadata.credentialIssuerMetadata.credentialIssuer, issuer)
                 XCTAssertEqual(
                     metadata.authorizationServerMetadata.tokenEndpoint, "\(issuer)/token")

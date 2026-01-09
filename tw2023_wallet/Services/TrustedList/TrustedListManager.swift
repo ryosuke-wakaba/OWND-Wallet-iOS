@@ -11,18 +11,16 @@ import Security
 
 /// Errors that can occur during trusted list operations
 enum TrustedListError: Error, LocalizedError {
-    case urlsFileNotFound
     case invalidURL(String)
     case fetchFailed(URL, Error)
     case parseError(Error)
     case serviceNotFound(serviceURL: String, serviceType: String)
     case noCertificatesInService
     case certificateParseError
+    case noLoTEConfigured
 
     var errorDescription: String? {
         switch self {
-        case .urlsFileNotFound:
-            return "TrustedListURLs.txt not found in bundle"
         case .invalidURL(let url):
             return "Invalid URL: \(url)"
         case .fetchFailed(let url, let error):
@@ -35,6 +33,8 @@ enum TrustedListError: Error, LocalizedError {
             return "No certificates found in service digital identity"
         case .certificateParseError:
             return "Failed to parse certificate from trusted list"
+        case .noLoTEConfigured:
+            return "No LoTE configured for search"
         }
     }
 }
@@ -46,12 +46,12 @@ struct TrustedServiceResult {
     let certificates: [SecCertificate]
 }
 
-/// Manages trusted lists (LoTE format) for certificate validation
+/// Manages trusted lists (LoTE format) for certificate validation.
+/// This class is responsible for fetching and searching LoTE documents.
+/// The LoTE configuration (which LoTEs to use and their service types) should be
+/// determined by the ViewModel layer using TrustedListConfigLoader.
 class TrustedListManager {
     static let shared = TrustedListManager()
-
-    /// URLs of trusted lists to fetch
-    private(set) var trustedListURLs: [URL] = []
 
     // TODO: Implement cache with TTL based on NextUpdate field from trusted list
     /// Cached trusted list documents (currently disabled)
@@ -60,75 +60,8 @@ class TrustedListManager {
     /// URL session for fetching
     private let urlSession: URLSession
 
-    /// Whether URLs have been loaded
-    private(set) var isLoaded: Bool = false
-
     init(urlSession: URLSession = .shared) {
         self.urlSession = urlSession
-        loadTrustedListURLs()
-    }
-
-    // MARK: - URL Management
-
-    /// Load trusted list URLs from TrustedListURLs.txt in bundle
-    func loadTrustedListURLs() {
-        print("TrustedListManager: ========== Loading trusted list URLs ==========")
-        trustedListURLs = []
-
-        guard let resourcePath = Bundle.main.resourcePath else {
-            print("TrustedListManager: [ERROR] Unable to get resource path")
-            isLoaded = true
-            return
-        }
-
-        let urlsFilePath = (resourcePath as NSString).appendingPathComponent("TrustedListURLs.txt")
-        print("TrustedListManager: URLs file path: \(urlsFilePath)")
-
-        guard FileManager.default.fileExists(atPath: urlsFilePath) else {
-            print("TrustedListManager: [WARN] TrustedListURLs.txt not found")
-            isLoaded = true
-            return
-        }
-
-        do {
-            let content = try String(contentsOfFile: urlsFilePath, encoding: .utf8)
-            let lines = content.components(separatedBy: .newlines)
-
-            for line in lines {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                // Skip empty lines and comments
-                if trimmed.isEmpty || trimmed.hasPrefix("#") {
-                    continue
-                }
-                if let url = URL(string: trimmed) {
-                    trustedListURLs.append(url)
-                    print("TrustedListManager: Added URL: \(trimmed)")
-                } else {
-                    print("TrustedListManager: [WARN] Invalid URL: \(trimmed)")
-                }
-            }
-
-            print("TrustedListManager: Loaded \(trustedListURLs.count) URL(s)")
-        } catch {
-            print("TrustedListManager: [ERROR] Failed to read URLs file: \(error)")
-        }
-
-        isLoaded = true
-    }
-
-    /// Add a trusted list URL programmatically
-    func addTrustedListURL(_ url: URL) {
-        if !trustedListURLs.contains(url) {
-            trustedListURLs.append(url)
-            print("TrustedListManager: Added URL: \(url)")
-        }
-    }
-
-    /// Clear all cached lists
-    func clearCache() {
-        // TODO: Re-enable cache with TTL based on NextUpdate
-        // cachedLists.removeAll()
-        print("TrustedListManager: Cache cleared (no-op while cache is disabled)")
     }
 
     // MARK: - Fetching
@@ -219,36 +152,42 @@ class TrustedListManager {
         return payloadData
     }
 
-    /// Fetch all configured trusted lists
-    func fetchAllTrustedLists() async throws -> [LoTEDocument] {
-        var documents: [LoTEDocument] = []
-        for url in trustedListURLs {
-            do {
-                let doc = try await fetchTrustedList(from: url)
-                documents.append(doc)
-            } catch {
-                print("TrustedListManager: [WARN] Failed to fetch \(url): \(error)")
-            }
-        }
-        return documents
-    }
-
     // MARK: - Service Search
 
-    /// Find a service matching the service URL and service type
+    /// Find a service matching the service URL using specified LoTE search infos
+    /// - Parameters:
+    ///   - serviceURL: The service URL to search for
+    ///   - loteInfos: Array of LoTE search infos specifying which LoTEs to search and optional service type filter
+    /// - Returns: TrustedServiceResult if found
+    /// - Throws: TrustedListError.noLoTEConfigured if loteInfos is empty
     func findService(
         serviceURL: String,
-        serviceType: String = TrustedListServiceType.credentialIssuance
+        loteInfos: [LoTESearchInfo]
     ) async throws -> TrustedServiceResult {
+        guard !loteInfos.isEmpty else {
+            print("🔐 [TrustedList] ❌ No LoTE configured for search")
+            throw TrustedListError.noLoTEConfigured
+        }
+
         print("🔐 [TrustedList] ========== Searching Service ==========")
         print("🔐 [TrustedList] Service URL: \(serviceURL)")
-        print("🔐 [TrustedList] Service Type: \(serviceType)")
+        print("🔐 [TrustedList] LoTE count: \(loteInfos.count)")
 
-        // Search in all trusted lists
-        for url in trustedListURLs {
+        for loteInfo in loteInfos {
+            print("🔐 [TrustedList] Searching in: \(loteInfo.url)")
+            if let serviceType = loteInfo.serviceType {
+                print("🔐 [TrustedList]   Service Type filter: \(serviceType)")
+            } else {
+                print("🔐 [TrustedList]   Service Type filter: (none)")
+            }
+
             do {
-                let document = try await fetchTrustedList(from: url)
-                if let result = searchInDocument(document, serviceURL: serviceURL, serviceType: serviceType) {
+                let document = try await fetchTrustedList(from: loteInfo.url)
+                if let result = searchInDocument(
+                    document,
+                    serviceURL: serviceURL,
+                    serviceType: loteInfo.serviceType
+                ) {
                     print("🔐 [TrustedList] ✅ Found matching service!")
                     print("🔐 [TrustedList]   Entity: \(result.entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown")")
                     print("🔐 [TrustedList]   Service: \(result.service.ServiceInformation.ServiceName.first?.value ?? "Unknown")")
@@ -257,32 +196,37 @@ class TrustedListManager {
                     return result
                 }
             } catch {
-                print("🔐 [TrustedList] ⚠️ Error searching in \(url): \(error)")
+                print("🔐 [TrustedList] ⚠️ Error searching in \(loteInfo.url): \(error)")
             }
         }
 
+        let serviceTypeDesc = loteInfos.first?.serviceType ?? "(any)"
         print("🔐 [TrustedList] ❌ Service not found: \(serviceURL)")
         print("🔐 [TrustedList] ============================================")
-        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceType)
+        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceTypeDesc)
     }
 
     /// Find a service in a specific trusted list document
     func findService(
         in document: LoTEDocument,
         serviceURL: String,
-        serviceType: String = TrustedListServiceType.credentialIssuance
+        serviceType: String? = nil
     ) throws -> TrustedServiceResult {
         if let result = searchInDocument(document, serviceURL: serviceURL, serviceType: serviceType) {
             return result
         }
-        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceType)
+        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceType ?? "(any)")
     }
 
     /// Search for a matching service in a document
+    /// - Parameters:
+    ///   - document: The LoTE document to search in
+    ///   - serviceURL: The service URL to find
+    ///   - serviceType: Optional service type filter. If nil, matches any service type.
     private func searchInDocument(
         _ document: LoTEDocument,
         serviceURL: String,
-        serviceType: String
+        serviceType: String?
     ) -> TrustedServiceResult? {
         let normalizedServiceURL = normalizeURL(serviceURL)
 
@@ -290,10 +234,12 @@ class TrustedListManager {
             for service in entity.TrustedEntityServices {
                 let info = service.ServiceInformation
 
-                // TODO: Service type check temporarily disabled for investigation
-                // guard info.ServiceTypeIdentifier == serviceType else {
-                //     continue
-                // }
+                // Filter by service type if specified
+                if let requiredType = serviceType {
+                    guard info.ServiceTypeIdentifier == requiredType else {
+                        continue
+                    }
+                }
 
                 // Check service status (must be granted)
                 guard info.ServiceStatus == TrustedListServiceStatus.granted else {
@@ -363,11 +309,14 @@ class TrustedListManager {
     // MARK: - Convenience Methods
 
     /// Get certificates for a service URL from trusted lists
+    /// - Parameters:
+    ///   - serviceURL: The service URL to get certificates for
+    ///   - loteInfos: Array of LoTE search infos specifying which LoTEs to search
     func getCertificates(
         forServiceURL serviceURL: String,
-        serviceType: String = TrustedListServiceType.credentialIssuance
+        loteInfos: [LoTESearchInfo]
     ) async throws -> [SecCertificate] {
-        let result = try await findService(serviceURL: serviceURL, serviceType: serviceType)
+        let result = try await findService(serviceURL: serviceURL, loteInfos: loteInfos)
         return result.certificates
     }
 }
