@@ -145,7 +145,7 @@ enum SignedMetadataValidator {
 
         // 4. Verify JWT signature using x5c with TrustedList support
         print("🔐 [SignedMetadata] Verifying signature with TrustedList lookup...")
-        let verificationResult = await JWTUtil.verifyJwtByX5C(
+        let verificationResult = await X5CJWTVerifier.verifyJwtWithX5C(
             jwt: jwt,
             issuerURL: expectedIssuerIdentifier,
             verifyCertChain: true
