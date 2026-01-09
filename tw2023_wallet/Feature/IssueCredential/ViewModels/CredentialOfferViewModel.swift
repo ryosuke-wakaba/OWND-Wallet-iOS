@@ -67,9 +67,17 @@ class CredentialOfferViewModel: ObservableObject {
 
         do {
             let preferSignedMetadata = PreferencesDataStore.shared.getPreferSignedMetadata()
+
+            // Load LoTE configuration for OID4VCI
+            // Domain knowledge: jp-lote + oid4vci service type
+            let loteSearchInfos = TrustedListConfigLoader.createSearchInfos([
+                (loteName: "jp-lote", serviceName: "oid4vci")
+            ])
+
             dataModel.metaData = try await retrieveAllMetadata(
                 issuer: credentialOffer.credentialIssuer,
-                preferSignedMetadata: preferSignedMetadata
+                preferSignedMetadata: preferSignedMetadata,
+                loteSearchInfos: loteSearchInfos
             )
         } catch let error as MetadataError {
             // Convert signed metadata errors to user-facing error

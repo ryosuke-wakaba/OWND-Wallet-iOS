@@ -24,11 +24,13 @@ enum X5CJWTVerifier {
     /// - Parameters:
     ///   - jwt: 検証対象のJWT文字列
     ///   - issuerURL: TrustedListから証明書を取得するためのIssuer URL（オプション）
+    ///   - loteSearchInfos: 検索対象のLoTE情報配列
     ///   - verifyCertChain: 証明書チェーン検証を行うかどうか
     /// - Returns: 検証済みJWTと証明書、またはエラー
     static func verifyJwtWithX5C(
         jwt: String,
         issuerURL: String?,
+        loteSearchInfos: [LoTESearchInfo],
         verifyCertChain: Bool = true
     ) async -> Result<VerifiedX5CJwt, JWTVerificationError> {
         // 1. JWTをデコードしてx5cを取得（JWTUtilを使用）
@@ -86,7 +88,8 @@ enum X5CJWTVerifier {
         if verifyCertChain {
             let chainValidationResult = await validateCertificateChain(
                 certificates: certificates,
-                issuerURL: issuerURL
+                issuerURL: issuerURL,
+                loteSearchInfos: loteSearchInfos
             )
 
             if case .failure(let certError) = chainValidationResult {
@@ -173,7 +176,8 @@ enum X5CJWTVerifier {
     /// 証明書チェーン検証
     private static func validateCertificateChain(
         certificates: [Certificate],
-        issuerURL: String?
+        issuerURL: String?,
+        loteSearchInfos: [LoTESearchInfo]
     ) async -> Result<Void, CertificateValidationError> {
         // X509.Certificateを SecCertificateに変換
         let secCertificates: [SecCertificate] = certificates.compactMap { cert in
@@ -189,11 +193,12 @@ enum X5CJWTVerifier {
 
         // TrustAnchorManagerを決定
         let trustAnchorManager: TrustAnchorManager
-        if let issuerURL = issuerURL {
+        if let issuerURL = issuerURL, !loteSearchInfos.isEmpty {
             print("🔐 [X5CJWTVerifier] ========== Using TrustedList for issuer: \(issuerURL) ==========")
             do {
                 let additionalCerts = try await TrustedListManager.shared.getCertificates(
-                    forServiceURL: issuerURL
+                    forServiceURL: issuerURL,
+                    loteInfos: loteSearchInfos
                 )
                 trustAnchorManager = TrustAnchorManager.createInstance(
                     withAdditionalCertificates: additionalCerts
@@ -203,7 +208,7 @@ enum X5CJWTVerifier {
                 trustAnchorManager = TrustAnchorManager.shared
             }
         } else {
-            print("🔐 [X5CJWTVerifier] No issuerURL provided, using singleton TrustAnchorManager")
+            print("🔐 [X5CJWTVerifier] No issuerURL or loteSearchInfos provided, using singleton TrustAnchorManager")
             trustAnchorManager = TrustAnchorManager.shared
         }
 

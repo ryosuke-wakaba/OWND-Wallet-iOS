@@ -106,31 +106,6 @@ final class TrustedListManagerTests: XCTestCase {
         super.tearDown()
     }
 
-    // MARK: - URL Management Tests
-
-    func testAddTrustedListURL() {
-        let testURL = URL(string: "https://test.example.com/trusted-list.json")!
-
-        manager.addTrustedListURL(testURL)
-
-        XCTAssertTrue(manager.trustedListURLs.contains(testURL))
-    }
-
-    func testAddDuplicateURLIsIgnored() {
-        let testURL = URL(string: "https://test.example.com/trusted-list.json")!
-
-        manager.addTrustedListURL(testURL)
-        manager.addTrustedListURL(testURL)
-
-        XCTAssertEqual(manager.trustedListURLs.filter { $0 == testURL }.count, 1)
-    }
-
-    func testClearCache() {
-        manager.clearCache()
-        // Should not throw
-        XCTAssertTrue(true)
-    }
-
     // MARK: - Fetch Tests
 
     func testFetchTrustedList() async throws {
@@ -199,7 +174,7 @@ final class TrustedListManagerTests: XCTestCase {
 
     func testFindServiceByIssuerURL() async throws {
         let testURL = URL(string: "https://test.example.com/search-list.json")!
-        manager.addTrustedListURL(testURL)
+        let loteInfos = [LoTESearchInfo(url: testURL, serviceType: nil)]
 
         // Setup mock response
         let responseData = sampleTrustedListJSON.data(using: .utf8)!
@@ -211,7 +186,7 @@ final class TrustedListManagerTests: XCTestCase {
         )
         MockURLProtocol.mockResponses[".*search-list\\.json"] = (responseData, response)
 
-        let result = try await manager.findService(serviceURL: "https://issuer.test.example.com")
+        let result = try await manager.findService(serviceURL: "https://issuer.test.example.com", loteInfos: loteInfos)
 
         XCTAssertEqual(result.entity.TrustedEntityInformation.TEName.first?.value, "Test Entity")
         XCTAssertEqual(result.service.ServiceInformation.ServiceName.first?.value, "Test Issuer")
@@ -220,7 +195,7 @@ final class TrustedListManagerTests: XCTestCase {
 
     func testFindServiceWithTrailingSlash() async throws {
         let testURL = URL(string: "https://test.example.com/slash-list.json")!
-        manager.addTrustedListURL(testURL)
+        let loteInfos = [LoTESearchInfo(url: testURL, serviceType: nil)]
 
         // Setup mock response
         let responseData = sampleTrustedListJSON.data(using: .utf8)!
@@ -233,14 +208,14 @@ final class TrustedListManagerTests: XCTestCase {
         MockURLProtocol.mockResponses[".*slash-list\\.json"] = (responseData, response)
 
         // Should match even with trailing slash
-        let result = try await manager.findService(serviceURL: "https://issuer.test.example.com/")
+        let result = try await manager.findService(serviceURL: "https://issuer.test.example.com/", loteInfos: loteInfos)
 
         XCTAssertEqual(result.service.ServiceInformation.ServiceName.first?.value, "Test Issuer")
     }
 
     func testFindServiceNotFound() async {
         let testURL = URL(string: "https://test.example.com/notfound-list.json")!
-        manager.addTrustedListURL(testURL)
+        let loteInfos = [LoTESearchInfo(url: testURL, serviceType: nil)]
 
         // Setup mock response
         let responseData = sampleTrustedListJSON.data(using: .utf8)!
@@ -253,7 +228,7 @@ final class TrustedListManagerTests: XCTestCase {
         MockURLProtocol.mockResponses[".*notfound-list\\.json"] = (responseData, response)
 
         do {
-            _ = try await manager.findService(serviceURL: "https://nonexistent.example.com")
+            _ = try await manager.findService(serviceURL: "https://nonexistent.example.com", loteInfos: loteInfos)
             XCTFail("Should throw serviceNotFound error")
         } catch let error as TrustedListError {
             if case .serviceNotFound(let serviceURL, _) = error {
@@ -268,7 +243,7 @@ final class TrustedListManagerTests: XCTestCase {
 
     func testFindServiceIgnoresWithdrawnStatus() async {
         let testURL = URL(string: "https://test.example.com/withdrawn-list.json")!
-        manager.addTrustedListURL(testURL)
+        let loteInfos = [LoTESearchInfo(url: testURL, serviceType: nil)]
 
         // Setup mock response
         let responseData = sampleTrustedListJSON.data(using: .utf8)!
@@ -282,7 +257,7 @@ final class TrustedListManagerTests: XCTestCase {
 
         // Should not find withdrawn service
         do {
-            _ = try await manager.findService(serviceURL: "https://withdrawn.test.example.com")
+            _ = try await manager.findService(serviceURL: "https://withdrawn.test.example.com", loteInfos: loteInfos)
             XCTFail("Should throw serviceNotFound error for withdrawn service")
         } catch let error as TrustedListError {
             if case .serviceNotFound = error {
@@ -308,11 +283,48 @@ final class TrustedListManagerTests: XCTestCase {
                        TrustedListServiceType.credentialIssuance)
     }
 
+    func testFindServiceWithServiceTypeFilter() async throws {
+        let testURL = URL(string: "https://test.example.com/filter-list.json")!
+        // Filter by specific service type
+        let loteInfos = [LoTESearchInfo(url: testURL, serviceType: TrustedListServiceType.credentialIssuance)]
+
+        // Setup mock response
+        let responseData = sampleTrustedListJSON.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: testURL,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        MockURLProtocol.mockResponses[".*filter-list\\.json"] = (responseData, response)
+
+        let result = try await manager.findService(serviceURL: "https://issuer.test.example.com", loteInfos: loteInfos)
+
+        XCTAssertEqual(result.service.ServiceInformation.ServiceTypeIdentifier,
+                       TrustedListServiceType.credentialIssuance)
+    }
+
+    func testFindServiceNoLoTEConfigured() async {
+        // Empty loteInfos should throw noLoTEConfigured
+        do {
+            _ = try await manager.findService(serviceURL: "https://issuer.test.example.com", loteInfos: [])
+            XCTFail("Should throw noLoTEConfigured error")
+        } catch let error as TrustedListError {
+            if case .noLoTEConfigured = error {
+                // Expected
+            } else {
+                XCTFail("Expected noLoTEConfigured error, got: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     // MARK: - Certificate Extraction Tests
 
     func testGetCertificatesForIssuer() async throws {
         let testURL = URL(string: "https://test.example.com/certs-list.json")!
-        manager.addTrustedListURL(testURL)
+        let loteInfos = [LoTESearchInfo(url: testURL, serviceType: nil)]
 
         // Setup mock response
         let responseData = sampleTrustedListJSON.data(using: .utf8)!
@@ -325,7 +337,8 @@ final class TrustedListManagerTests: XCTestCase {
         MockURLProtocol.mockResponses[".*certs-list\\.json"] = (responseData, response)
 
         let certificates = try await manager.getCertificates(
-            forServiceURL: "https://issuer.test.example.com"
+            forServiceURL: "https://issuer.test.example.com",
+            loteInfos: loteInfos
         )
 
         // Certificate in sample is a dummy, but structure should be correct
