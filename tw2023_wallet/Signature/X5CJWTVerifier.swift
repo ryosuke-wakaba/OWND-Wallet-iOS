@@ -31,21 +31,17 @@ enum X5CJWTVerifier {
         issuerURL: String?,
         verifyCertChain: Bool = true
     ) async -> Result<VerifiedX5CJwt, JWTVerificationError> {
-        // 1. JWTをデコード
-        guard let decodedJwt = try? decode(jwt: jwt) else {
-            print("🔐 [X5CJWTVerifier] Failed to decode JWT")
+        // 1. JWTをデコードしてx5cを取得（JWTUtilを使用）
+        let decodeResult = JWTUtil.decodeJwtWithX5C(jwt: jwt)
+        guard case .success(let decoded) = decodeResult else {
+            if case .failure(let error) = decodeResult {
+                return .failure(error)
+            }
             return .failure(.verificationFailed("Unable to decode jwt"))
         }
-        print("🔐 [X5CJWTVerifier] JWT decoded, header keys: \(decodedJwt.header.keys)")
+        let (decodedJwt, x5c) = decoded
 
-        // 2. x5cヘッダーを取得
-        guard let x5c = decodedJwt.header["x5c"] as? [String] else {
-            print("🔐 [X5CJWTVerifier] x5c not found in header")
-            return .failure(.verificationFailed("Unable to get x5c property"))
-        }
-        print("🔐 [X5CJWTVerifier] x5c found, count: \(x5c.count)")
-
-        // 3. x5cからX509証明書に変換
+        // 2. x5cからX509証明書に変換
         let certificates: [Certificate]
         do {
             certificates = try SignatureUtil.convertPemToX509Certificates(pemChain: x5c)
@@ -58,7 +54,7 @@ enum X5CJWTVerifier {
         }
         print("🔐 [X5CJWTVerifier] Certificates converted: \(certificates.count)")
 
-        // 4. 最初の証明書から公開鍵を抽出
+        // 3. 最初の証明書から公開鍵を抽出
         let firstCert = certificates[0]
         let subjectPublicKeyInfoBytes = firstCert.publicKey.subjectPublicKeyInfoBytes
         let publicKeyData = Data(subjectPublicKeyInfoBytes)
@@ -78,7 +74,7 @@ enum X5CJWTVerifier {
         }
         print("🔐 [X5CJWTVerifier] SecKey created successfully")
 
-        // 5. JWTの署名を検証（JWTUtilを使用）
+        // 4. JWTの署名を検証（JWTUtilを使用）
         let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
         print("🔐 [X5CJWTVerifier] JWT signature validation result: \(jwtValidation)")
 
@@ -86,7 +82,7 @@ enum X5CJWTVerifier {
             return .failure(.verificationFailed("Unable to verify jwt"))
         }
 
-        // 6. 証明書チェーン検証（オプション）
+        // 5. 証明書チェーン検証（オプション）
         if verifyCertChain {
             let chainValidationResult = await validateCertificateChain(
                 certificates: certificates,
@@ -107,23 +103,22 @@ enum X5CJWTVerifier {
     /// - Parameter jwt: 検証対象のJWT文字列
     /// - Returns: 検証済みJWT、またはエラー
     static func verifyJwtWithX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
-        // 1. JWTをデコード
-        guard let decodedJwt = try? decode(jwt: jwt) else {
+        // 1. JWTをデコードしてx5uを取得（JWTUtilを使用）
+        let decodeResult = JWTUtil.decodeJwtWithX5U(jwt: jwt)
+        guard case .success(let decoded) = decodeResult else {
+            if case .failure(let error) = decodeResult {
+                return .failure(error)
+            }
             return .failure(.verificationFailed("Unable to decode jwt"))
         }
+        let (decodedJwt, x5uUrl) = decoded
 
-        // 2. x5uヘッダーからURLを取得
-        guard let x5uUrl = decodedJwt.header["x5u"] as? String else {
-            return .failure(.verificationFailed("Unable to get x5u url"))
-        }
-        print("x5u url: \(x5uUrl)")
-
-        // 3. URLから証明書を取得
+        // 2. URLから証明書を取得
         guard let certificates = SignatureUtil.getX509CertificatesFromUrl(url: x5uUrl) else {
             return .failure(.verificationFailed("Unable to get x5u"))
         }
 
-        // 4. 最初の証明書から公開鍵を抽出
+        // 3. 最初の証明書から公開鍵を抽出
         let firstCert = certificates[0]
         let subjectPublicKeyInfoBytes = firstCert.publicKey.subjectPublicKeyInfoBytes
         let publicKeyData = Data(subjectPublicKeyInfoBytes)
@@ -141,7 +136,7 @@ enum X5CJWTVerifier {
             return .failure(.verificationFailed("Unable to Convert Public Key"))
         }
 
-        // 5. 証明書をSecCertificateに変換
+        // 4. 証明書をSecCertificateに変換
         let secCertificates: [SecCertificate] = certificates.compactMap { cert in
             let pem = try? cert.serializeAsPEM()
             guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
@@ -152,7 +147,7 @@ enum X5CJWTVerifier {
             return .failure(.verificationFailed("Unable to convert certificates"))
         }
 
-        // 6. 証明書チェーン検証（SignatureUtilを使用）
+        // 5. 証明書チェーン検証（SignatureUtilを使用）
         let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
             certificates: secCertificates
         )
@@ -164,7 +159,7 @@ enum X5CJWTVerifier {
             return .failure(.certificateValidationFailed(certError))
         }
 
-        // 7. JWT署名検証（JWTUtilを使用）
+        // 6. JWT署名検証（JWTUtilを使用）
         let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
         if case .success = jwtValidation {
             return .success(decodedJwt)

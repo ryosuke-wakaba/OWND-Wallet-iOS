@@ -179,6 +179,41 @@ enum JWTUtil {
         let decodedJwt = try decode(jwt: jwt)
         return (decodedJwt.header, decodedJwt.body, decodedJwt.signature)
     }
+
+    /// JWTをデコードしてx5cヘッダーを抽出する
+    /// - Parameter jwt: JWT文字列
+    /// - Returns: デコードされたJWTとx5c配列、またはエラー
+    static func decodeJwtWithX5C(jwt: String) -> Result<(decoded: JWT, x5c: [String]), JWTVerificationError> {
+        guard let decodedJwt = try? decode(jwt: jwt) else {
+            print("🔐 [JWTUtil] Failed to decode JWT")
+            return .failure(.verificationFailed("Unable to decode jwt"))
+        }
+        print("🔐 [JWTUtil] JWT decoded, header keys: \(decodedJwt.header.keys)")
+
+        guard let x5c = decodedJwt.header["x5c"] as? [String] else {
+            print("🔐 [JWTUtil] x5c not found in header")
+            return .failure(.verificationFailed("Unable to get x5c property"))
+        }
+        print("🔐 [JWTUtil] x5c found, count: \(x5c.count)")
+
+        return .success((decodedJwt, x5c))
+    }
+
+    /// JWTをデコードしてx5uヘッダーを抽出する
+    /// - Parameter jwt: JWT文字列
+    /// - Returns: デコードされたJWTとx5u URL、またはエラー
+    static func decodeJwtWithX5U(jwt: String) -> Result<(decoded: JWT, x5uUrl: String), JWTVerificationError> {
+        guard let decodedJwt = try? decode(jwt: jwt) else {
+            return .failure(.verificationFailed("Unable to decode jwt"))
+        }
+
+        guard let x5uUrl = decodedJwt.header["x5u"] as? String else {
+            return .failure(.verificationFailed("Unable to get x5u url"))
+        }
+        print("🔐 [JWTUtil] x5u url: \(x5uUrl)")
+
+        return .success((decodedJwt, x5uUrl))
+    }
 }
 
 func getAlgorithm(publicKey: SecKey, algorithm: String) -> SecKeyAlgorithm? {
