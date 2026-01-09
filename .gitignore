@@ -93,4 +93,8 @@ iOSInjectionProject/
 .DS_Store
 docs/work.md
 
+# Custom trust anchor certificates (local only)
 *.cer
+
+# Trusted List URLs configuration (local only)
+TrustedListURLs.txt

@@ -10,7 +10,6 @@ import CryptoKit
 import Foundation
 import JWTDecode
 import SwiftASN1
-import X509
 
 enum SignatureError: Error {
     case UnsupportedAlgorithmError
@@ -176,94 +175,34 @@ enum JWTUtil {
         }
     }
 
-    typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
-    static func verifyJwtByX5C(jwt: String, verifyCertChain: Bool = true) -> Result<
-        VerifiedX5CJwt, JWTVerificationError
-    > {
-        guard let decodedJwt = try? decode(jwt: jwt) else {
-            print("[verifyJwtByX5C] Failed to decode JWT")
-            return .failure(.verificationFailed("Unable to decode jwt"))
-        }
-        print("[verifyJwtByX5C] JWT decoded, header keys: \(decodedJwt.header.keys)")
-
-        guard let x5c = decodedJwt.header["x5c"] as? [String] else {
-            print("[verifyJwtByX5C] x5c not found in header")
-            return .failure(.verificationFailed("Unable to get x5c property"))
-        }
-        print("[verifyJwtByX5C] x5c found, count: \(x5c.count)")
-
-        let certificates: [Certificate]
-        do {
-            certificates = try SignatureUtil.convertPemToX509Certificates(pemChain: x5c)
-        } catch let error as SignatureUtilError {
-            print("[verifyJwtByX5C] Failed to convert x5c to certificates: \(error.localizedDescription)")
-            return .failure(.verificationFailed(error.localizedDescription))
-        } catch {
-            print("[verifyJwtByX5C] Failed to convert x5c to certificates: \(error)")
-            return .failure(.verificationFailed("Unable to convert x5c: \(error.localizedDescription)"))
-        }
-        print("[verifyJwtByX5C] Certificates converted: \(certificates.count)")
-
-        let firstCert = certificates[0]
-        let subjectPublicKeyInfoBytes = firstCert.publicKey.subjectPublicKeyInfoBytes
-        let publicKeyData = Data(subjectPublicKeyInfoBytes)
-        // CFDataにキャスト
-        let publicKeyCFData = publicKeyData as CFData
-
-        var error: Unmanaged<CFError>?
-        guard
-            let secKey = SecKeyCreateWithData(
-                publicKeyCFData,
-                [
-                    kSecAttrKeyType: kSecAttrKeyTypeEC,
-                    kSecAttrKeyClass: kSecAttrKeyClassPublic,
-                ] as CFDictionary, &error)
-        else {
-            print("[verifyJwtByX5C] Failed to create SecKey: \(error?.takeRetainedValue().localizedDescription ?? "unknown")")
-            return .failure(.verificationFailed("Unable to Convert Public Key"))
-        }
-        print("[verifyJwtByX5C] SecKey created successfully")
-
-        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
-        print("[verifyJwtByX5C] JWT validation result: \(jwtValidation)")
-        if case .success = jwtValidation {
-            if verifyCertChain {
-                // Convert X509.Certificate to SecCertificate for custom anchor validation
-                let secCertificates: [SecCertificate] = certificates.compactMap { cert in
-                    let pem = try? cert.serializeAsPEM()
-                    guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
-                    return SecCertificateCreateWithData(nil, derData as CFData)
-                }
-
-                guard secCertificates.count == certificates.count else {
-                    print("[verifyJwtByX5C] Failed to convert all certificates to SecCertificate")
-                    return .failure(.verificationFailed("Unable to convert certificates"))
-                }
-
-                // Use custom anchor validation
-                // If x5c contains chain (leaf + intermediates), use as-is; otherwise supplement from TrustAnchorManager
-                let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
-                    certificates: secCertificates
-                )
-
-                switch chainValidation {
-                case .success:
-                    print("[verifyJwtByX5C] Certificate chain validation succeeded")
-                case .failure(let certError):
-                    print("[verifyJwtByX5C] Certificate chain validation failed: \(certError.errorDescription ?? "unknown")")
-                    return .failure(.certificateValidationFailed(certError))
-                }
-            }
-            else {
-                print("Skip ValidateCertificateChain!!!")
-            }
-            return .success((decodedJwt, certificates))
-        }
-
-        return .failure(.verificationFailed("Unable to verify jwt"))
+    static func decodeJwt(jwt: String) throws -> ([String: Any], [String: Any], String?) {
+        let decodedJwt = try decode(jwt: jwt)
+        return (decodedJwt.header, decodedJwt.body, decodedJwt.signature)
     }
 
-    static func verifyJwtByX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
+    /// JWTをデコードしてx5cヘッダーを抽出する
+    /// - Parameter jwt: JWT文字列
+    /// - Returns: デコードされたJWTとx5c配列、またはエラー
+    static func decodeJwtWithX5C(jwt: String) -> Result<(decoded: JWT, x5c: [String]), JWTVerificationError> {
+        guard let decodedJwt = try? decode(jwt: jwt) else {
+            print("🔐 [JWTUtil] Failed to decode JWT")
+            return .failure(.verificationFailed("Unable to decode jwt"))
+        }
+        print("🔐 [JWTUtil] JWT decoded, header keys: \(decodedJwt.header.keys)")
+
+        guard let x5c = decodedJwt.header["x5c"] as? [String] else {
+            print("🔐 [JWTUtil] x5c not found in header")
+            return .failure(.verificationFailed("Unable to get x5c property"))
+        }
+        print("🔐 [JWTUtil] x5c found, count: \(x5c.count)")
+
+        return .success((decodedJwt, x5c))
+    }
+
+    /// JWTをデコードしてx5uヘッダーを抽出する
+    /// - Parameter jwt: JWT文字列
+    /// - Returns: デコードされたJWTとx5u URL、またはエラー
+    static func decodeJwtWithX5U(jwt: String) -> Result<(decoded: JWT, x5uUrl: String), JWTVerificationError> {
         guard let decodedJwt = try? decode(jwt: jwt) else {
             return .failure(.verificationFailed("Unable to decode jwt"))
         }
@@ -271,64 +210,9 @@ enum JWTUtil {
         guard let x5uUrl = decodedJwt.header["x5u"] as? String else {
             return .failure(.verificationFailed("Unable to get x5u url"))
         }
-        print("x5u url: \(x5uUrl)")
-        guard let certificates = SignatureUtil.getX509CertificatesFromUrl(url: x5uUrl) else {
-            return .failure(.verificationFailed("Unable to get x5u"))
-        }
+        print("🔐 [JWTUtil] x5u url: \(x5uUrl)")
 
-        let firstCert = certificates[0]
-        let subjectPublicKeyInfoBytes = firstCert.publicKey.subjectPublicKeyInfoBytes
-        let publicKeyData = Data(subjectPublicKeyInfoBytes)
-        // CFDataにキャスト
-        let publicKeyCFData = publicKeyData as CFData
-
-        var error: Unmanaged<CFError>?
-        guard
-            let secKey = SecKeyCreateWithData(
-                publicKeyCFData,
-                [
-                    kSecAttrKeyType: kSecAttrKeyTypeEC,
-                    kSecAttrKeyClass: kSecAttrKeyClassPublic,
-                ] as CFDictionary, &error)
-        else {
-            return .failure(.verificationFailed("Unable to Convert Public Key"))
-        }
-
-        // Convert X509.Certificate to SecCertificate for custom anchor validation
-        let secCertificates: [SecCertificate] = certificates.compactMap { cert in
-            let pem = try? cert.serializeAsPEM()
-            guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
-            return SecCertificateCreateWithData(nil, derData as CFData)
-        }
-
-        guard secCertificates.count == certificates.count else {
-            return .failure(.verificationFailed("Unable to convert certificates"))
-        }
-
-        // Use custom anchor validation
-        // If x5c contains chain (leaf + intermediates), use as-is; otherwise supplement from TrustAnchorManager
-        let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
-            certificates: secCertificates
-        )
-
-        switch chainValidation {
-        case .success:
-            break
-        case .failure(let certError):
-            return .failure(.certificateValidationFailed(certError))
-        }
-
-        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
-        if case .success = jwtValidation {
-            return .success(decodedJwt)
-        }
-
-        return .failure(.verificationFailed("Unable to verify jwt"))
-    }
-
-    static func decodeJwt(jwt: String) throws -> ([String: Any], [String: Any], String?) {
-        let decodedJwt = try decode(jwt: jwt)
-        return (decodedJwt.header, decodedJwt.body, decodedJwt.signature)
+        return .success((decodedJwt, x5uUrl))
     }
 }
 

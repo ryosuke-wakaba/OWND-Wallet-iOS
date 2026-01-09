@@ -68,7 +68,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
 
     // MARK: - Test Cases
 
-    func testValidSignedMetadata() throws {
+    func testValidSignedMetadata() async throws {
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
             certificates: [leafCertificate, intermediateCertificate],
@@ -81,7 +81,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             ]
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -96,7 +96,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testInvalidTypHeader() throws {
+    func testInvalidTypHeader() async throws {
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
             certificates: [leafCertificate, intermediateCertificate],
@@ -105,7 +105,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             typ: "jwt"  // Invalid typ
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -122,7 +122,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testMissingTypHeader() throws {
+    func testMissingTypHeader() async throws {
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
             certificates: [leafCertificate, intermediateCertificate],
@@ -131,7 +131,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             typ: nil  // Missing typ
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -148,7 +148,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testUnsupportedSignatureMethod_Kid() throws {
+    func testUnsupportedSignatureMethod_Kid() async throws {
         // Create JWT with kid header instead of x5c
         let jwt = try createJwtWithKid(
             privateKey: leafPrivateKey,
@@ -157,7 +157,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             iat: Date()
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -174,7 +174,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testSubjectMismatch() throws {
+    func testSubjectMismatch() async throws {
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
             certificates: [leafCertificate, intermediateCertificate],
@@ -182,7 +182,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             iat: Date()
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -200,7 +200,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testMissingSub() throws {
+    func testMissingSub() async throws {
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
             certificates: [leafCertificate, intermediateCertificate],
@@ -208,7 +208,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             iat: Date()
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -225,7 +225,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testMissingIat() throws {
+    func testMissingIat() async throws {
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
             certificates: [leafCertificate, intermediateCertificate],
@@ -233,7 +233,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             iat: nil  // Missing iat
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -250,7 +250,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testExpiredMetadata() throws {
+    func testExpiredMetadata() async throws {
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
             certificates: [leafCertificate, intermediateCertificate],
@@ -259,7 +259,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             exp: Date().addingTimeInterval(-3600)   // 1 hour ago (expired)
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )
@@ -276,7 +276,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         }
     }
 
-    func testValidMetadataWithoutExp() throws {
+    func testValidMetadataWithoutExp() async throws {
         // exp is OPTIONAL, so this should succeed
         let jwt = try createSignedMetadataJwt(
             privateKey: leafPrivateKey,
@@ -286,7 +286,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
             exp: nil  // No expiration
         )
 
-        let result = SignedMetadataValidator.validate(
+        let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier
         )

@@ -232,6 +232,28 @@ enum SignatureUtil {
         return pem
     }
 
+    /// Extract DER data from PEM-encoded certificate string.
+    /// This function parses PEM format and extracts the base64-encoded DER data.
+    ///
+    /// - Parameter pem: PEM-encoded certificate string with BEGIN/END markers
+    /// - Returns: DER-encoded certificate data, or nil if parsing fails
+    static func extractDERFromPEM(_ pem: String) -> Data? {
+        let beginMarker = "-----BEGIN CERTIFICATE-----"
+        let endMarker = "-----END CERTIFICATE-----"
+
+        guard let beginRange = pem.range(of: beginMarker),
+              let endRange = pem.range(of: endMarker) else {
+            return nil
+        }
+
+        let base64String = pem[beginRange.upperBound..<endRange.lowerBound]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+
+        return Data(base64Encoded: base64String)
+    }
+
     static func decodeBase64ToX509Certificate(base64str: String) throws -> Certificate {
         // RFC 7515: x5c certificates are standard base64-encoded (not base64url)
         // Use ignoreUnknownCharacters to handle whitespace and newlines
@@ -414,15 +436,46 @@ enum SignatureUtil {
         certificates: [SecCertificate],
         useCustomAnchorsOnly: Bool = false
     ) -> Result<Void, CertificateValidationError> {
-        let manager = TrustAnchorManager.shared
+        return validateCertificateChainWithCustomAnchors(
+            certificates: certificates,
+            trustAnchorManager: TrustAnchorManager.shared,
+            useCustomAnchorsOnly: useCustomAnchorsOnly
+        )
+    }
+
+    /// Validate certificate chain using a specific TrustAnchorManager instance.
+    /// This overload allows using disposable TrustAnchorManager instances created from trusted lists.
+    ///
+    /// - Parameters:
+    ///   - certificates: Certificates from x5c header (leaf, or leaf + intermediates)
+    ///   - trustAnchorManager: The TrustAnchorManager instance to use for validation
+    ///   - useCustomAnchorsOnly: If true, only use custom anchors; if false, use custom anchors + system CA
+    /// - Returns: Result with success or detailed validation error
+    static func validateCertificateChainWithCustomAnchors(
+        certificates: [SecCertificate],
+        trustAnchorManager: TrustAnchorManager,
+        useCustomAnchorsOnly: Bool = false
+    ) -> Result<Void, CertificateValidationError> {
+        print("🔐 [CertValidation] ========== Certificate Chain Validation ==========")
+        print("🔐 [CertValidation] Input certificates: \(certificates.count)")
+        for (index, cert) in certificates.enumerated() {
+            let name = SecCertificateCopySubjectSummary(cert) as String? ?? "Unknown"
+            print("🔐 [CertValidation]   [\(index)] \(name)")
+        }
+        print("🔐 [CertValidation] Custom anchors available: \(trustAnchorManager.hasCustomAnchors)")
+        print("🔐 [CertValidation]   Anchors: \(trustAnchorManager.anchorCertificates.count)")
+        print("🔐 [CertValidation]   Intermediates: \(trustAnchorManager.intermediateCertificates.count)")
 
         // If no custom anchors available, fall back to system CA validation
-        guard manager.hasCustomAnchors else {
-            return validateTrust(
+        guard trustAnchorManager.hasCustomAnchors else {
+            print("🔐 [CertValidation] ⚠️ No custom anchors, falling back to system CA")
+            let result = validateTrust(
                 certificates,
                 customAnchors: nil,
                 useCustomAnchorsOnly: false
             )
+            logValidationResult(result)
+            return result
         }
 
         // Build certificate chain based on x5c content:
@@ -430,14 +483,28 @@ enum SignatureUtil {
         // - If x5c has chain (count > 1): use x5c chain as-is (it already contains intermediates)
         var fullChain = certificates
         if certificates.count == 1 {
-            fullChain.append(contentsOf: manager.intermediateCertificates)
+            fullChain.append(contentsOf: trustAnchorManager.intermediateCertificates)
+            print("🔐 [CertValidation] Added \(trustAnchorManager.intermediateCertificates.count) intermediate(s) to chain")
         }
 
-        return validateTrust(
+        print("🔐 [CertValidation] Validating with custom anchors...")
+        let result = validateTrust(
             fullChain,
-            customAnchors: manager.anchorCertificates,
+            customAnchors: trustAnchorManager.anchorCertificates,
             useCustomAnchorsOnly: useCustomAnchorsOnly
         )
+        logValidationResult(result)
+        return result
+    }
+
+    private static func logValidationResult(_ result: Result<Void, CertificateValidationError>) {
+        switch result {
+        case .success:
+            print("🔐 [CertValidation] ✅ Certificate chain validation PASSED")
+        case .failure(let error):
+            print("🔐 [CertValidation] ❌ Certificate chain validation FAILED: \(error.errorDescription ?? "Unknown")")
+        }
+        print("🔐 [CertValidation] =================================================")
     }
 
     /// Core trust validation with optional custom anchors

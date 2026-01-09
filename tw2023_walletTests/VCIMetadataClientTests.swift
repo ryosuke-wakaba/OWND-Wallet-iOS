@@ -36,8 +36,9 @@ final class CredentialIssuerMetadataTests: XCTestCase {
             MockURLProtocol.mockResponses[testURL.absoluteString] = (mockData, response)
 
             do {
-                let metadata = try await fetchCredentialIssuerMetadata(
-                    from: testURL, using: mockSession)
+                // Use generic fetchMetadata for basic metadata fetching test
+                let metadata = try await fetchMetadata(
+                    from: testURL, to: CredentialIssuerMetadata.self, using: mockSession)
                 XCTAssertEqual(metadata.credentialIssuer, "https://datasign-demo-vci.tunnelto.dev")
             }
             catch {

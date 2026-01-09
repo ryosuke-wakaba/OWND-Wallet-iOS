@@ -391,7 +391,7 @@ final class X509ChainValidationTests: XCTestCase {
 
     // MARK: - JWT with x5c Header Tests
 
-    func testJwtWithX5CHeaderValidation() throws {
+    func testJwtWithX5CHeaderValidation() async throws {
         // Create a JWT signed with the leaf certificate's private key
         let jwt = try createJwtWithX5C(
             privateKey: leafPrivateKey,
@@ -399,8 +399,8 @@ final class X509ChainValidationTests: XCTestCase {
             payload: ["sub": "test-subject", "iss": "test-issuer"]
         )
 
-        // Verify JWT using verifyJwtByX5C (which should use custom anchor validation)
-        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+        // Verify JWT using X5CJWTVerifier (which should use custom anchor validation)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
 
         switch result {
         case .success(let verified):
@@ -411,7 +411,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
     }
 
-    func testJwtWithX5CHeaderInvalidChain() throws {
+    func testJwtWithX5CHeaderInvalidChain() async throws {
         // Clear TrustAnchorManager to simulate no trusted anchors
         TrustAnchorManager.shared.clear()
 
@@ -422,7 +422,7 @@ final class X509ChainValidationTests: XCTestCase {
         )
 
         // Without custom anchors, it falls back to system CA which won't trust our test cert
-        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
 
         switch result {
         case .success:
@@ -498,7 +498,7 @@ final class X509ChainValidationTests: XCTestCase {
     }
 
     /// Test JWT with x5c containing full chain (leaf + intermediate)
-    func testJwtWithX5CChain_LeafAndIntermediate() throws {
+    func testJwtWithX5CChain_LeafAndIntermediate() async throws {
         // Clear TrustAnchorManager and only add root (no intermediate)
         let manager = TrustAnchorManager.shared
         manager.clear()
@@ -515,7 +515,7 @@ final class X509ChainValidationTests: XCTestCase {
         )
 
         // Verify JWT - should succeed because intermediate is in x5c
-        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
 
         switch result {
         case .success(let verified):
@@ -527,7 +527,7 @@ final class X509ChainValidationTests: XCTestCase {
     }
 
     /// Test JWT with x5c containing only leaf when TrustAnchorManager has intermediate
-    func testJwtWithX5CLeafOnly_SucceedsWithTrustAnchorManagerIntermediate() throws {
+    func testJwtWithX5CLeafOnly_SucceedsWithTrustAnchorManagerIntermediate() async throws {
         // Setup TrustAnchorManager with root and intermediate
         setupTrustAnchorManager()
 
@@ -539,7 +539,7 @@ final class X509ChainValidationTests: XCTestCase {
         )
 
         // Verify JWT - should succeed because TrustAnchorManager provides intermediate
-        let result = JWTUtil.verifyJwtByX5C(jwt: jwt, verifyCertChain: true)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
 
         switch result {
         case .success:

@@ -128,8 +128,8 @@ func fetchCredentialIssuerMetadata(
             throw MetadataError.decodingError(data: data)
         }
 
-        // Validate signed metadata
-        let validationResult = SignedMetadataValidator.validate(
+        // Validate signed metadata (async version with TrustedList support)
+        let validationResult = await SignedMetadataValidator.validate(
             jwt: jwtString,
             expectedIssuerIdentifier: issuerIdentifier
         )
@@ -159,13 +159,6 @@ func fetchCredentialIssuerMetadata(
             throw MetadataError.decodingError(data: data)
         }
     }
-}
-
-/// Legacy function for backward compatibility (without signed metadata validation)
-func fetchCredentialIssuerMetadata(from url: URL, using session: URLSession = URLSession.shared)
-    async throws -> CredentialIssuerMetadata
-{
-    return try await fetchMetadata(from: url, to: CredentialIssuerMetadata.self, using: session)
 }
 
 func fetchAuthServerMetadata(from url: URL, using session: URLSession = URLSession.shared)

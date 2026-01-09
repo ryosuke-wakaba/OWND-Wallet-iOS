@@ -315,6 +315,181 @@ final class TrustAnchorManagerTests: XCTestCase {
         )
     }
 
+    // MARK: - Disposable Instance Tests
+
+    func testCreateDisposableInstanceWithAdditionalCertificates() {
+        // First, add some certificates to the singleton
+        let manager = TrustAnchorManager.shared
+        guard let sharedRootCert = createTestCertificate() else {
+            XCTFail("Failed to create shared root certificate")
+            return
+        }
+        manager.addAnchorCertificate(sharedRootCert)
+
+        // Create a disposable instance with additional certificates
+        guard let additionalCert = createTestCertificate() else {
+            XCTFail("Failed to create additional certificate")
+            return
+        }
+
+        let disposable = TrustAnchorManager.createInstance(withAdditionalCertificates: [additionalCert])
+
+        // Disposable should have both: inherited from singleton + additional
+        // Since we added 1 to singleton and 1 additional (both self-signed = anchors)
+        XCTAssertEqual(disposable.anchorCertificates.count, 2,
+                       "Disposable should have 2 anchor certificates (1 inherited + 1 additional)")
+    }
+
+    func testCreateDisposableInstanceInheritsSingletonCertificates() {
+        let manager = TrustAnchorManager.shared
+
+        // Add root CA and intermediate to singleton
+        let rootKey = P256.Signing.PrivateKey()
+        let intermediateKey = P256.Signing.PrivateKey()
+
+        guard let rootCert = createSelfSignedCertificate(privateKey: rootKey, commonName: "Shared Root"),
+              let intermediateCert = createSignedCertificate(
+                  subjectKey: intermediateKey,
+                  issuerKey: rootKey,
+                  issuerName: "Shared Root",
+                  subjectName: "Shared Intermediate"
+              ) else {
+            XCTFail("Failed to create shared certificates")
+            return
+        }
+
+        let rootDer = try! rootCert.serializeAsPEM().derBytes
+        let intermediateDer = try! intermediateCert.serializeAsPEM().derBytes
+
+        guard let rootSecCert = SecCertificateCreateWithData(nil, Data(rootDer) as CFData),
+              let intermediateSecCert = SecCertificateCreateWithData(nil, Data(intermediateDer) as CFData) else {
+            XCTFail("Failed to convert to SecCertificate")
+            return
+        }
+
+        manager.addAnchorCertificate(rootSecCert)
+        manager.addIntermediateCertificate(intermediateSecCert)
+
+        // Create disposable without additional certificates
+        let disposable = TrustAnchorManager.createInstance(withAdditionalCertificates: [])
+
+        // Disposable should inherit all from singleton
+        XCTAssertEqual(disposable.anchorCertificates.count, manager.anchorCertificates.count,
+                       "Disposable should inherit all anchor certificates from singleton")
+        XCTAssertEqual(disposable.intermediateCertificates.count, manager.intermediateCertificates.count,
+                       "Disposable should inherit all intermediate certificates from singleton")
+    }
+
+    func testDisposableInstanceDoesNotAffectSingleton() {
+        let manager = TrustAnchorManager.shared
+        let originalAnchorCount = manager.anchorCertificates.count
+        let originalIntermediateCount = manager.intermediateCertificates.count
+
+        // Create a disposable instance with additional certificates
+        guard let additionalCert = createTestCertificate() else {
+            XCTFail("Failed to create additional certificate")
+            return
+        }
+
+        let disposable = TrustAnchorManager.createInstance(withAdditionalCertificates: [additionalCert])
+
+        // Verify disposable has additional certificates
+        XCTAssertGreaterThanOrEqual(disposable.anchorCertificates.count, originalAnchorCount)
+
+        // Verify singleton is unchanged
+        XCTAssertEqual(manager.anchorCertificates.count, originalAnchorCount,
+                       "Singleton anchor count should be unchanged")
+        XCTAssertEqual(manager.intermediateCertificates.count, originalIntermediateCount,
+                       "Singleton intermediate count should be unchanged")
+    }
+
+    func testDisposableInstanceClassifiesCertificatesCorrectly() {
+        // Create a mix of self-signed (root) and non-self-signed (intermediate) certificates
+        let rootKey = P256.Signing.PrivateKey()
+        let intermediateKey = P256.Signing.PrivateKey()
+
+        guard let rootCert = createSelfSignedCertificate(privateKey: rootKey, commonName: "Additional Root"),
+              let intermediateCert = createSignedCertificate(
+                  subjectKey: intermediateKey,
+                  issuerKey: rootKey,
+                  issuerName: "Additional Root",
+                  subjectName: "Additional Intermediate"
+              ) else {
+            XCTFail("Failed to create certificates")
+            return
+        }
+
+        let rootDer = try! rootCert.serializeAsPEM().derBytes
+        let intermediateDer = try! intermediateCert.serializeAsPEM().derBytes
+
+        guard let rootSecCert = SecCertificateCreateWithData(nil, Data(rootDer) as CFData),
+              let intermediateSecCert = SecCertificateCreateWithData(nil, Data(intermediateDer) as CFData) else {
+            XCTFail("Failed to convert to SecCertificate")
+            return
+        }
+
+        // Clear singleton first
+        TrustAnchorManager.shared.clear()
+
+        // Create disposable with both types
+        let disposable = TrustAnchorManager.createInstance(withAdditionalCertificates: [rootSecCert, intermediateSecCert])
+
+        // Root should be classified as anchor (self-signed)
+        XCTAssertEqual(disposable.anchorCertificates.count, 1,
+                       "Should have 1 anchor certificate (self-signed)")
+
+        // Intermediate should be classified as intermediate (not self-signed)
+        XCTAssertEqual(disposable.intermediateCertificates.count, 1,
+                       "Should have 1 intermediate certificate (not self-signed)")
+    }
+
+    func testDisposableInstanceHasCustomAnchors() {
+        // Clear singleton
+        TrustAnchorManager.shared.clear()
+
+        // Create disposable with a self-signed certificate
+        guard let rootCert = createTestCertificate() else {
+            XCTFail("Failed to create certificate")
+            return
+        }
+
+        let disposable = TrustAnchorManager.createInstance(withAdditionalCertificates: [rootCert])
+
+        XCTAssertTrue(disposable.hasCustomAnchors,
+                      "Disposable with self-signed cert should have custom anchors")
+    }
+
+    func testDisposableInstanceWithoutAnchors() {
+        // Clear singleton
+        TrustAnchorManager.shared.clear()
+
+        // Create non-self-signed certificate
+        let rootKey = P256.Signing.PrivateKey()
+        let leafKey = P256.Signing.PrivateKey()
+
+        guard let intermediateCert = createSignedCertificate(
+                  subjectKey: leafKey,
+                  issuerKey: rootKey,
+                  issuerName: "External Root",
+                  subjectName: "Intermediate"
+              ) else {
+            XCTFail("Failed to create certificate")
+            return
+        }
+
+        let intermediateDer = try! intermediateCert.serializeAsPEM().derBytes
+        guard let intermediateSecCert = SecCertificateCreateWithData(nil, Data(intermediateDer) as CFData) else {
+            XCTFail("Failed to convert to SecCertificate")
+            return
+        }
+
+        // Create disposable with only intermediate (no anchor)
+        let disposable = TrustAnchorManager.createInstance(withAdditionalCertificates: [intermediateSecCert])
+
+        XCTAssertFalse(disposable.hasCustomAnchors,
+                       "Disposable with only intermediate certs should not have custom anchors")
+    }
+
     // MARK: - Helper Methods
 
     private func createTestCertificate() -> SecCertificate? {
