@@ -186,6 +186,61 @@ sequenceDiagram
     end
 ```
 
+### TrustedListManager内部処理フロー
+
+```mermaid
+sequenceDiagram
+    participant Caller as X5CJWTVerifier
+    participant TLM as TrustedListManager
+    participant TL as Trust List Server
+    participant SIG as SignatureUtil
+
+    Caller->>TLM: getCertificates(forIssuerURL)
+    TLM->>TLM: findService(issuerURL, serviceType)
+
+    Note over TLM: trustedListURLsをループ
+
+    loop 各Trust List URL
+        TLM->>TLM: fetchTrustedList(url)
+        TLM->>TL: GET trusted-list (JSON/JWT)
+        TL-->>TLM: Response (JSON or JWT)
+
+        alt JWT形式 (eyJで始まる)
+            TLM->>TLM: extractPayloadFromJWT(jwt)
+            Note over TLM: Base64URLデコード
+        else JSON形式
+            Note over TLM: そのまま使用
+        end
+
+        TLM->>TLM: JSONDecoder.decode(LoTEDocument)
+
+        TLM->>TLM: searchInDocument(document, issuerURL)
+
+        Note over TLM: TrustedEntitiesListをループ
+
+        loop 各Entity/Service
+            Note over TLM: ServiceStatus == "granted" を確認
+            Note over TLM: ServiceSupplyPointsにissuerURLが含まれるか確認
+
+            alt マッチした場合
+                TLM->>TLM: extractCertificates(ServiceDigitalIdentity)
+
+                loop 各PEM証明書
+                    TLM->>SIG: extractDERFromPEM(pem)
+                    SIG-->>TLM: DER Data
+                    TLM->>TLM: SecCertificateCreateWithData(derData)
+                end
+
+                TLM-->>Caller: [SecCertificate]
+            end
+        end
+    end
+
+    alt サービスが見つからない場合
+        TLM-->>Caller: TrustedListError.serviceNotFound
+    end
+```
+
 ### 証明書チェーン検証フロー
 
 ```mermaid
