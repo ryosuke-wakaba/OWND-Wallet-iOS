@@ -31,7 +31,6 @@ classDiagram
 
     class SignedMetadataValidator {
         <<enum>>
-        +validate(jwt, expectedIssuerIdentifier) Result~SignedMetadataValidationResult~
         +validate(jwt, expectedIssuerIdentifier) async Result~SignedMetadataValidationResult~
         +extractMetadataJson(payload) Data
     }
@@ -78,25 +77,36 @@ classDiagram
         +createInstance(forIssuerURL) async TrustAnchorManager
     }
 
+    class X5CJWTVerifier {
+        <<enum>>
+        +verifyJwtWithX5C(jwt, issuerURL, verifyCertChain) async Result~VerifiedX5CJwt~
+        +verifyJwtWithX5U(jwt) Result~JWT~
+    }
+
     class JWTUtil {
         <<enum>>
-        +verifyJwtByX5C(jwt, verifyCertChain) Result~VerifiedX5CJwt~
-        +verifyJwtByX5C(jwt, issuerURL, verifyCertChain) async Result~VerifiedX5CJwt~
+        +sign(keyAlias, header, payload) Result~String~
+        +verifyJwt(jwt, publicKey) Result~JWT~
+        +decodeJwt(jwt) tuple
+        +decodeJwtWithX5C(jwt) Result~tuple~
+        +decodeJwtWithX5U(jwt) Result~tuple~
     }
 
     class SignatureUtil {
         <<enum>>
         +validateCertificateChainWithCustomAnchors(certificates) Result~Void~
         +validateCertificateChainWithCustomAnchors(certificates, trustAnchorManager) Result~Void~
+        +convertPemToX509Certificates(pemChain) [Certificate]
     }
 
     %% Relationships
     VCIMetadataClient --> SignedMetadataValidator : uses
-    SignedMetadataValidator --> JWTUtil : uses
+    SignedMetadataValidator --> X5CJWTVerifier : uses
     SignedMetadataValidator ..> SignedMetadataValidationResult : creates
 
-    JWTUtil --> SignatureUtil : uses
-    JWTUtil --> TrustAnchorManager : uses (async version)
+    X5CJWTVerifier --> JWTUtil : uses (decode, verify)
+    X5CJWTVerifier --> SignatureUtil : uses (chain validation)
+    X5CJWTVerifier --> TrustAnchorManager : uses
 
     SignatureUtil --> TrustAnchorManager : uses
 
@@ -116,6 +126,7 @@ sequenceDiagram
     participant App as Application
     participant VMC as VCIMetadataClient
     participant SMV as SignedMetadataValidator
+    participant X5C as X5CJWTVerifier
     participant JWT as JWTUtil
     participant SIG as SignatureUtil
     participant TAM as TrustAnchorManager
@@ -133,25 +144,33 @@ sequenceDiagram
         Note over SMV: 1. typ検証 (openidvci-issuer-metadata+jwt)
         Note over SMV: 2. 署名方式確認 (x5cのみサポート)
 
-        SMV->>JWT: verifyJwtByX5C(jwt, issuerURL, verifyCertChain: true)
+        SMV->>X5C: verifyJwtWithX5C(jwt, issuerURL, verifyCertChain: true)
 
-        JWT->>TAM: createInstance(forIssuerURL)
-        TAM->>TLM: getCertificates(forIssuerURL)
+        X5C->>JWT: decodeJwtWithX5C(jwt)
+        JWT-->>X5C: (decoded, x5c)
+
+        X5C->>SIG: convertPemToX509Certificates(x5c)
+        SIG-->>X5C: [Certificate]
+
+        X5C->>JWT: verifyJwt(jwt, publicKey)
+        JWT-->>X5C: Result<JWT>
+
+        X5C->>TLM: getCertificates(forIssuerURL)
 
         alt Trust List URLが設定済み
             TLM->>TL: GET trusted-list.json
             TL-->>TLM: LoTEDocument
-            TLM-->>TAM: [SecCertificate]
-            TAM-->>JWT: TrustAnchorManager (with TL certs)
+            TLM-->>X5C: [SecCertificate]
+            X5C->>TAM: createInstance(withAdditionalCertificates)
         else Trust List未設定
-            TLM-->>TAM: Error / Empty
-            TAM-->>JWT: TrustAnchorManager (singleton certs only)
+            TLM-->>X5C: Error / Empty
+            Note over X5C: Use singleton TrustAnchorManager
         end
 
-        JWT->>SIG: validateCertificateChainWithCustomAnchors(certificates, trustAnchorManager)
-        SIG-->>JWT: Result<Void>
+        X5C->>SIG: validateCertificateChainWithCustomAnchors(certificates, trustAnchorManager)
+        SIG-->>X5C: Result<Void>
 
-        JWT-->>SMV: Result<VerifiedX5CJwt>
+        X5C-->>SMV: Result<VerifiedX5CJwt>
 
         Note over SMV: 3. ペイロード検証 (sub, iat, exp)
 
@@ -237,13 +256,7 @@ func retrieveAllMetadata(
 // tw2023_wallet/Services/OID/VCI/SignedMetadataValidator.swift
 
 enum SignedMetadataValidator {
-    /// 署名付きメタデータを検証 (同期版 - シングルトンTrustAnchorManager使用)
-    static func validate(
-        jwt: String,
-        expectedIssuerIdentifier: String
-    ) -> Result<SignedMetadataValidationResult, SignedMetadataError>
-
-    /// 署名付きメタデータを検証 (非同期版 - TrustedList対応)
+    /// 署名付きメタデータを検証 (TrustedList対応)
     static func validate(
         jwt: String,
         expectedIssuerIdentifier: String
@@ -333,28 +346,63 @@ class TrustAnchorManager {
 }
 ```
 
-### JWTUtil (x5c検証)
+### X5CJWTVerifier
 
-JWT署名の検証。
+x5c/x5uヘッダーを使用したJWT検証のラッパー層。JWTUtilとSignatureUtilを統合して証明書チェーン検証を行う。
+
+```swift
+// tw2023_wallet/Signature/X5CJWTVerifier.swift
+
+enum X5CJWTVerifier {
+    typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
+
+    /// x5cヘッダーでJWTを検証 (署名検証 + 証明書チェーン検証)
+    static func verifyJwtWithX5C(
+        jwt: String,
+        issuerURL: String?,
+        verifyCertChain: Bool = true
+    ) async -> Result<VerifiedX5CJwt, JWTVerificationError>
+
+    /// x5uヘッダーでJWTを検証
+    static func verifyJwtWithX5U(
+        jwt: String
+    ) -> Result<JWT, JWTVerificationError>
+}
+```
+
+### JWTUtil
+
+純粋なJWT操作（署名、検証、デコード）を提供。
 
 ```swift
 // tw2023_wallet/Signature/JWTUtil.swift
 
 enum JWTUtil {
-    typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
+    /// JWTに署名
+    static func sign(
+        keyAlias: String,
+        header: [String: Any],
+        payload: [String: Any]
+    ) -> Result<String, SignatureError>
 
-    /// x5cヘッダーでJWTを検証 (同期版)
-    static func verifyJwtByX5C(
+    /// 公開鍵でJWT署名を検証
+    static func verifyJwt(
         jwt: String,
-        verifyCertChain: Bool = true
-    ) -> Result<VerifiedX5CJwt, JWTVerificationError>
+        publicKey: SecKey
+    ) -> Result<JWT, JWTVerificationError>
 
-    /// x5cヘッダーでJWTを検証 (非同期版 - TrustedList対応)
-    static func verifyJwtByX5C(
-        jwt: String,
-        issuerURL: String?,
-        verifyCertChain: Bool = true
-    ) async -> Result<VerifiedX5CJwt, JWTVerificationError>
+    /// JWTをデコード
+    static func decodeJwt(jwt: String) throws -> ([String: Any], [String: Any], String?)
+
+    /// JWTをデコードしてx5cヘッダーを抽出
+    static func decodeJwtWithX5C(
+        jwt: String
+    ) -> Result<(decoded: JWT, x5c: [String]), JWTVerificationError>
+
+    /// JWTをデコードしてx5uヘッダーを抽出
+    static func decodeJwtWithX5U(
+        jwt: String
+    ) -> Result<(decoded: JWT, x5uUrl: String), JWTVerificationError>
 }
 ```
 
@@ -465,7 +513,8 @@ enum TrustedListError: Error {
 | `tw2023_wallet/Services/TrustedList/TrustedListManager.swift` | トラストリスト管理 |
 | `tw2023_wallet/Services/TrustedList/TrustedListModels.swift` | LoTEデータモデル |
 | `tw2023_wallet/Signature/TrustAnchorManager.swift` | 信頼アンカー証明書管理 |
-| `tw2023_wallet/Signature/JWTUtil.swift` | JWT検証ユーティリティ |
+| `tw2023_wallet/Signature/X5CJWTVerifier.swift` | x5c/x5u JWT検証ラッパー |
+| `tw2023_wallet/Signature/JWTUtil.swift` | JWT操作ユーティリティ |
 | `tw2023_wallet/Signature/SignatureUtil.swift` | 証明書チェーン検証 |
 
 ## Configuration
@@ -516,3 +565,5 @@ fi
 - [Signed Metadata Implementation](../../work/2026-01-05-signed-metadata-implementation.md)
 - [Accept Header Fix](../../work/2026-01-06-signed-metadata-accept-header-fix.md)
 - [Trust List Support](../../work/2026-01-07-work-trusted-list-support.md)
+- [Metadata Validation Refactoring](../../work/2026-01-08-metadata-validation-refactoring.md)
+- [JWT Chain Validation Refactoring](../../work/2026-01-08-refactor-jwt-chain-validation.md)

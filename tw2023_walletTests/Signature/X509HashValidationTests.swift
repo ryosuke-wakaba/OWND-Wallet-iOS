@@ -360,7 +360,7 @@ final class X509HashValidationTests: XCTestCase {
         )
 
         // Verify JWT and get certificates (use async version with nil issuerURL)
-        let jwtResult = await JWTUtil.verifyJwtByX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
+        let jwtResult = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, verifyCertChain: true)
 
         switch jwtResult {
         case .success(let verified):
@@ -393,7 +393,7 @@ final class X509HashValidationTests: XCTestCase {
         let clientId = "x509_hash:\(legitimateHash)"
 
         // Verify attacker's JWT (use async version with nil issuerURL)
-        let jwtResult = await JWTUtil.verifyJwtByX5C(jwt: attackerJwt, issuerURL: nil, verifyCertChain: true)
+        let jwtResult = await X5CJWTVerifier.verifyJwtWithX5C(jwt: attackerJwt, issuerURL: nil, verifyCertChain: true)
 
         switch jwtResult {
         case .success(let verified):

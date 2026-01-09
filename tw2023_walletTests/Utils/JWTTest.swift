@@ -131,7 +131,7 @@ final class JWTUtilTest: XCTestCase {
             // let signatureBase64 = signature.derRepresentation.base64EncodedString()
             let jwt = "\(unsignedToken).\(signatureBase64)"
 
-            let verifyResult = await JWTUtil.verifyJwtByX5C(jwt: jwt, issuerURL: nil, verifyCertChain: false)
+            let verifyResult = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, verifyCertChain: false)
 
             switch verifyResult {
                 case .success(let verifedX5CJwt):

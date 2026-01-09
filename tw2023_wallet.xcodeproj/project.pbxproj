@@ -143,6 +143,8 @@
 		8BA7D7852F0DF2DA0054F75E /* TrustedListModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */; };
 		8BA7D7862F0DF2DA0054F75E /* TrustedListManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */; };
 		8BA7D7892F0F7F900054F75E /* SignatureUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */; };
+		8BA7D78B2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */; };
+		8BA7D78C2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */; };
 		8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8B2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
 		8BAB8D8C2C10045300B579A4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A89463E02B555C910069EF21 /* Constants.swift */; };
@@ -439,6 +441,7 @@
 		8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListManagerTests.swift; sourceTree = "<group>"; };
 		8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListModelsTests.swift; sourceTree = "<group>"; };
 		8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureUtilTests.swift; sourceTree = "<group>"; };
+		8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X5CJWTVerifier.swift; sourceTree = "<group>"; };
 		8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JwtVpJsonGeneratorImpl.swift; sourceTree = "<group>"; };
 		8BAD97B82B831F6300B60358 /* BackupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupModel.swift; sourceTree = "<group>"; };
 		8BB2BA732B4BC46400C668BA /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
@@ -1109,6 +1112,7 @@
 		A81087102B3B0694004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
+				8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */,
 				8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */,
 				8BF1A1C82ED07045008CE820 /* JWEUtil.swift */,
 				A81087172B3BBA0C004425DE /* ES256K.swift */,
@@ -1854,6 +1858,7 @@
 				F6E0A01D2B400FAA00C2B541 /* ImageLoader.swift in Sources */,
 				F6CC76912B567AD100FA26A8 /* QrCodeScannerView.swift in Sources */,
 				8B8964982EC70CF100DD917E /* MetadataDecoder.swift in Sources */,
+				8BA7D78B2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */,
 				8B8964992EC70CF100DD917E /* JWTParsingUtil.swift in Sources */,
 				8B774A542B7B7B5400F5ED55 /* QRReaderViewLauncher.swift in Sources */,
 				8B27ECD02EFB86E100A00345 /* DPoPService.swift in Sources */,
@@ -1917,6 +1922,7 @@
 				A81087222B3D33F5004425DE /* SignatureUitlTest.swift in Sources */,
 				8B81E2AE2B33CC4300ED3B4E /* tw2023_walletTests.swift in Sources */,
 				A810871E2B3BC9DF004425DE /* ES256KTest.swift in Sources */,
+				8BA7D78C2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */,
 				8B297C382B3953D700D2998D /* VCIMetadata.swift in Sources */,
 				A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */,
 				8B89648F2EC70A8100DD917E /* CredentialIssuanceErrors.swift in Sources */,
