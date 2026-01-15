@@ -76,10 +76,10 @@ class OpenIdProvider {
                     let isX509Hash = _clientId.hasPrefix("x509_hash:")
 
                     if isX509SanDns || isX509Hash {
-                        // Verify certificate chain using custom trust anchors (built-in intermediate + root)
-                        // Use async version with nil issuerURL and empty loteSearchInfos to use singleton TrustAnchorManager
-                        // (TrustedList is for issuers, not verifiers)
-                        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, loteSearchInfos: [], verifyCertChain: true)
+                        // Verify certificate chain using TrustedList (LoTE) for verifier authentication
+                        let loteSearchInfos = TrustedListConfigLoader.createSearchInfos([("jp-lote", "oid4vp")])
+                        let verifierURL = requestObj?.responseUri ?? requestObj?.redirectUri
+                        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: verifierURL, loteSearchInfos: loteSearchInfos, verifyCertChain: true)
                         switch result {
                             case .success(let verifedX5CJwt):
                                 print("verify request jwt success")
