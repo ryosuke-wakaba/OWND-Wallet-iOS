@@ -39,7 +39,7 @@ final class ES256KTests: XCTestCase {
             y: "EgtAoZrao5R5S4ANOhXeuGFZT0zbEU-R8sniQSMIZgQ",
             d: "M7yXCJjSzeJJ9NpBoMDg_fV1D9-cFeOm_IDHFvlcE_I")
 
-        let (priv, pub) = try! SignatureUtil.generateECKeyPair(jwk: privateKey)
+        let (priv, pub) = try! X509CertificateOperations.generateECKeyPair(jwk: privateKey)
 
         let d = "data to be signed"
         if let dataFromString = d.data(using: .utf8) {
@@ -61,7 +61,7 @@ final class ES256KTests: XCTestCase {
             y: "EgtAoZrao5R5S4ANOhXeuGFZT0zbEU-R8sniQSMIZgQ",
             d: "M7yXCJjSzeJJ9NpBoMDg_fV1D9-cFeOm_IDHFvlcE_I")
 
-        let (priv, pub) = try! SignatureUtil.generateECKeyPair(jwk: privateKey)
+        let (priv, pub) = try! X509CertificateOperations.generateECKeyPair(jwk: privateKey)
         let jws = try! ES256K.createJws(key: priv, payload: "{\"foo\":\"bar\"}")
 
         print(jws)

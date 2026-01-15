@@ -69,7 +69,7 @@ Verifierの検証に使用されるClient ID Schemeです。
 | File | Security Feature |
 |------|------------------|
 | `tw2023_wallet/Services/OID/Provider/OpenIdProvider.swift` | Client ID Scheme検証 |
-| `tw2023_wallet/Signature/JWEUtil.swift` | VP Token暗号化 |
+| `tw2023_wallet/Signature/JWE.swift` | VP Token暗号化 |
 | `tw2023_wallet/Services/OID/DCQLMatcher.swift` | 選択的開示 |
 
 ## References

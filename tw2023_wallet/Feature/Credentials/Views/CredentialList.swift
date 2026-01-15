@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CredentialList: View {
-    var viewModel: CredentialListViewModel
+    @State var viewModel: CredentialListViewModel
 
     // full screenから開かれたDetailで必要なのでここでは空の配列を固定で持つ
     @State var dummyPath: [ScreensOnFullScreen] = []
@@ -20,7 +20,7 @@ struct CredentialList: View {
     @State private var sharedArgs = SharedArgs()
 
     init(viewModel: CredentialListViewModel = CredentialListViewModel()) {
-        self.viewModel = viewModel
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {

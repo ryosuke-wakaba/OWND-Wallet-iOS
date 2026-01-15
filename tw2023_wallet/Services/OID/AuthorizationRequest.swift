@@ -109,7 +109,7 @@ enum AuthorizationError: Error {
     case getDcqlQueryFailure
     case getJwksFailure
     case keyIdNotFoundInJwtHeader
-    case validateJwtFailure(reason: JWTVerificationError)
+    case validateJwtFailure(reason: JWTOperations.VerificationError)
     case serverError(statusCode: Int)
     case invalidData
     case invalidClientMetadata
@@ -397,7 +397,7 @@ func fetchAndConvertJWK(
 }
 
 func extractKeyIdFromJwt(header: [String: Any]) -> String? {
-    //    let (header, _, _) = try JWTUtil.decodeJwt(jwt: jwt)
+    //    let (header, _, _) = try JWTOperations.decodeJwt(jwt: jwt)
     guard let keyId = header["kid"] as? String else {
         print("kid does not exist in jwt header")
         return nil
@@ -413,7 +413,7 @@ func verifyRequestObject(
         // 今は`jwsk_uri`のみをサポートするが、将来的には`jwks`にも対応する
         return .failure(.authRequestInputError(reason: .missingParameter(reason: "jwskUri")))
     }
-    guard let decoded = try? JWTUtil.decodeJwt(jwt: jwt) else {
+    guard let decoded = try? JWTOperations.decodeJwt(jwt: jwt) else {
         print(jwt)
         return .failure(
             .authRequestInputError(reason: .compliantError(reason: "can not decode jwt")))
@@ -436,7 +436,7 @@ func verifyRequestObject(
         print(jwt)
         print(key)
         print("")
-        let result = JWTUtil.verifyJwt(jwt: jwt, publicKey: key)
+        let result = JWTOperations.verifyJwt(jwt: jwt, publicKey: key)
         switch result {
             case .success(let jwt):
                 return .success(jwt)

@@ -26,8 +26,8 @@ class SharingRequestPreviewModel: SharingRequestViewModel {
 
             let (cert, derCertificates) = extractFirstCertSubject(url: clientId)
             var b = false
-            if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
-                if case .success = SignatureUtil.validateCertificateChainWithCustomAnchors(certificates: secCerts) {
+            if let secCerts = X509CertificateOperations.derDataToSecCertificates(derCertificates) {
+                if case .success = X509CertificateOperations.validateCertificateChainWithCustomAnchors(certificates: secCerts) {
                     b = true
                 }
             }

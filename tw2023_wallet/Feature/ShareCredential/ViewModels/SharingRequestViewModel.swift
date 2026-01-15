@@ -135,8 +135,8 @@ class SharingRequestViewModel {
                         cert = extractedCert
                         // verify ov of rp
                         print("verify cert chain")
-                        if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
-                            if case .success = SignatureUtil.validateCertificateChainWithCustomAnchors(
+                        if let secCerts = X509CertificateOperations.derDataToSecCertificates(derCertificates) {
+                            if case .success = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
                                 certificates: secCerts) {
                                 verified = true
                             }
@@ -451,7 +451,7 @@ class SharingRequestViewModel {
 // MARK: - Helper Functions
 
 private func jwtVcJsonClaimsTobeDisclosed(jwt: String) -> [Disclosure] {
-    if let (_, body, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+    if let (_, body, _) = try? JWTOperations.decodeJwt(jwt: jwt),
         let vc = body["vc"] as? [String: Any],
         let credentialSubject = vc["credentialSubject"] as? [String: Any]
     {

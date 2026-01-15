@@ -383,7 +383,7 @@ class OpenIdProvider {
         let x = keyPair.publicKey.0.base64URLEncodedString()
         let y = keyPair.publicKey.1.base64URLEncodedString()
         let jwk = ECPublicJwk(kty: "EC", crv: "secp256k1", x: x, y: y)
-        guard let jwkThumbprint = SignatureUtil.toJwkThumbprint(jwk: jwk) else {
+        guard let jwkThumbprint = X509CertificateOperations.toJwkThumbprint(jwk: jwk) else {
             return .failure(OpenIdProviderIllegalStateException.illegalJwkThumbprintState)
         }
 

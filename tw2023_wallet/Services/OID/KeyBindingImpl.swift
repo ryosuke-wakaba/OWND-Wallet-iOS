@@ -65,7 +65,7 @@ class KeyBindingImpl: KeyBinding {
             "sd_hash": sdHash,  // Note: no underscore prefix per SD-JWT spec for KB-JWT
             "nonce": nonce,
         ]
-        let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
+        let result = JWTOperations.sign(keyAlias: keyAlias, header: header, payload: payload)
         switch result {
             case let .success(jwt):
                 return jwt

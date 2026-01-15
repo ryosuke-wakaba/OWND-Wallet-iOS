@@ -1,5 +1,5 @@
 //
-//  SignatureUtil.swift
+//  X509CertificateOperations.swift
 //  tw2023_wallet
 //
 //  Created by katsuyoshi ozaki on 2023/12/28.
@@ -40,7 +40,7 @@ extension String {
     }
 }
 
-enum SignatureUtilError: LocalizedError, Equatable {
+enum X509CertificateError: LocalizedError, Equatable {
     case KeyConversionError
     case X509CertificateConversionError
     case invalidX5cFormat
@@ -96,7 +96,7 @@ enum CertificateValidationError: LocalizedError {
 let x509CertPreamble = "-----BEGIN CERTIFICATE-----\n"
 let x509CertPostamble = "\n-----END CERTIFICATE-----"
 
-enum SignatureUtil {
+enum X509CertificateOperations {
     static func addPrePostAmble(base64str: String) -> String {
         return x509CertPreamble + base64str + x509CertPostamble
     }
@@ -136,7 +136,7 @@ enum SignatureUtil {
         guard let d = jwk.d.base64UrlDecoded(),
             let publicKey = SECP256K1.privateToPublic(privateKey: d)
         else {
-            throw SignatureUtilError.KeyConversionError
+            throw X509CertificateError.KeyConversionError
         }
         return (d, publicKey)
     }
@@ -258,7 +258,7 @@ enum SignatureUtil {
         // RFC 7515: x5c certificates are standard base64-encoded (not base64url)
         // Use ignoreUnknownCharacters to handle whitespace and newlines
         guard let derData = Data(base64Encoded: base64str, options: .ignoreUnknownCharacters) else {
-            throw SignatureUtilError.X509CertificateConversionError
+            throw X509CertificateError.X509CertificateConversionError
         }
 
         do {
@@ -266,12 +266,12 @@ enum SignatureUtil {
         } catch {
             // Try PEM format as fallback
             guard let pem = base64strToPem(base64str: base64str) else {
-                throw SignatureUtilError.X509CertificateConversionError
+                throw X509CertificateError.X509CertificateConversionError
             }
             do {
                 return try Certificate(pemEncoded: pem)
             } catch {
-                throw SignatureUtilError.X509CertificateConversionError
+                throw X509CertificateError.X509CertificateConversionError
             }
         }
     }
@@ -305,7 +305,7 @@ enum SignatureUtil {
             // Check for invalid x5c format: certificates should be separate array elements,
             // not comma-separated within a single string (RFC 7515)
             if certString.contains(",") {
-                throw SignatureUtilError.invalidX5cFormat
+                throw X509CertificateError.invalidX5cFormat
             }
             return try decodeBase64ToX509Certificate(base64str: certString)
         }
@@ -317,7 +317,7 @@ enum SignatureUtil {
         var result: [Certificate]?
         let dispatchGroup = DispatchGroup()
         dispatchGroup.enter()
-        SignatureUtil.getX509CertificatesFromUrl_(url: url, session: session) {
+        X509CertificateOperations.getX509CertificatesFromUrl_(url: url, session: session) {
             certificates, error in
             defer {
                 dispatchGroup.leave()

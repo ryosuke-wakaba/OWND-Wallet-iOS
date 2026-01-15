@@ -130,7 +130,7 @@ class KeyPairUtil {
             "nonce": nonce,
         ]
 
-        let proofJwt = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
+        let proofJwt = JWTOperations.sign(keyAlias: keyAlias, header: header, payload: payload)
         switch proofJwt {
             case let .success(jwt):
                 return jwt
@@ -224,7 +224,7 @@ class KeyPairUtil {
 
     static func verifyJwt(jwkJson: [String: String], jwt: String) -> Bool {
         let publicKey = try! KeyPairUtil.createPublicKey(jwk: jwkJson)
-        let result = JWTUtil.verifyJwt(jwt: jwt, publicKey: publicKey)
+        let result = JWTOperations.verifyJwt(jwt: jwt, publicKey: publicKey)
         switch result {
             case .success:
                 return true

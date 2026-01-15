@@ -487,7 +487,7 @@ func extractDnsNameFromSAN(certificate: Certificate) -> String? {
 /// - Returns: CertificateInfo from the leaf certificate, or nil if extraction fails
 func extractCertificateInfoFromJwt(jwt: String) -> CertificateInfo? {
     // Decode JWT to get header
-    guard let (header, _, _) = try? JWTUtil.decodeJwt(jwt: jwt),
+    guard let (header, _, _) = try? JWTOperations.decodeJwt(jwt: jwt),
           let x5c = header["x5c"] as? [String],
           !x5c.isEmpty
     else {
@@ -508,7 +508,7 @@ func extractCertificateInfoFromJwt(jwt: String) -> CertificateInfo? {
     var certInfo = x509Certificate2CertificateInfo(firstCertificate: x509Cert, issuer: issuer)
 
     // Try to get dnsName from SAN using swift-certificates
-    if let certificates = try? SignatureUtil.convertPemToX509Certificates(pemChain: x5c),
+    if let certificates = try? X509CertificateOperations.convertPemToX509Certificates(pemChain: x5c),
        let firstCert = certificates.first {
         if let dnsName = extractDnsNameFromSAN(certificate: firstCert) {
             // Override domain with SAN dnsName if available

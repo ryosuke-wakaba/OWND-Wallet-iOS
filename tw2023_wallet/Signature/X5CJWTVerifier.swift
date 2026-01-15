@@ -32,9 +32,9 @@ enum X5CJWTVerifier {
         issuerURL: String?,
         loteSearchInfos: [LoTESearchInfo],
         verifyCertChain: Bool = true
-    ) async -> Result<VerifiedX5CJwt, JWTVerificationError> {
+    ) async -> Result<VerifiedX5CJwt, JWTOperations.VerificationError> {
         // 1. JWTをデコードしてx5cを取得（JWTUtilを使用）
-        let decodeResult = JWTUtil.decodeJwtWithX5C(jwt: jwt)
+        let decodeResult = JWTOperations.decodeJwtWithX5C(jwt: jwt)
         guard case .success(let decoded) = decodeResult else {
             if case .failure(let error) = decodeResult {
                 return .failure(error)
@@ -46,8 +46,8 @@ enum X5CJWTVerifier {
         // 2. x5cからX509証明書に変換
         let certificates: [Certificate]
         do {
-            certificates = try SignatureUtil.convertPemToX509Certificates(pemChain: x5c)
-        } catch let error as SignatureUtilError {
+            certificates = try X509CertificateOperations.convertPemToX509Certificates(pemChain: x5c)
+        } catch let error as X509CertificateError {
             print("🔐 [X5CJWTVerifier] Failed to convert x5c to certificates: \(error.localizedDescription)")
             return .failure(.verificationFailed(error.localizedDescription))
         } catch {
@@ -77,7 +77,7 @@ enum X5CJWTVerifier {
         print("🔐 [X5CJWTVerifier] SecKey created successfully")
 
         // 4. JWTの署名を検証（JWTUtilを使用）
-        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
+        let jwtValidation = JWTOperations.verifyJwt(jwt: jwt, publicKey: secKey)
         print("🔐 [X5CJWTVerifier] JWT signature validation result: \(jwtValidation)")
 
         guard case .success = jwtValidation else {
@@ -105,9 +105,9 @@ enum X5CJWTVerifier {
     /// x5uヘッダーを使用したJWT検証
     /// - Parameter jwt: 検証対象のJWT文字列
     /// - Returns: 検証済みJWT、またはエラー
-    static func verifyJwtWithX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
+    static func verifyJwtWithX5U(jwt: String) -> Result<JWT, JWTOperations.VerificationError> {
         // 1. JWTをデコードしてx5uを取得（JWTUtilを使用）
-        let decodeResult = JWTUtil.decodeJwtWithX5U(jwt: jwt)
+        let decodeResult = JWTOperations.decodeJwtWithX5U(jwt: jwt)
         guard case .success(let decoded) = decodeResult else {
             if case .failure(let error) = decodeResult {
                 return .failure(error)
@@ -117,7 +117,7 @@ enum X5CJWTVerifier {
         let (decodedJwt, x5uUrl) = decoded
 
         // 2. URLから証明書を取得
-        guard let certificates = SignatureUtil.getX509CertificatesFromUrl(url: x5uUrl) else {
+        guard let certificates = X509CertificateOperations.getX509CertificatesFromUrl(url: x5uUrl) else {
             return .failure(.verificationFailed("Unable to get x5u"))
         }
 
@@ -151,7 +151,7 @@ enum X5CJWTVerifier {
         }
 
         // 5. 証明書チェーン検証（SignatureUtilを使用）
-        let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let chainValidation = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: secCertificates
         )
 
@@ -163,7 +163,7 @@ enum X5CJWTVerifier {
         }
 
         // 6. JWT署名検証（JWTUtilを使用）
-        let jwtValidation = JWTUtil.verifyJwt(jwt: jwt, publicKey: secKey)
+        let jwtValidation = JWTOperations.verifyJwt(jwt: jwt, publicKey: secKey)
         if case .success = jwtValidation {
             return .success(decodedJwt)
         }
@@ -213,7 +213,7 @@ enum X5CJWTVerifier {
         }
 
         // 証明書チェーン検証（SignatureUtilを使用）
-        let chainValidation = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let chainValidation = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: secCertificates,
             trustAnchorManager: trustAnchorManager
         )

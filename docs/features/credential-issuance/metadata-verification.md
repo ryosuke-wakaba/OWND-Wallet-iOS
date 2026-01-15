@@ -97,7 +97,7 @@ classDiagram
         +verifyJwtWithX5U(jwt) Result~JWT~
     }
 
-    class JWTUtil {
+    class JWTOperations {
         <<enum>>
         +sign(keyAlias, header, payload) Result~String~
         +verifyJwt(jwt, publicKey) Result~JWT~
@@ -106,7 +106,7 @@ classDiagram
         +decodeJwtWithX5U(jwt) Result~tuple~
     }
 
-    class SignatureUtil {
+    class X509CertificateOperations {
         <<enum>>
         +validateCertificateChainWithCustomAnchors(certificates) Result~Void~
         +validateCertificateChainWithCustomAnchors(certificates, trustAnchorManager) Result~Void~
@@ -121,12 +121,12 @@ classDiagram
     SignedMetadataValidator --> X5CJWTVerifier : uses
     SignedMetadataValidator ..> SignedMetadataValidationResult : creates
 
-    X5CJWTVerifier --> JWTUtil : uses (decode, verify)
-    X5CJWTVerifier --> SignatureUtil : uses (chain validation)
+    X5CJWTVerifier --> JWTOperations : uses (decode, verify)
+    X5CJWTVerifier --> X509CertificateOperations : uses (chain validation)
     X5CJWTVerifier --> TrustAnchorManager : uses
     X5CJWTVerifier --> TrustedListManager : uses (get certificates)
 
-    SignatureUtil --> TrustAnchorManager : uses
+    X509CertificateOperations --> TrustAnchorManager : uses
 
     TrustedListManager --> TrustedListModels : uses
     TrustedListManager ..> LoTEDocument : fetches
@@ -144,8 +144,8 @@ sequenceDiagram
     participant VMC as VCIMetadataClient
     participant SMV as SignedMetadataValidator
     participant X5C as X5CJWTVerifier
-    participant JWT as JWTUtil
-    participant SIG as SignatureUtil
+    participant JWT as JWTOperations
+    participant SIG as X509CertificateOperations
     participant TAM as TrustAnchorManager
     participant TLM as TrustedListManager
     participant Issuer as Credential Issuer
@@ -213,7 +213,7 @@ sequenceDiagram
     participant Caller as X5CJWTVerifier
     participant TLM as TrustedListManager
     participant TL as Trust List Server
-    participant SIG as SignatureUtil
+    participant SIG as X509CertificateOperations
 
     Caller->>TLM: getCertificates(forServiceURL, loteInfos)
 
@@ -273,8 +273,8 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant JWT as JWTUtil
-    participant SIG as SignatureUtil
+    participant JWT as JWTOperations
+    participant SIG as X509CertificateOperations
     participant TAM as TrustAnchorManager
     participant SEC as SecTrust API
 
@@ -436,7 +436,7 @@ class TrustAnchorManager {
 
 ### X5CJWTVerifier
 
-x5c/x5uヘッダーを使用したJWT検証のラッパー層。JWTUtilとSignatureUtilを統合して証明書チェーン検証を行う。
+x5c/x5uヘッダーを使用したJWT検証のラッパー層。JWTOperationsとX509CertificateOperationsを統合して証明書チェーン検証を行う。
 
 ```swift
 // tw2023_wallet/Signature/X5CJWTVerifier.swift
@@ -464,14 +464,14 @@ enum X5CJWTVerifier {
 }
 ```
 
-### JWTUtil
+### JWTOperations
 
 純粋なJWT操作（署名、検証、デコード）を提供。
 
 ```swift
-// tw2023_wallet/Signature/JWTUtil.swift
+// tw2023_wallet/Signature/JWT.swift
 
-enum JWTUtil {
+enum JWTOperations {
     /// JWTに署名
     static func sign(
         keyAlias: String,
@@ -609,8 +609,8 @@ enum TrustedListError: Error {
 | `tw2023_wallet/Services/TrustedList/TrustedListConfig.swift` | LoTE設定モデル・ローダー |
 | `tw2023_wallet/Signature/TrustAnchorManager.swift` | 信頼アンカー証明書管理 |
 | `tw2023_wallet/Signature/X5CJWTVerifier.swift` | x5c/x5u JWT検証ラッパー |
-| `tw2023_wallet/Signature/JWTUtil.swift` | JWT操作ユーティリティ |
-| `tw2023_wallet/Signature/SignatureUtil.swift` | 証明書チェーン検証 |
+| `tw2023_wallet/Signature/JWT.swift` | JWT操作 |
+| `tw2023_wallet/Signature/X509CertificateOperations.swift` | 証明書チェーン検証 |
 
 ## Configuration
 

@@ -46,7 +46,7 @@ final class KeyBindingTests: XCTestCase {
         )
 
         // JWTの検証
-        let verificationResult = JWTUtil.verifyJwt(jwt: jwt, publicKey: publicKey!)
+        let verificationResult = JWTOperations.verifyJwt(jwt: jwt, publicKey: publicKey!)
         switch verificationResult {
             case .success(_):
                 XCTAssertTrue(true, "JWT verification succeeded")

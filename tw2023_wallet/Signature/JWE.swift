@@ -1,5 +1,5 @@
 //
-//  JWEUtil.swift
+//  JWE.swift
 //  tw2023_wallet
 //
 //  Created for HAIP VP Token encryption support
@@ -17,7 +17,7 @@ enum JWEError: Error {
 
 /// JWE encryption utility for HAIP-compliant VP Token encryption
 /// Supports ECDH-ES + A128GCM with P-256 curve
-struct JWEUtil {
+struct JWE {
 
     /// Decode Base64URL string to Data
     private static func base64URLDecode(_ string: String) -> Data? {

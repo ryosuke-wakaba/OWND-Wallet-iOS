@@ -300,7 +300,7 @@ class TrustedListManager {
 
     /// Create SecCertificate from PEM string
     private func createCertificate(from pem: String) -> SecCertificate? {
-        guard let derData = SignatureUtil.extractDERFromPEM(pem) else {
+        guard let derData = X509CertificateOperations.extractDERFromPEM(pem) else {
             return nil
         }
         return SecCertificateCreateWithData(nil, derData as CFData)

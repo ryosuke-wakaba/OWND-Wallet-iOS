@@ -82,10 +82,10 @@ class SharingRequestViewModel {
 
 ## VP Token Encryption (JWE)
 
-**File**: `tw2023_wallet/Signature/JWEUtil.swift`
+**File**: `tw2023_wallet/Signature/JWE.swift`
 
 ```swift
-struct JWEUtil {
+struct JWE {
     /// Encrypt VP Token using ECDH-ES + A128GCM
     /// - Parameters:
     ///   - plaintext: VP Token to encrypt
@@ -152,5 +152,5 @@ case .failure(let error):
 |------|-------------|
 | `tw2023_wallet/Services/OID/Provider/OpenIdProvider.swift` | OID4VPプロバイダー |
 | `tw2023_wallet/Feature/ShareCredential/ViewModels/SharingRequestViewModel.swift` | VP提示ViewModel |
-| `tw2023_wallet/Signature/JWEUtil.swift` | JWE暗号化 |
+| `tw2023_wallet/Signature/JWE.swift` | JWE暗号化 |
 | `tw2023_wallet/Services/OID/AuthorizationRequest.swift` | 認可リクエスト処理 |

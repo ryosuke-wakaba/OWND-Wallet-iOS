@@ -70,8 +70,8 @@
 		8B4CAB6E2B7F60440006FF4D /* FileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4CAB6D2B7F60440006FF4D /* FileDocument.swift */; };
 		8B5370942EDEB9D800E87858 /* X509HashValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5370932EDEB9D800E87858 /* X509HashValidationTests.swift */; };
 		8B56254B2B7073CB00D6D28B /* RedirectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B56254A2B7073CB00D6D28B /* RedirectView.swift */; };
-		8B5C65912B515BC300D72289 /* JWTUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWTUtil.swift */; };
-		8B5C65922B515BFA00D72289 /* SignatureUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871F2B3D3277004425DE /* SignatureUtil.swift */; };
+		8B5C65912B515BC300D72289 /* JWTOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWTOperations.swift */; };
+		8B5C65922B515BFA00D72289 /* X509CertificateOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871F2B3D3277004425DE /* X509CertificateOperations.swift */; };
 		8B5C65932B515C2000D72289 /* KeyPairUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C3C2B478710008CA5AC /* KeyPairUtil.swift */; };
 		8B5C65952B5237C200D72289 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5C65942B5237C200D72289 /* Types.swift */; };
 		8B5C65962B5237C200D72289 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5C65942B5237C200D72289 /* Types.swift */; };
@@ -144,7 +144,7 @@
 		8BA7D7802F0DF2AE0054F75E /* TrustedListManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D77A2F0DF2AE0054F75E /* TrustedListManager.swift */; };
 		8BA7D7852F0DF2DA0054F75E /* TrustedListModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */; };
 		8BA7D7862F0DF2DA0054F75E /* TrustedListManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */; };
-		8BA7D7892F0F7F900054F75E /* SignatureUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */; };
+		8BA7D7892F0F7F900054F75E /* X509CertificateOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7882F0F7F900054F75E /* X509CertificateOperationsTests.swift */; };
 		8BA7D78B2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */; };
 		8BA7D78C2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */; };
 		8BAB8D8A2C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */; };
@@ -174,19 +174,19 @@
 		8BF1A1C42ED03FE9008CE820 /* DCQLMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C12ED03FE9008CE820 /* DCQLMatcher.swift */; };
 		8BF1A1C52ED03FE9008CE820 /* DCQL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C02ED03FE9008CE820 /* DCQL.swift */; };
 		8BF1A1C72ED0400E008CE820 /* dcqlQuery.json in Resources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */; };
-		8BF1A1C92ED07045008CE820 /* JWEUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWEUtil.swift */; };
-		8BF1A1CA2ED07045008CE820 /* JWEUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWEUtil.swift */; };
+		8BF1A1C92ED07045008CE820 /* JWE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWE.swift */; };
+		8BF1A1CA2ED07045008CE820 /* JWE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWE.swift */; };
 		8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF745982B4FF85F000F74A9 /* JOSESwift */; };
 		A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A81087142B3B0AB3004425DE /* SDJwtUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087132B3B0AB3004425DE /* SDJwtUtil.swift */; };
 		A81087182B3BBA0C004425DE /* ES256K.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087172B3BBA0C004425DE /* ES256K.swift */; };
 		A810871E2B3BC9DF004425DE /* ES256KTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871D2B3BC9DF004425DE /* ES256KTest.swift */; };
-		A81087202B3D3277004425DE /* SignatureUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871F2B3D3277004425DE /* SignatureUtil.swift */; };
-		A81087222B3D33F5004425DE /* SignatureUitlTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087212B3D33F5004425DE /* SignatureUitlTest.swift */; };
+		A81087202B3D3277004425DE /* X509CertificateOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871F2B3D3277004425DE /* X509CertificateOperations.swift */; };
+		A81087222B3D33F5004425DE /* X509CertificateOperationsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087212B3D33F5004425DE /* X509CertificateOperationsTest.swift */; };
 		A81087252B3D66A1004425DE /* X509 in Frameworks */ = {isa = PBXBuildFile; productRef = A81087242B3D66A1004425DE /* X509 */; };
 		A8137C3D2B478710008CA5AC /* KeyPairUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C3C2B478710008CA5AC /* KeyPairUtil.swift */; };
-		A8137C412B47D611008CA5AC /* JWTUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWTUtil.swift */; };
+		A8137C412B47D611008CA5AC /* JWTOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWTOperations.swift */; };
 		A8137C482B484454008CA5AC /* JWTDecode in Frameworks */ = {isa = PBXBuildFile; productRef = A8137C472B484454008CA5AC /* JWTDecode */; };
 		A82601A92C267A2A00BF8139 /* credential_display_filled.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601A82C267A2A00BF8139 /* credential_display_filled.json */; };
 		A82601AB2C267B1000BF8139 /* credential_display_minimum.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601AA2C267B1000BF8139 /* credential_display_minimum.json */; };
@@ -195,7 +195,7 @@
 		A82ECC802C23A6AB00B9784B /* UrlEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC7F2C23A6AB00B9784B /* UrlEncoder.swift */; };
 		A82ECC822C23A81C00B9784B /* UrlEncoderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82ECC812C23A81C00B9784B /* UrlEncoderTest.swift */; };
 		A82ECC842C25059900B9784B /* authorizationMetaDataList.json in Resources */ = {isa = PBXBuildFile; fileRef = A82ECC832C25059900B9784B /* authorizationMetaDataList.json */; };
-		A83039BD2B4E4229004139A7 /* JWTTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039B72B4E4229004139A7 /* JWTTest.swift */; };
+		A83039BD2B4E4229004139A7 /* JWTOperationsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039B72B4E4229004139A7 /* JWTOperationsTest.swift */; };
 		A83039BE2B4E4229004139A7 /* CertificateUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039B82B4E4229004139A7 /* CertificateUtilTest.swift */; };
 		A83039BF2B4E4229004139A7 /* ZipUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039B92B4E4229004139A7 /* ZipUtilTest.swift */; };
 		A83039C02B4E4229004139A7 /* SDJwtUtilTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */; };
@@ -443,7 +443,7 @@
 		8BA7D77B2F0DF2AE0054F75E /* TrustedListModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListModels.swift; sourceTree = "<group>"; };
 		8BA7D7812F0DF2DA0054F75E /* TrustedListManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListManagerTests.swift; sourceTree = "<group>"; };
 		8BA7D7822F0DF2DA0054F75E /* TrustedListModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedListModelsTests.swift; sourceTree = "<group>"; };
-		8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureUtilTests.swift; sourceTree = "<group>"; };
+		8BA7D7882F0F7F900054F75E /* X509CertificateOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X509CertificateOperationsTests.swift; sourceTree = "<group>"; };
 		8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X5CJWTVerifier.swift; sourceTree = "<group>"; };
 		8BAB8D892C0F128100B579A4 /* JwtVpJsonGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JwtVpJsonGeneratorImpl.swift; sourceTree = "<group>"; };
 		8BAD97B82B831F6300B60358 /* BackupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupModel.swift; sourceTree = "<group>"; };
@@ -460,17 +460,17 @@
 		8BF1A1C02ED03FE9008CE820 /* DCQL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQL.swift; sourceTree = "<group>"; };
 		8BF1A1C12ED03FE9008CE820 /* DCQLMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQLMatcher.swift; sourceTree = "<group>"; };
 		8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dcqlQuery.json; sourceTree = "<group>"; };
-		8BF1A1C82ED07045008CE820 /* JWEUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWEUtil.swift; sourceTree = "<group>"; };
+		8BF1A1C82ED07045008CE820 /* JWE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWE.swift; sourceTree = "<group>"; };
 		A80BFE752CAD070A00E30249 /* ProviderUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUtils.swift; sourceTree = "<group>"; };
 		A80FFF322B7F3D300076718E /* SharingToViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A80FFF342B7F3D990076718E /* SharingToModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
 		A81087132B3B0AB3004425DE /* SDJwtUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDJwtUtil.swift; sourceTree = "<group>"; };
 		A81087172B3BBA0C004425DE /* ES256K.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ES256K.swift; sourceTree = "<group>"; };
 		A810871D2B3BC9DF004425DE /* ES256KTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ES256KTest.swift; sourceTree = "<group>"; };
-		A810871F2B3D3277004425DE /* SignatureUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureUtil.swift; sourceTree = "<group>"; };
-		A81087212B3D33F5004425DE /* SignatureUitlTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureUitlTest.swift; sourceTree = "<group>"; };
+		A810871F2B3D3277004425DE /* X509CertificateOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X509CertificateOperations.swift; sourceTree = "<group>"; };
+		A81087212B3D33F5004425DE /* X509CertificateOperationsTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X509CertificateOperationsTest.swift; sourceTree = "<group>"; };
 		A8137C3C2B478710008CA5AC /* KeyPairUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyPairUtil.swift; sourceTree = "<group>"; };
-		A8137C402B47D611008CA5AC /* JWTUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTUtil.swift; sourceTree = "<group>"; };
+		A8137C402B47D611008CA5AC /* JWTOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTOperations.swift; sourceTree = "<group>"; };
 		A82601A82C267A2A00BF8139 /* credential_display_filled.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = credential_display_filled.json; sourceTree = "<group>"; };
 		A82601AA2C267B1000BF8139 /* credential_display_minimum.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = credential_display_minimum.json; sourceTree = "<group>"; };
 		A82601AD2C2685F200BF8139 /* claim_map_mixed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = claim_map_mixed.json; sourceTree = "<group>"; };
@@ -478,7 +478,7 @@
 		A82ECC7F2C23A6AB00B9784B /* UrlEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UrlEncoder.swift; sourceTree = "<group>"; };
 		A82ECC812C23A81C00B9784B /* UrlEncoderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UrlEncoderTest.swift; sourceTree = "<group>"; };
 		A82ECC832C25059900B9784B /* authorizationMetaDataList.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = authorizationMetaDataList.json; sourceTree = "<group>"; };
-		A83039B72B4E4229004139A7 /* JWTTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = JWTTest.swift; sourceTree = "<group>"; };
+		A83039B72B4E4229004139A7 /* JWTOperationsTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = JWTOperationsTest.swift; sourceTree = "<group>"; };
 		A83039B82B4E4229004139A7 /* CertificateUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CertificateUtilTest.swift; sourceTree = "<group>"; };
 		A83039B92B4E4229004139A7 /* ZipUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZipUtilTest.swift; sourceTree = "<group>"; };
 		A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SDJwtUtilTest.swift; sourceTree = "<group>"; };
@@ -792,7 +792,7 @@
 		8B81E2AC2B33CC4300ED3B4E /* tw2023_walletTests */ = {
 			isa = PBXGroup;
 			children = (
-				8BA7D7882F0F7F900054F75E /* SignatureUtilTests.swift */,
+				8BA7D7882F0F7F900054F75E /* X509CertificateOperationsTests.swift */,
 				8BA7D7842F0DF2DA0054F75E /* Services */,
 				8BA7D7782F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift */,
 				8B27ECD12EFB86FE00A00345 /* DPoPServiceTests.swift */,
@@ -1118,10 +1118,10 @@
 			children = (
 				8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */,
 				8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */,
-				8BF1A1C82ED07045008CE820 /* JWEUtil.swift */,
+				8BF1A1C82ED07045008CE820 /* JWE.swift */,
 				A81087172B3BBA0C004425DE /* ES256K.swift */,
-				A810871F2B3D3277004425DE /* SignatureUtil.swift */,
-				A8137C402B47D611008CA5AC /* JWTUtil.swift */,
+				A810871F2B3D3277004425DE /* X509CertificateOperations.swift */,
+				A8137C402B47D611008CA5AC /* JWTOperations.swift */,
 			);
 			path = Signature;
 			sourceTree = "<group>";
@@ -1133,7 +1133,7 @@
 				8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */,
 				8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */,
 				A810871D2B3BC9DF004425DE /* ES256KTest.swift */,
-				A81087212B3D33F5004425DE /* SignatureUitlTest.swift */,
+				A81087212B3D33F5004425DE /* X509CertificateOperationsTest.swift */,
 			);
 			path = Signature;
 			sourceTree = "<group>";
@@ -1181,7 +1181,7 @@
 			isa = PBXGroup;
 			children = (
 				A88BF3522CB7806B00401ACC /* SerializeUtilTest.swift */,
-				A83039B72B4E4229004139A7 /* JWTTest.swift */,
+				A83039B72B4E4229004139A7 /* JWTOperationsTest.swift */,
 				A83039B82B4E4229004139A7 /* CertificateUtilTest.swift */,
 				A83039B92B4E4229004139A7 /* ZipUtilTest.swift */,
 				A83039BA2B4E4229004139A7 /* SDJwtUtilTest.swift */,
@@ -1786,7 +1786,7 @@
 				8B2AF5D32ED6E07600F5FE17 /* PersistenceController.swift in Sources */,
 				F699A8C42B3D6EE400F60B91 /* CredentialOfferModel.swift in Sources */,
 				F6A239A42B4E284C00B09F17 /* ClientInfo.swift in Sources */,
-				8BF1A1CA2ED07045008CE820 /* JWEUtil.swift in Sources */,
+				8BF1A1CA2ED07045008CE820 /* JWE.swift in Sources */,
 				F67102F82B4A6D46006D48CB /* WalkThrough2.swift in Sources */,
 				F657D5D32B3C478B00901A6A /* CredentialDetailPreviewModel.swift in Sources */,
 				F6BB10472B5101B10063DBBF /* ProvideAge.swift in Sources */,
@@ -1810,7 +1810,7 @@
 				F6EECE522B6B820100011E12 /* RecipientListPreviewModel.swift in Sources */,
 				8B81E2CD2B33D86200ED3B4E /* CredentialList.swift in Sources */,
 				A8C810432B82042300CF8CD6 /* SharingToModel.swift in Sources */,
-				A81087202B3D3277004425DE /* SignatureUtil.swift in Sources */,
+				A81087202B3D3277004425DE /* X509CertificateOperations.swift in Sources */,
 				8B81E2EC2B34643200ED3B4E /* MyNumberCard.swift in Sources */,
 				8B297C342B393BC200D2998D /* VCIMetadata.swift in Sources */,
 				A81087182B3BBA0C004425DE /* ES256K.swift in Sources */,
@@ -1898,7 +1898,7 @@
 				8BB5138C2B3AD0CC00D4EFB3 /* VCIClient.swift in Sources */,
 				F6CC769A2B576EB900FA26A8 /* DisplayQRCodeViewModel.swift in Sources */,
 				8B81E2E52B343E2900ED3B4E /* Dummy.swift in Sources */,
-				A8137C412B47D611008CA5AC /* JWTUtil.swift in Sources */,
+				A8137C412B47D611008CA5AC /* JWTOperations.swift in Sources */,
 				8B7A1FE92F10EC86005498C7 /* TrustedListConfig.swift in Sources */,
 				8B81E2F52B35814600ED3B4E /* CredentialListViewModel.swift in Sources */,
 				8B5C65982B5251C000D72289 /* KeyBindingImpl.swift in Sources */,
@@ -1924,7 +1924,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8B5C659B2B54D75900D72289 /* KeyBindingTests.swift in Sources */,
-				A81087222B3D33F5004425DE /* SignatureUitlTest.swift in Sources */,
+				A81087222B3D33F5004425DE /* X509CertificateOperationsTest.swift in Sources */,
 				8B81E2AE2B33CC4300ED3B4E /* tw2023_walletTests.swift in Sources */,
 				A810871E2B3BC9DF004425DE /* ES256KTest.swift in Sources */,
 				8BA7D78C2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */,
@@ -1938,7 +1938,7 @@
 				8B6C3B872B47BED600B5D784 /* OpenIdProviderTests.swift in Sources */,
 				8B0E0A982B3BC39C0080F6A3 /* KeyRing.swift in Sources */,
 				8BB2BA7D2B4C08D900C668BA /* EncryptionHelper.swift in Sources */,
-				8B5C65922B515BFA00D72289 /* SignatureUtil.swift in Sources */,
+				8B5C65922B515BFA00D72289 /* X509CertificateOperations.swift in Sources */,
 				A82ECC822C23A81C00B9784B /* UrlEncoderTest.swift in Sources */,
 				8B5C65992B5251C000D72289 /* KeyBindingImpl.swift in Sources */,
 				8B5C659C2B54D97400D72289 /* ES256K.swift in Sources */,
@@ -1948,9 +1948,9 @@
 				A88BF3532CB7807600401ACC /* SerializeUtilTest.swift in Sources */,
 				8BB2BA7F2B4C188E00C668BA /* EncryptionHelperTests.swift in Sources */,
 				8B43AE322B3A5B880016CF83 /* VCIMetadataClientTests.swift in Sources */,
-				8B5C65912B515BC300D72289 /* JWTUtil.swift in Sources */,
+				8B5C65912B515BC300D72289 /* JWTOperations.swift in Sources */,
 				A83039BE2B4E4229004139A7 /* CertificateUtilTest.swift in Sources */,
-				8BF1A1C92ED07045008CE820 /* JWEUtil.swift in Sources */,
+				8BF1A1C92ED07045008CE820 /* JWE.swift in Sources */,
 				8B7A1FE82F10EC86005498C7 /* TrustedListConfig.swift in Sources */,
 				8BEE638F2C19A48D00821543 /* CertificateUtil.swift in Sources */,
 				A84AB70D2B50C2DD00E8C88B /* IdTokenSharingHistoryManagerTest.swift in Sources */,
@@ -1970,7 +1970,7 @@
 				8B80569D2B5F7815009A87C8 /* SharingCredentialArgs.swift in Sources */,
 				8BA7D7792F0BB0CC0054F75E /* SignedMetadataValidatorTests.swift in Sources */,
 				8BA7D7762F0BB08D0054F75E /* SignedMetadataValidator.swift in Sources */,
-				8BA7D7892F0F7F900054F75E /* SignatureUtilTests.swift in Sources */,
+				8BA7D7892F0F7F900054F75E /* X509CertificateOperationsTests.swift in Sources */,
 				8B43AE302B3A5B2C0016CF83 /* MockURLProtocol.swift in Sources */,
 				A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */,
 				8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */,
@@ -1982,7 +1982,7 @@
 				8B6C3B852B45082A00B5D784 /* OpenIdProvider.swift in Sources */,
 				A84AB6C12B4F726700E8C88B /* CredentialDataManagerTest.swift in Sources */,
 				8B2AF5D12ED5A51F00F5FE17 /* DCQLMatcherTests.swift in Sources */,
-				A83039BD2B4E4229004139A7 /* JWTTest.swift in Sources */,
+				A83039BD2B4E4229004139A7 /* JWTOperationsTest.swift in Sources */,
 				8B6C3B892B481BEC00B5D784 /* VCIMetadataUtilTests.swift in Sources */,
 				8B0E0AA02B3D69240080F6A3 /* PairwiseAccount.swift in Sources */,
 				A8C0A3D32CABD088008998C5 /* Errors.swift in Sources */,

@@ -231,7 +231,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // Validate chain with only leaf certificate (intermediate and root from TrustAnchorManager)
-        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: [leafSecCert]
         )
 
@@ -295,7 +295,7 @@ final class X509ChainValidationTests: XCTestCase {
             return
         }
 
-        let resultA = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let resultA = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: [leafASecCert]
         )
         switch resultA {
@@ -311,7 +311,7 @@ final class X509ChainValidationTests: XCTestCase {
             return
         }
 
-        let resultB = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let resultB = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: [leafBSecCert]
         )
         switch resultB {
@@ -337,7 +337,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // This should fail because intermediate is missing
-        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: [leafSecCert]
         )
 
@@ -371,7 +371,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // This should fail because the root CA is not trusted
-        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: [unknownLeafSecCert]
         )
 
@@ -456,7 +456,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // Pass chain with leaf + intermediate (x5c order: leaf first, then intermediate)
-        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: [leafSecCert, intermediateSecCert]
         )
 
@@ -485,7 +485,7 @@ final class X509ChainValidationTests: XCTestCase {
         }
 
         // Pass only leaf certificate (no intermediate in x5c)
-        let result = SignatureUtil.validateCertificateChainWithCustomAnchors(
+        let result = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: [leafSecCert]
         )
 
@@ -604,9 +604,9 @@ final class X509ChainValidationTests: XCTestCase {
         let invalidX5c = "\(cert1Base64),\(cert2Base64)"
 
         // This should throw invalidX5cFormat error
-        XCTAssertThrowsError(try SignatureUtil.convertPemToX509Certificates(pemChain: [invalidX5c])) { error in
-            guard let sigError = error as? SignatureUtilError else {
-                XCTFail("Expected SignatureUtilError, got \(error)")
+        XCTAssertThrowsError(try X509CertificateOperations.convertPemToX509Certificates(pemChain: [invalidX5c])) { error in
+            guard let sigError = error as? X509CertificateError else {
+                XCTFail("Expected X509CertificateError, got \(error)")
                 return
             }
             XCTAssertEqual(sigError, .invalidX5cFormat)
