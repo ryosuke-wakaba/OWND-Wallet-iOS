@@ -70,7 +70,7 @@
 		8B4CAB6E2B7F60440006FF4D /* FileDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4CAB6D2B7F60440006FF4D /* FileDocument.swift */; };
 		8B5370942EDEB9D800E87858 /* X509HashValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5370932EDEB9D800E87858 /* X509HashValidationTests.swift */; };
 		8B56254B2B7073CB00D6D28B /* RedirectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B56254A2B7073CB00D6D28B /* RedirectView.swift */; };
-		8B5C65912B515BC300D72289 /* JWT.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWT.swift */; };
+		8B5C65912B515BC300D72289 /* JWTOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWTOperations.swift */; };
 		8B5C65922B515BFA00D72289 /* X509CertificateOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810871F2B3D3277004425DE /* X509CertificateOperations.swift */; };
 		8B5C65932B515C2000D72289 /* KeyPairUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C3C2B478710008CA5AC /* KeyPairUtil.swift */; };
 		8B5C65952B5237C200D72289 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5C65942B5237C200D72289 /* Types.swift */; };
@@ -186,7 +186,7 @@
 		A81087222B3D33F5004425DE /* SignatureUitlTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087212B3D33F5004425DE /* SignatureUitlTest.swift */; };
 		A81087252B3D66A1004425DE /* X509 in Frameworks */ = {isa = PBXBuildFile; productRef = A81087242B3D66A1004425DE /* X509 */; };
 		A8137C3D2B478710008CA5AC /* KeyPairUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C3C2B478710008CA5AC /* KeyPairUtil.swift */; };
-		A8137C412B47D611008CA5AC /* JWT.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWT.swift */; };
+		A8137C412B47D611008CA5AC /* JWTOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8137C402B47D611008CA5AC /* JWTOperations.swift */; };
 		A8137C482B484454008CA5AC /* JWTDecode in Frameworks */ = {isa = PBXBuildFile; productRef = A8137C472B484454008CA5AC /* JWTDecode */; };
 		A82601A92C267A2A00BF8139 /* credential_display_filled.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601A82C267A2A00BF8139 /* credential_display_filled.json */; };
 		A82601AB2C267B1000BF8139 /* credential_display_minimum.json in Resources */ = {isa = PBXBuildFile; fileRef = A82601AA2C267B1000BF8139 /* credential_display_minimum.json */; };
@@ -470,7 +470,7 @@
 		A810871F2B3D3277004425DE /* X509CertificateOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X509CertificateOperations.swift; sourceTree = "<group>"; };
 		A81087212B3D33F5004425DE /* SignatureUitlTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureUitlTest.swift; sourceTree = "<group>"; };
 		A8137C3C2B478710008CA5AC /* KeyPairUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyPairUtil.swift; sourceTree = "<group>"; };
-		A8137C402B47D611008CA5AC /* JWT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWT.swift; sourceTree = "<group>"; };
+		A8137C402B47D611008CA5AC /* JWTOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTOperations.swift; sourceTree = "<group>"; };
 		A82601A82C267A2A00BF8139 /* credential_display_filled.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = credential_display_filled.json; sourceTree = "<group>"; };
 		A82601AA2C267B1000BF8139 /* credential_display_minimum.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = credential_display_minimum.json; sourceTree = "<group>"; };
 		A82601AD2C2685F200BF8139 /* claim_map_mixed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = claim_map_mixed.json; sourceTree = "<group>"; };
@@ -1121,7 +1121,7 @@
 				8BF1A1C82ED07045008CE820 /* JWE.swift */,
 				A81087172B3BBA0C004425DE /* ES256K.swift */,
 				A810871F2B3D3277004425DE /* X509CertificateOperations.swift */,
-				A8137C402B47D611008CA5AC /* JWT.swift */,
+				A8137C402B47D611008CA5AC /* JWTOperations.swift */,
 			);
 			path = Signature;
 			sourceTree = "<group>";
@@ -1898,7 +1898,7 @@
 				8BB5138C2B3AD0CC00D4EFB3 /* VCIClient.swift in Sources */,
 				F6CC769A2B576EB900FA26A8 /* DisplayQRCodeViewModel.swift in Sources */,
 				8B81E2E52B343E2900ED3B4E /* Dummy.swift in Sources */,
-				A8137C412B47D611008CA5AC /* JWT.swift in Sources */,
+				A8137C412B47D611008CA5AC /* JWTOperations.swift in Sources */,
 				8B7A1FE92F10EC86005498C7 /* TrustedListConfig.swift in Sources */,
 				8B81E2F52B35814600ED3B4E /* CredentialListViewModel.swift in Sources */,
 				8B5C65982B5251C000D72289 /* KeyBindingImpl.swift in Sources */,
@@ -1948,7 +1948,7 @@
 				A88BF3532CB7807600401ACC /* SerializeUtilTest.swift in Sources */,
 				8BB2BA7F2B4C188E00C668BA /* EncryptionHelperTests.swift in Sources */,
 				8B43AE322B3A5B880016CF83 /* VCIMetadataClientTests.swift in Sources */,
-				8B5C65912B515BC300D72289 /* JWT.swift in Sources */,
+				8B5C65912B515BC300D72289 /* JWTOperations.swift in Sources */,
 				A83039BE2B4E4229004139A7 /* CertificateUtilTest.swift in Sources */,
 				8BF1A1C92ED07045008CE820 /* JWE.swift in Sources */,
 				8B7A1FE82F10EC86005498C7 /* TrustedListConfig.swift in Sources */,

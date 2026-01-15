@@ -109,7 +109,7 @@ enum AuthorizationError: Error {
     case getDcqlQueryFailure
     case getJwksFailure
     case keyIdNotFoundInJwtHeader
-    case validateJwtFailure(reason: JWTVerificationError)
+    case validateJwtFailure(reason: JWTOperations.VerificationError)
     case serverError(statusCode: Int)
     case invalidData
     case invalidClientMetadata

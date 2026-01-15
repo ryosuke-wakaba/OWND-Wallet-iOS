@@ -32,7 +32,7 @@ enum X5CJWTVerifier {
         issuerURL: String?,
         loteSearchInfos: [LoTESearchInfo],
         verifyCertChain: Bool = true
-    ) async -> Result<VerifiedX5CJwt, JWTVerificationError> {
+    ) async -> Result<VerifiedX5CJwt, JWTOperations.VerificationError> {
         // 1. JWTをデコードしてx5cを取得（JWTUtilを使用）
         let decodeResult = JWTOperations.decodeJwtWithX5C(jwt: jwt)
         guard case .success(let decoded) = decodeResult else {
@@ -105,7 +105,7 @@ enum X5CJWTVerifier {
     /// x5uヘッダーを使用したJWT検証
     /// - Parameter jwt: 検証対象のJWT文字列
     /// - Returns: 検証済みJWT、またはエラー
-    static func verifyJwtWithX5U(jwt: String) -> Result<JWT, JWTVerificationError> {
+    static func verifyJwtWithX5U(jwt: String) -> Result<JWT, JWTOperations.VerificationError> {
         // 1. JWTをデコードしてx5uを取得（JWTUtilを使用）
         let decodeResult = JWTOperations.decodeJwtWithX5U(jwt: jwt)
         guard case .success(let decoded) = decodeResult else {
