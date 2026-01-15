@@ -1,5 +1,5 @@
 //
-//  JWT.swift
+//  JWTOperations.swift
 //  tw2023_wallet
 //
 //  Created by katsuyoshi ozaki on 2024/01/05.
@@ -70,7 +70,7 @@ func convertRstoDer(r: Data, s: Data) -> Data? {
     }
 }
 
-enum JWTUtil {
+enum JWTOperations {
 
     /*
      For verification-related methods, we plan to enhance the checking process

@@ -66,7 +66,7 @@ class IssuerDetailViewModel {
         }
         else {
             // JWTUtilを使用してJWTヘッダーをデコード
-            let (header, _, _) = try! JWTUtil.decodeJwt(jwt: jwt)
+            let (header, _, _) = try! JWTOperations.decodeJwt(jwt: jwt)
             try await respectForHeader(header: header, credential: credential)
         }
     }
@@ -78,13 +78,13 @@ class IssuerDetailViewModel {
             // TODO: TLS通信の中から取得した証明書の検証
             /*
         DispatchQueue.global(qos: .background).async {
-                guard let certificates = SignatureUtil.getX509CertificatesFromUrl(url: url) else {
+                guard let certificates = X509CertificateOperations.getX509CertificatesFromUrl(url: url) else {
                     return
                 }
 
                 // SignatureUtilを使用して証明書チェーンの検証
                 do {
-                    if try SignatureUtil.validateCertificateChain(certificates: certificates) {
+                    if try X509CertificateOperations.validateCertificateChain(certificates: certificates) {
                         self.certInfo = certificate2CertificateInfo(from: certificates[0])
                     }
                 } catch {
@@ -108,10 +108,10 @@ class IssuerDetailViewModel {
         // SignatureUtilを使用して証明書チェーンの検証
         let pemCertificate = certificates[0].0
         let derCertificates = certificates.map { $0.1 }
-        guard let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) else {
+        guard let secCerts = X509CertificateOperations.derDataToSecCertificates(derCertificates) else {
             return
         }
-        let validationResult = SignatureUtil.validateCertificateChainWithCustomAnchors(certificates: secCerts)
+        let validationResult = X509CertificateOperations.validateCertificateChainWithCustomAnchors(certificates: secCerts)
         switch validationResult {
         case .success:
             let pemCertificateInData = pemCertificate.data(using: .ascii)

@@ -155,7 +155,7 @@ struct SubmissionCredential: Codable, Equatable {
             throw OpenIdProviderIllegalInputException.illegalCredentialInput
         }
         do {
-            let (_, payload, _) = try JWTUtil.decodeJwt(jwt: credential)
+            let (_, payload, _) = try JWTOperations.decodeJwt(jwt: credential)
             if let vcDictionary = payload["vc"] as? [String: Any],
                 let credentialSubject = vcDictionary["credentialSubject"] as? [String: Any]
             {

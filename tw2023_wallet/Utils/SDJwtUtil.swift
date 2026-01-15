@@ -219,7 +219,7 @@ struct SDJwtUtil {
 
         for cert in x5cValues {
             guard let der = Data(base64Encoded: cert),
-                let pem = SignatureUtil.base64strToPem(base64str: cert)
+                let pem = X509CertificateOperations.base64strToPem(base64str: cert)
             else {
                 return nil
             }

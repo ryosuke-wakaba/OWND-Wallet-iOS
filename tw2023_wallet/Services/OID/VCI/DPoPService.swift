@@ -158,7 +158,7 @@ enum DPoPService {
         }
 
         // Sign and return JWT
-        let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: payload)
+        let result = JWTOperations.sign(keyAlias: keyAlias, header: header, payload: payload)
         switch result {
         case .success(let jwt):
             print("[DPoP] DPoP Proof created successfully")

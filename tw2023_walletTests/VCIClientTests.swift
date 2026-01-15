@@ -109,7 +109,7 @@ final class DecodingCredentialResponseTests: XCTestCase {
             return
         }
 
-        let (_, _, signature) = try JWTUtil.decodeJwt(jwt: credential)
+        let (_, _, signature) = try JWTOperations.decodeJwt(jwt: credential)
         XCTAssertEqual(
             signature,
             "z5vgMTK1nfizNCg5N-niCOL3WUIAL7nXy-nGhDZYO_-PNGeE-0djCpWAMH8fD8eWSID5PfkPBYkx_dfLJnQ7NA"

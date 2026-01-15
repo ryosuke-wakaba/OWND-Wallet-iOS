@@ -191,7 +191,7 @@ class TrustAnchorManager {
 
         // Try PEM format
         if let pemString = String(data: data, encoding: .utf8),
-           let derData = SignatureUtil.extractDERFromPEM(pemString) {
+           let derData = X509CertificateOperations.extractDERFromPEM(pemString) {
             return SecCertificateCreateWithData(nil, derData as CFData)
         }
 

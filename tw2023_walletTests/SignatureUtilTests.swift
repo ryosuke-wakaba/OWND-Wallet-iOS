@@ -18,15 +18,15 @@ final class SignatureUtilTests: XCTestCase {
     func testExtractDERFromPEM_validPEM() throws {
         // Create a test certificate using P256 key
         let privateKey = P256.Signing.PrivateKey()
-        let certificate = SignatureUtil.generateSelfSignedCertificate(
+        let certificate = X509CertificateOperations.generateSelfSignedCertificate(
             issuerPrivateKey: privateKey
         )
 
         // Convert to PEM format
-        let pem = SignatureUtil.certificateToPem(certificate: certificate, withDelimiters: true)
+        let pem = X509CertificateOperations.certificateToPem(certificate: certificate, withDelimiters: true)
 
         // Extract DER from PEM
-        let derData = SignatureUtil.extractDERFromPEM(pem)
+        let derData = X509CertificateOperations.extractDERFromPEM(pem)
 
         XCTAssertNotNil(derData, "Should extract DER data from valid PEM")
 
@@ -40,16 +40,16 @@ final class SignatureUtilTests: XCTestCase {
     func testExtractDERFromPEM_validPEMWithWhitespace() throws {
         // Create a PEM with extra whitespace and newlines
         let privateKey = P256.Signing.PrivateKey()
-        let certificate = SignatureUtil.generateSelfSignedCertificate(
+        let certificate = X509CertificateOperations.generateSelfSignedCertificate(
             issuerPrivateKey: privateKey
         )
 
-        let basePem = SignatureUtil.certificateToPem(certificate: certificate, withDelimiters: true)
+        let basePem = X509CertificateOperations.certificateToPem(certificate: certificate, withDelimiters: true)
 
         // Add extra whitespace
         let pemWithWhitespace = "\n  \n" + basePem + "\n  \n"
 
-        let derData = SignatureUtil.extractDERFromPEM(pemWithWhitespace)
+        let derData = X509CertificateOperations.extractDERFromPEM(pemWithWhitespace)
 
         XCTAssertNotNil(derData, "Should extract DER data from PEM with extra whitespace")
     }
@@ -58,7 +58,7 @@ final class SignatureUtilTests: XCTestCase {
         // Test with string that has no PEM markers
         let invalidPem = "This is not a PEM certificate"
 
-        let derData = SignatureUtil.extractDERFromPEM(invalidPem)
+        let derData = X509CertificateOperations.extractDERFromPEM(invalidPem)
 
         XCTAssertNil(derData, "Should return nil for string without PEM markers")
     }
@@ -67,7 +67,7 @@ final class SignatureUtilTests: XCTestCase {
         // Test with only BEGIN marker
         let invalidPem = "-----BEGIN CERTIFICATE-----\nSomeBase64Data"
 
-        let derData = SignatureUtil.extractDERFromPEM(invalidPem)
+        let derData = X509CertificateOperations.extractDERFromPEM(invalidPem)
 
         XCTAssertNil(derData, "Should return nil for PEM with only BEGIN marker")
     }
@@ -76,13 +76,13 @@ final class SignatureUtilTests: XCTestCase {
         // Test with only END marker
         let invalidPem = "SomeBase64Data\n-----END CERTIFICATE-----"
 
-        let derData = SignatureUtil.extractDERFromPEM(invalidPem)
+        let derData = X509CertificateOperations.extractDERFromPEM(invalidPem)
 
         XCTAssertNil(derData, "Should return nil for PEM with only END marker")
     }
 
     func testExtractDERFromPEM_emptyString() {
-        let derData = SignatureUtil.extractDERFromPEM("")
+        let derData = X509CertificateOperations.extractDERFromPEM("")
 
         XCTAssertNil(derData, "Should return nil for empty string")
     }
@@ -91,7 +91,7 @@ final class SignatureUtilTests: XCTestCase {
         // Test with markers but empty content between them
         let emptyContentPem = "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"
 
-        let derData = SignatureUtil.extractDERFromPEM(emptyContentPem)
+        let derData = X509CertificateOperations.extractDERFromPEM(emptyContentPem)
 
         // Empty base64 string returns empty Data, not nil
         // This tests that the function handles this edge case
@@ -107,7 +107,7 @@ final class SignatureUtilTests: XCTestCase {
         -----END CERTIFICATE-----
         """
 
-        let derData = SignatureUtil.extractDERFromPEM(invalidBase64Pem)
+        let derData = X509CertificateOperations.extractDERFromPEM(invalidBase64Pem)
 
         XCTAssertNil(derData, "Should return nil for invalid base64 content")
     }
@@ -115,16 +115,16 @@ final class SignatureUtilTests: XCTestCase {
     func testExtractDERFromPEM_pemWithCarriageReturns() throws {
         // Create a PEM with Windows-style line endings (CRLF)
         let privateKey = P256.Signing.PrivateKey()
-        let certificate = SignatureUtil.generateSelfSignedCertificate(
+        let certificate = X509CertificateOperations.generateSelfSignedCertificate(
             issuerPrivateKey: privateKey
         )
 
-        let basePem = SignatureUtil.certificateToPem(certificate: certificate, withDelimiters: true)
+        let basePem = X509CertificateOperations.certificateToPem(certificate: certificate, withDelimiters: true)
 
         // Convert to Windows-style line endings
         let pemWithCRLF = basePem.replacingOccurrences(of: "\n", with: "\r\n")
 
-        let derData = SignatureUtil.extractDERFromPEM(pemWithCRLF)
+        let derData = X509CertificateOperations.extractDERFromPEM(pemWithCRLF)
 
         XCTAssertNotNil(derData, "Should extract DER data from PEM with CRLF line endings")
 

@@ -41,7 +41,7 @@ class JwtVpJsonGeneratorImpl: JwtVpJsonGenerator {
             vp: vpClaims
         )
         let vpTokenPayload = jwtPayload.toDictionary()
-        let result = JWTUtil.sign(keyAlias: keyAlias, header: header, payload: vpTokenPayload)
+        let result = JWTOperations.sign(keyAlias: keyAlias, header: header, payload: vpTokenPayload)
         switch result {
             case let .success(jwt):
                 return jwt

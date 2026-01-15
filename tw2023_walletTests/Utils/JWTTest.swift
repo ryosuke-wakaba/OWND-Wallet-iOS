@@ -22,11 +22,11 @@ final class JWTUtilTest: XCTestCase {
         ]
         let payload: [String: String] = [:]
 
-        let result = JWTUtil.sign(keyAlias: tag, header: header, payload: payload)
+        let result = JWTOperations.sign(keyAlias: tag, header: header, payload: payload)
 
         switch result {
             case let .success(jwt):
-                let signatureVerification = JWTUtil.verifyJwt(
+                let signatureVerification = JWTOperations.verifyJwt(
                     jwt: jwt, publicKey: publicKey)
                 switch signatureVerification {
                     case .success(let jwt):
@@ -58,7 +58,7 @@ final class JWTUtilTest: XCTestCase {
 
         let expectedSignature = "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
 
-        let (header, payload, signature) = try! JWTUtil.decodeJwt(jwt: jwt)
+        let (header, payload, signature) = try! JWTOperations.decodeJwt(jwt: jwt)
         XCTAssertTrue(NSDictionary(dictionary: header).isEqual(to: expectedHeader))
         XCTAssertTrue(NSDictionary(dictionary: payload).isEqual(to: expectedPayload))
         XCTAssertEqual(signature, expectedSignature)
@@ -99,7 +99,7 @@ final class JWTUtilTest: XCTestCase {
                 isCa: false,
                 subjectAlternativeName: ["www.example.com", "api.example.com"]
             )!
-            let pem0 = SignatureUtil.certificateToPem(certificate: cert0, withDelimiters: false)
+            let pem0 = X509CertificateOperations.certificateToPem(certificate: cert0, withDelimiters: false)
 
             let cert1 = generateCertificate(
                 subjectKey: Certificate.PublicKey(issuerKey.publicKey),
@@ -110,7 +110,7 @@ final class JWTUtilTest: XCTestCase {
                 isCa: true
             )!
 
-            let pem1 = SignatureUtil.certificateToPem(certificate: cert1, withDelimiters: false)
+            let pem1 = X509CertificateOperations.certificateToPem(certificate: cert1, withDelimiters: false)
 
             let header: [String: Any] = [
                 "typ": "JWT",

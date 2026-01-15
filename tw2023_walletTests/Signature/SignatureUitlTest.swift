@@ -154,7 +154,7 @@ final class SignatureUitlTests: XCTestCase {
         let jwk = ECPublicJwk(
             kty: "EC", crv: "P-256", x: "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
             y: "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM")
-        let thumbprint = SignatureUtil.toJwkThumbprint(jwk: jwk)
+        let thumbprint = X509CertificateOperations.toJwkThumbprint(jwk: jwk)
 
         XCTAssertTrue(expected == thumbprint)
     }
@@ -165,7 +165,7 @@ final class SignatureUitlTests: XCTestCase {
             kty: "EC", crv: "secp256k1", x: "QlaZ81aj1A3HeCZw3rLU__Dha5hKjG2OBcI5V_zqSRU",
             y: "EgtAoZrao5R5S4ANOhXeuGFZT0zbEU-R8sniQSMIZgQ",
             d: "M7yXCJjSzeJJ9NpBoMDg_fV1D9-cFeOm_IDHFvlcE_I")
-        let (priv, _) = try! SignatureUtil.generateECKeyPair(jwk: jwk)
+        let (priv, _) = try! X509CertificateOperations.generateECKeyPair(jwk: jwk)
         XCTAssertTrue(priv.base64URLEncodedString() == expected)
     }
 
@@ -173,14 +173,14 @@ final class SignatureUitlTests: XCTestCase {
         let privateKey = P256.Signing.PrivateKey()
         let publicKey = privateKey.publicKey
 
-        let cert = SignatureUtil.generateCertificate(
+        let cert = X509CertificateOperations.generateCertificate(
             subjectPublicKey: publicKey, issuerPrivateKey: privateKey, isCa: true)
         XCTAssertTrue(cert.publicKey == Certificate.PublicKey(publicKey))
-        XCTAssertNoThrow(SignatureUtil.certificateToPem(certificate: cert))
+        XCTAssertNoThrow(X509CertificateOperations.certificateToPem(certificate: cert))
     }
 
     func testConvertPemToX509Certificates() {
-        let result = try! SignatureUtil.convertPemWithDelimitersToX509Certificates(
+        let result = try! X509CertificateOperations.convertPemWithDelimitersToX509Certificates(
             pemChain: fullChain)
         XCTAssertTrue(result.count == 4)
     }
@@ -202,7 +202,7 @@ final class SignatureUitlTests: XCTestCase {
 
         let dispatchGroup = DispatchGroup()
         dispatchGroup.enter()
-        SignatureUtil.getX509CertificatesFromUrl_(url: url, session: mockSession) {
+        X509CertificateOperations.getX509CertificatesFromUrl_(url: url, session: mockSession) {
             certificates, error in
             defer {
                 dispatchGroup.leave()
@@ -231,7 +231,7 @@ final class SignatureUitlTests: XCTestCase {
 
         let url = "https://example.com/certificates"
         let expectedCertificatesNumber = 4
-        let result = SignatureUtil.getX509CertificatesFromUrl(url: url, session: mockSession)
+        let result = X509CertificateOperations.getX509CertificatesFromUrl(url: url, session: mockSession)
         XCTAssertNotNil(result)
         if result != nil {
             XCTAssertTrue(result?.count == expectedCertificatesNumber)

@@ -105,7 +105,7 @@ func sendFormData(
             }
 
             // Encrypt payload
-            let jwe = try JWEUtil.encrypt(payload: encryptPayload, recipientPublicKey: encryptionKey)
+            let jwe = try JWE.encrypt(payload: encryptPayload, recipientPublicKey: encryptionKey)
             print("JWE encrypted response created")
 
             // Build form data: response=<JWE> only (state is inside JWE)

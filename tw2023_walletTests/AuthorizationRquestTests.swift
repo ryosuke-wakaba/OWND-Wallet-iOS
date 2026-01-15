@@ -248,7 +248,7 @@ final class AuthorizationRquestTests: XCTestCase {
             XCTFail("JWTの生成に失敗しました")
             return
         }
-        let (header, _, _) = try! JWTUtil.decodeJwt(jwt: jwt)
+        let (header, _, _) = try! JWTOperations.decodeJwt(jwt: jwt)
         let keyId = extractKeyIdFromJwt(header: header)
         XCTAssertEqual(rsaKeyId, keyId)
     }
