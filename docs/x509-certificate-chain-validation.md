@@ -11,11 +11,11 @@ OID4VP（OpenID for Verifiable Presentations）のRequest Object JWT検証にお
 │                      OpenIdProvider                          │
 │                           │                                  │
 │                           ▼                                  │
-│                       JWTUtil                                │
+│                    JWTOperations                             │
 │                    verifyJwtByX5C()                          │
 │                           │                                  │
 │                           ▼                                  │
-│                     SignatureUtil                            │
+│               X509CertificateOperations                      │
 │          validateCertificateChainWithCustomAnchors()         │
 │                           │                                  │
 │              ┌────────────┴────────────┐                     │
@@ -58,11 +58,11 @@ private func isSelfSignedCertificate(_ certificate: SecCertificate) -> Bool {
 }
 ```
 
-### SignatureUtil
+### X509CertificateOperations
 
 証明書チェーン検証のコアロジックを提供。
 
-**ファイル:** `tw2023_wallet/Signature/SignatureUtil.swift`
+**ファイル:** `tw2023_wallet/Signature/X509CertificateOperations.swift`
 
 #### 証明書変換ヘルパー
 
@@ -77,11 +77,11 @@ private func isSelfSignedCertificate(_ certificate: SecCertificate) -> Bool {
 ```swift
 // 使用例
 let derCertificates: [Data] = ...
-guard let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) else {
+guard let secCerts = X509CertificateOperations.derDataToSecCertificates(derCertificates) else {
     // 変換失敗
     return
 }
-let isValid = try SignatureUtil.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts)
+let isValid = try X509CertificateOperations.validateCertificateChainWithCustomAnchors(leafCertificates: secCerts)
 ```
 
 #### 検証メソッド
@@ -123,16 +123,16 @@ private static func validateTrust(
 ```swift
 // パターン1: DERデータから検証
 let derCertificates: [Data?] = ...
-if let secCerts = SignatureUtil.derDataToSecCertificates(derCertificates) {
-    let isValid = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+if let secCerts = X509CertificateOperations.derDataToSecCertificates(derCertificates) {
+    let isValid = try X509CertificateOperations.validateCertificateChainWithCustomAnchors(
         leafCertificates: secCerts
     )
 }
 
 // パターン2: X509.Certificateから検証
 let certificates: [Certificate] = ...
-if let secCerts = SignatureUtil.certificatesToSecCertificates(certificates) {
-    let isValid = try SignatureUtil.validateCertificateChainWithCustomAnchors(
+if let secCerts = X509CertificateOperations.certificatesToSecCertificates(certificates) {
+    let isValid = try X509CertificateOperations.validateCertificateChainWithCustomAnchors(
         leafCertificates: secCerts
     )
 }
@@ -455,8 +455,8 @@ let notAfter = Date().addingTimeInterval(60 * 60 * 24 * 365)  // 1年後
 ## 関連ファイル
 
 - `tw2023_wallet/Signature/TrustAnchorManager.swift`
-- `tw2023_wallet/Signature/SignatureUtil.swift`
-- `tw2023_wallet/Signature/JWTUtil.swift`
+- `tw2023_wallet/Signature/X509CertificateOperations.swift`
+- `tw2023_wallet/Signature/JWT.swift`
 - `tw2023_wallet/Services/OID/Provider/OpenIdProvider.swift`
 - `tw2023_wallet/tw2023_walletApp.swift`
 - `tw2023_wallet/Resources/Certificates/.gitkeep`

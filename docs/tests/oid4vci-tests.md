@@ -239,7 +239,7 @@ Credential Issuerメタデータ全体のデコードをテストします。
 1. JWTデコード
 2. typヘッダー検証 (== "openidvci-issuer-metadata+jwt")
 3. 署名方式チェック (x5cのみサポート)
-4. JWTUtil.verifyJwtByX5C()による署名検証
+4. JWTOperations.verifyJwtByX5C()による署名検証
 5. ペイロード検証 (sub == issuer, iat必須, exp検証)
 6. メタデータ抽出
 ```

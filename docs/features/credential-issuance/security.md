@@ -49,7 +49,7 @@
 | Check | Status | Notes |
 |-------|--------|-------|
 | HTTPS通信 | ✅ | iOS ATS (App Transport Security) |
-| Issuer署名検証 | ✅ | `JWTUtil.verifyJwt()` |
+| Issuer署名検証 | ✅ | `JWTOperations.verifyJwt()` |
 | Secure Enclave | ✅ | `KeyPairUtil.generateSignVerifyKeyPair()` |
 | DPoP | ✅ | `DPoPService.swift` |
 | DPoP-Nonce | ✅ | リプレイ攻撃防止 |
@@ -74,7 +74,7 @@ DPoPによるセキュリティ強化の詳細は [dpop.md](./dpop.md) を参照
 |------|------------------|
 | `tw2023_wallet/Utils/KeyPairUtil.swift` | Secure Enclave鍵管理 |
 | `tw2023_wallet/Services/OID/VCI/DPoPService.swift` | DPoP Proof生成 |
-| `tw2023_wallet/Signature/JWTUtil.swift` | JWT署名・検証 |
+| `tw2023_wallet/Signature/JWT.swift` | JWT署名・検証 |
 
 ## External References
 

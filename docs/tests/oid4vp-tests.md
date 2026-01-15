@@ -269,7 +269,7 @@ tw2023_walletTests/Resources/
 
 **パス**: `tw2023_walletTests/Signature/X509ChainValidationTests.swift`
 
-**対応実装**: `tw2023_wallet/Signature/SignatureUtil.swift`, `tw2023_wallet/Signature/JWTUtil.swift`
+**対応実装**: `tw2023_wallet/Signature/X509CertificateOperations.swift`, `tw2023_wallet/Signature/JWT.swift`
 
 **概要**: X.509証明書チェーンの検証をテストします。カスタム信頼アンカーを使用したJWTのx5cヘッダー検証に対応しています。
 
@@ -314,7 +314,7 @@ RFC 7515に準拠したx5c処理：
 |--------|------|
 | `[leaf]` のみ | TrustAnchorManagerの中間証明書で補完 |
 | `[leaf, intermediate, ...]` | x5cチェーンをそのまま使用（TrustAnchorManager中間証明書は追加しない） |
-| カンマ区切り形式 | `SignatureUtilError.invalidX5cFormat`エラー |
+| カンマ区切り形式 | `X509CertificateError.invalidX5cFormat`エラー |
 
 **RFC 7515 Section 4.1.6**:
 > Each string in the array is a **base64-encoded** (Section 4 of [RFC4648] -- **not base64url-encoded**) DER PKIX certificate value.
@@ -458,7 +458,7 @@ base64url(SHA-256(DER-encoded-X.509-certificate))
 
 **パス**: `tw2023_walletTests/Utils/JWTTest.swift`
 
-**対応実装**: `tw2023_wallet/Utils/JWTUtil.swift`
+**対応実装**: `tw2023_wallet/Signature/JWT.swift`
 
 **概要**: JWT（JSON Web Token）の署名・検証処理をテストします。x5cヘッダーによる証明書チェーン検証を含みます。
 
@@ -548,7 +548,7 @@ OID4VP機能とテストの対応関係：
 | VP Token生成（JWT-VC-JSON） | ✅ | - | 必須 | JwtVpJsonGeneratorImpl.swift |
 | Key Binding JWT生成 | ✅ | ✅ | 必須 | KeyBindingTests.swift |
 | ハイブリッドSD-JWT対応 | ✅ | ✅ | 必須 | DCQLMatcherTests.swift（2025-12-05追加） |
-| VP Token暗号化（JWE: ECDH-ES + A128GCM） | ✅ | - | オプション | JWEUtil.swift（HAIP準拠） |
+| VP Token暗号化（JWE: ECDH-ES + A128GCM） | ✅ | - | オプション | JWE.swift（HAIP準拠） |
 | Direct Post | ✅ | - | 必須 | ProviderUtils.swift |
 | Direct Post JWT | ✅ | - | オプション | ProviderUtils.swift（HAIP準拠） |
 | Client ID Scheme検証（x509_hash） | ✅ | ✅ | 必須 | X509HashValidationTests.swift |
@@ -569,7 +569,7 @@ OID4VP機能とテストの対応関係：
 以下の機能は実装済みですが、専用のユニットテストがありません：
 
 - [ ] VP Token生成（JWT-VC-JSON） - `JwtVpJsonGeneratorImpl.swift`
-- [ ] VP Token暗号化（JWE） - `JWEUtil.swift`
+- [ ] VP Token暗号化（JWE） - `JWE.swift`
 - [ ] Direct Post / Direct Post JWT - `ProviderUtils.swift`
 - [ ] Client ID Scheme検証（redirect_uri） - `OpenIdProvider.swift`
 - [x] Client ID Scheme検証（x509_hash） - `X509HashValidationTests.swift`で対応済み

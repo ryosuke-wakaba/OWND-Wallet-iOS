@@ -67,7 +67,7 @@
 |------|------------------|
 | `tw2023_wallet/Services/OID/Provider/HDKeyRing.swift` | HD鍵派生 |
 | `tw2023_wallet/Services/OID/Provider/PairwiseAccount.swift` | Pairwise識別子管理 |
-| `tw2023_wallet/Signature/JWTUtil.swift` | ID Token署名 |
+| `tw2023_wallet/Signature/JWT.swift` | ID Token署名 |
 
 ## References
 
