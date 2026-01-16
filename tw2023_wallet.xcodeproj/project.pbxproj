@@ -43,6 +43,9 @@
 		8B2AF5DA2ED6EC1F00F5FE17 /* X509ChainValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */; };
 		8B2AF5F02ED9809300F5FE17 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8B2AF5EF2ED9809300F5FE17 /* SDWebImageSwiftUI */; };
 		8B2AF5F32ED980F800F5FE17 /* SDWebImageSVGCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 8B2AF5F22ED980F800F5FE17 /* SDWebImageSVGCoder */; };
+		8B3706FC2F1A346F006B5C4D /* JAdESSignatureVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3706FB2F1A346F006B5C4D /* JAdESSignatureVerifier.swift */; };
+		8B3706FD2F1A346F006B5C4D /* JAdESSignatureVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3706FB2F1A346F006B5C4D /* JAdESSignatureVerifier.swift */; };
+		8B3706FF2F1A3483006B5C4D /* JAdESSignatureVerifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3706FE2F1A3483006B5C4D /* JAdESSignatureVerifierTests.swift */; };
 		8B4265952B564B2D00A07F2B /* IssuerDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */; };
 		8B4265982B57677600A07F2B /* SDJwtUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81087132B3B0AB3004425DE /* SDJwtUtil.swift */; };
 		8B42659A2B576CA500A07F2B /* IssuerDetailPreviewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */; };
@@ -365,6 +368,8 @@
 		8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustAnchorManager.swift; sourceTree = "<group>"; };
 		8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustAnchorManagerTests.swift; sourceTree = "<group>"; };
 		8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = X509ChainValidationTests.swift; sourceTree = "<group>"; };
+		8B3706FB2F1A346F006B5C4D /* JAdESSignatureVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JAdESSignatureVerifier.swift; sourceTree = "<group>"; };
+		8B3706FE2F1A3483006B5C4D /* JAdESSignatureVerifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JAdESSignatureVerifierTests.swift; sourceTree = "<group>"; };
 		8B4265942B564B2D00A07F2B /* IssuerDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailViewModel.swift; sourceTree = "<group>"; };
 		8B4265992B576CA500A07F2B /* IssuerDetailPreviewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerDetailPreviewModel.swift; sourceTree = "<group>"; };
 		8B43AE282B3A4F650016CF83 /* credential_offer_filled.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = credential_offer_filled.json; sourceTree = "<group>"; };
@@ -1116,6 +1121,7 @@
 		A81087102B3B0694004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
+				8B3706FB2F1A346F006B5C4D /* JAdESSignatureVerifier.swift */,
 				8BA7D78A2F0F98A40054F75E /* X5CJWTVerifier.swift */,
 				8B2AF5D42ED6EC0700F5FE17 /* TrustAnchorManager.swift */,
 				8BF1A1C82ED07045008CE820 /* JWE.swift */,
@@ -1129,6 +1135,7 @@
 		A810871C2B3BC998004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
+				8B3706FE2F1A3483006B5C4D /* JAdESSignatureVerifierTests.swift */,
 				8B5370932EDEB9D800E87858 /* X509HashValidationTests.swift */,
 				8B2AF5D72ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift */,
 				8B2AF5D82ED6EC1F00F5FE17 /* X509ChainValidationTests.swift */,
@@ -1840,6 +1847,7 @@
 				F6D913D72B53C5B4001D804D /* VerificationPreviewModel.swift in Sources */,
 				F6BB103A2B50B40E0063DBBF /* Verification.swift in Sources */,
 				F6CC76932B567BDF00FA26A8 /* QRReaderViewModel.swift in Sources */,
+				8B3706FC2F1A346F006B5C4D /* JAdESSignatureVerifier.swift in Sources */,
 				8BB2BA742B4BC46400C668BA /* BiometricAuth.swift in Sources */,
 				8BA7D7772F0BB08D0054F75E /* SignedMetadataValidator.swift in Sources */,
 				F6CB1FAE2B68FB180078C857 /* DateFormatterUtil.swift in Sources */,
@@ -1935,6 +1943,7 @@
 				8B297C372B39538500D2998D /* VCIMetadataTests.swift in Sources */,
 				8BAB8D8C2C10045300B579A4 /* Constants.swift in Sources */,
 				A87A957E2CACCDD500001D8F /* ProviderTypes.swift in Sources */,
+				8B3706FD2F1A346F006B5C4D /* JAdESSignatureVerifier.swift in Sources */,
 				8B6C3B872B47BED600B5D784 /* OpenIdProviderTests.swift in Sources */,
 				8B0E0A982B3BC39C0080F6A3 /* KeyRing.swift in Sources */,
 				8BB2BA7D2B4C08D900C668BA /* EncryptionHelper.swift in Sources */,
@@ -1973,6 +1982,7 @@
 				8BA7D7892F0F7F900054F75E /* X509CertificateOperationsTests.swift in Sources */,
 				8B43AE302B3A5B2C0016CF83 /* MockURLProtocol.swift in Sources */,
 				A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */,
+				8B3706FF2F1A3483006B5C4D /* JAdESSignatureVerifierTests.swift in Sources */,
 				8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */,
 				8B2AF5DA2ED6EC1F00F5FE17 /* X509ChainValidationTests.swift in Sources */,
 				8B43AE352B3A81960016CF83 /* Enums.swift in Sources */,
