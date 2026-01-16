@@ -15,6 +15,7 @@ class PreferencesDataStore {
     private let seedKey = "seed"
     private let lastBackupAtKey = "last_backup_at_key"
     private let preferSignedMetadataKey = "prefer_signed_metadata"
+    private let useDPoPKey = "use_dpop"
 
     func saveLastBackupAtKey(_ value: String) {
         defaults.set(value, forKey: lastBackupAtKey)
@@ -30,6 +31,18 @@ class PreferencesDataStore {
 
     func getPreferSignedMetadata() -> Bool {
         defaults.bool(forKey: preferSignedMetadataKey)
+    }
+
+    func setUseDPoP(_ value: Bool) {
+        defaults.set(value, forKey: useDPoPKey)
+    }
+
+    func getUseDPoP() -> Bool {
+        // Return true (DPoP enabled) if the key has never been set
+        if defaults.object(forKey: useDPoPKey) == nil {
+            return true
+        }
+        return defaults.bool(forKey: useDPoPKey)
     }
 
     func saveSeed(_ value: String) throws {

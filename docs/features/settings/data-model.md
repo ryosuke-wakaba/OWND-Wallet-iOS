@@ -8,6 +8,8 @@
 // 実装されているキー
 private let seedKey = "seed"
 private let lastBackupAtKey = "last_backup_at_key"
+private let preferSignedMetadataKey = "prefer_signed_metadata"
+private let useDPoPKey = "use_dpop"
 ```
 
 **Note**: App Lock、Privacy、Data Management関連のキーは未実装。

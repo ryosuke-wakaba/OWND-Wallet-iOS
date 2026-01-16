@@ -43,27 +43,30 @@
 
 ```
 Settings
-├── Security
+├── Account Info
+│   └── Backup & Restore
+│       ├── Export Account
+│       └── Import Account
+├── Issuance Settings
+│   ├── Require Server Authentication (Toggle)
+│   └── Use DPoP (Toggle)
+├── Security (未実装)
 │   ├── App Lock (Toggle)
 │   ├── Lock Timeout (Picker)
 │   └── Biometric Type (Display Only)
-├── Backup & Restore
-│   ├── Export Account
-│   ├── Import Account
-│   └── Last Backup (Display)
-├── Privacy
+├── Privacy (未実装)
 │   ├── Analytics (Toggle)
 │   ├── Crash Reports (Toggle)
 │   └── History Retention (Picker)
-├── Data Management
+├── Data Management (未実装)
 │   ├── Clear Cache
 │   ├── Clear Sharing History
 │   └── Delete All Data
 ├── About
 │   ├── Version
-│   ├── Build Number
-│   ├── Open Source Licenses
-│   └── Contact Support
+│   ├── Build Number (未実装)
+│   ├── Open Source Licenses (未実装)
+│   └── Contact Support (未実装)
 └── Legal
     ├── Terms of Service
     └── Privacy Policy

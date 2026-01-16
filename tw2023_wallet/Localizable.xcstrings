@@ -1541,6 +1541,23 @@
         }
       }
     },
+    "use_dpop" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use DPoP"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DPoPを使用する"
+          }
+        }
+      }
+    },
     "restore_from_backup_file" : {
       "localizations" : {
         "ja" : {
