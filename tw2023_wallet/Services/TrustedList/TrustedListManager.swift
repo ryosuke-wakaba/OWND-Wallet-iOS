@@ -18,6 +18,7 @@ enum TrustedListError: Error, LocalizedError {
     case noCertificatesInService
     case certificateParseError
     case noLoTEConfigured
+    case signatureVerificationFailed(JAdESSignatureVerifier.JAdESVerificationError)
 
     var errorDescription: String? {
         switch self {
@@ -35,6 +36,8 @@ enum TrustedListError: Error, LocalizedError {
             return "Failed to parse certificate from trusted list"
         case .noLoTEConfigured:
             return "No LoTE configured for search"
+        case .signatureVerificationFailed(let jadesError):
+            return "Trusted list signature verification failed: \(jadesError.localizedDescription)"
         }
     }
 }
@@ -94,8 +97,25 @@ class TrustedListManager {
         let jsonData: Data
         if let responseString = String(data: data, encoding: .utf8),
            responseString.hasPrefix("eyJ") {
-            print("🔐 [TrustedList] Detected JWT format, extracting payload...")
-            jsonData = try extractPayloadFromJWT(responseString)
+            print("🔐 [TrustedList] Detected JWT format, verifying JAdES signature...")
+
+            // Verify JAdES signature
+            let verificationResult = JAdESSignatureVerifier.verifyJAdES(
+                jwt: responseString,
+                options: .default
+            )
+
+            switch verificationResult {
+            case .success(let result):
+                print("🔐 [TrustedList] ✓ JAdES signature verified")
+                print("🔐 [TrustedList]   Signing time: \(result.signingTime)")
+                print("🔐 [TrustedList]   Certificate thumbprint: \(result.certificateThumbprint)")
+                jsonData = result.payload
+
+            case .failure(let error):
+                print("🔐 [TrustedList] ❌ JAdES verification failed: \(error.localizedDescription)")
+                throw TrustedListError.signatureVerificationFailed(error)
+            }
         } else {
             jsonData = data
         }

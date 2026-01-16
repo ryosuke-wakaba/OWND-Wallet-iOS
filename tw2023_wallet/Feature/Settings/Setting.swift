@@ -11,6 +11,7 @@ struct Setting: View {
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfUse = false
     @State private var preferSignedMetadata = false
+    @State private var useDPoP = true
 
     var body: some View {
         NavigationStack {
@@ -37,6 +38,14 @@ struct Setting: View {
                 .padding(.vertical, 16)
                 .onChange(of: preferSignedMetadata) { _, newValue in
                     PreferencesDataStore.shared.setPreferSignedMetadata(newValue)
+                }
+
+                Toggle(isOn: $useDPoP) {
+                    Text("use_dpop").modifier(BodyBlack())
+                }
+                .padding(.vertical, 16)
+                .onChange(of: useDPoP) { _, newValue in
+                    PreferencesDataStore.shared.setUseDPoP(newValue)
                 }
 
                 // this app section
@@ -105,6 +114,7 @@ struct Setting: View {
             .navigationBarTitle("Setting", displayMode: .inline)
             .onAppear {
                 preferSignedMetadata = PreferencesDataStore.shared.getPreferSignedMetadata()
+                useDPoP = PreferencesDataStore.shared.getUseDPoP()
             }
         }
     }
