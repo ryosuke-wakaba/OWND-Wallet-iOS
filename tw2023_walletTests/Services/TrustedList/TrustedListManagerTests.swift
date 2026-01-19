@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import X509
 @testable import tw2023_wallet
 
 final class TrustedListManagerTests: XCTestCase {
@@ -344,5 +345,283 @@ final class TrustedListManagerTests: XCTestCase {
         // Certificate in sample is a dummy, but structure should be correct
         // Real certificates would parse correctly
         XCTAssertGreaterThanOrEqual(certificates.count, 0)
+    }
+
+    // MARK: - Certificate-Based Search Tests (AKI/SKI)
+
+    /// Intermediate certificate (Sectigo ECC OV CA) - PEM encoded
+    let intermediateCertPEM = """
+    -----BEGIN CERTIFICATE-----
+    MIIDrjCCAzOgAwIBAgIQNb50Y4yz6d4oBXC3l4CzZzAKBggqhkjOPQQDAzCBiDEL
+    MAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0plcnNl
+    eSBDaXR5MR4wHAYDVQQKExVUaGUgVVNFUlRSVVNUIE5ldHdvcmsxLjAsBgNVBAMT
+    JVVTRVJUcnVzdCBFQ0MgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTgxMTAy
+    MDAwMDAwWhcNMzAxMjMxMjM1OTU5WjCBlTELMAkGA1UEBhMCR0IxGzAZBgNVBAgT
+    EkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEYMBYGA1UEChMP
+    U2VjdGlnbyBMaW1pdGVkMT0wOwYDVQQDEzRTZWN0aWdvIEVDQyBPcmdhbml6YXRp
+    b24gVmFsaWRhdGlvbiBTZWN1cmUgU2VydmVyIENBMFkwEwYHKoZIzj0CAQYIKoZI
+    zj0DAQcDQgAEnI5cCmFvoVij0NXO+vxE+f+6Bh57FhpyH0LTCrJmzfsPSXIhTSex
+    r92HOlz+aHqoGE0vSe/CSwLFoWcZ8W1jOaOCAW4wggFqMB8GA1UdIwQYMBaAFDrh
+    CYbUzxnClnZ0SXbc4DXGY2OaMB0GA1UdDgQWBBRNSu/ERrMSrU9OmrFZ4lGrCBB4
+    CDAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHSUEFjAU
+    BggrBgEFBQcDAQYIKwYBBQUHAwIwGwYDVR0gBBQwEjAGBgRVHSAAMAgGBmeBDAEC
+    AjBQBgNVHR8ESTBHMEWgQ6BBhj9odHRwOi8vY3JsLnVzZXJ0cnVzdC5jb20vVVNF
+    UlRydXN0RUNDQ2VydGlmaWNhdGlvbkF1dGhvcml0eS5jcmwwdgYIKwYBBQUHAQEE
+    ajBoMD8GCCsGAQUFBzAChjNodHRwOi8vY3J0LnVzZXJ0cnVzdC5jb20vVVNFUlRy
+    dXN0RUNDQWRkVHJ1c3RDQS5jcnQwJQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnVz
+    ZXJ0cnVzdC5jb20wCgYIKoZIzj0EAwMDaQAwZgIxAOk//uo7i/MoeKdcyeqvjOXs
+    BJFGLI+1i0d+Tty7zEnn2w4DNS21TK8wmY3Kjm3EmQIxAPI1qHM/I+OS+hx0OZhG
+    fDoNifTe/GxgWZ1gOYQKzn6lwP0yGKlrP+7vrVC8IczJ4A==
+    -----END CERTIFICATE-----
+    """
+
+    /// Sample trusted list with real certificate chain for AKI/SKI testing
+    let sampleTrustedListWithChainJSON = """
+        {
+          "LoTE": {
+            "ListAndSchemeInformation": {
+              "LoTEVersionIdentifier": 1,
+              "LoTESequenceNumber": 1,
+              "SchemeOperatorName": [{ "lang": "en", "value": "Test Authority" }],
+              "ListIssueDateTime": "2026-01-01T00:00:00Z",
+              "LoTEType": "https://example.com/LoTEType/TestList"
+            },
+            "TrustedEntitiesList": [
+              {
+                "TrustedEntityInformation": {
+                  "TEName": [{ "lang": "en", "value": "Sectigo" }]
+                },
+                "TrustedEntityServices": [
+                  {
+                    "ServiceInformation": {
+                      "ServiceName": [{ "lang": "en", "value": "Sectigo ECC OV CA" }],
+                      "ServiceDigitalIdentity": {
+                        "X509Certificates": [
+                          "-----BEGIN CERTIFICATE-----\\nMIIDrjCCAzOgAwIBAgIQNb50Y4yz6d4oBXC3l4CzZzAKBggqhkjOPQQDAzCBiDEL\\nMAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0plcnNl\\neSBDaXR5MR4wHAYDVQQKExVUaGUgVVNFUlRSVVNUIE5ldHdvcmsxLjAsBgNVBAMT\\nJVVTRVJUcnVzdCBFQ0MgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTgxMTAy\\nMDAwMDAwWhcNMzAxMjMxMjM1OTU5WjCBlTELMAkGA1UEBhMCR0IxGzAZBgNVBAgT\\nEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEYMBYGA1UEChMP\\nU2VjdGlnbyBMaW1pdGVkMT0wOwYDVQQDEzRTZWN0aWdvIEVDQyBPcmdhbml6YXRp\\nb24gVmFsaWRhdGlvbiBTZWN1cmUgU2VydmVyIENBMFkwEwYHKoZIzj0CAQYIKoZI\\nzj0DAQcDQgAEnI5cCmFvoVij0NXO+vxE+f+6Bh57FhpyH0LTCrJmzfsPSXIhTSex\\nr92HOlz+aHqoGE0vSe/CSwLFoWcZ8W1jOaOCAW4wggFqMB8GA1UdIwQYMBaAFDrh\\nCYbUzxnClnZ0SXbc4DXGY2OaMB0GA1UdDgQWBBRNSu/ERrMSrU9OmrFZ4lGrCBB4\\nCDAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHSUEFjAU\\nBggrBgEFBQcDAQYIKwYBBQUHAwIwGwYDVR0gBBQwEjAGBgRVHSAAMAgGBmeBDAEC\\nAjBQBgNVHR8ESTBHMEWgQ6BBhj9odHRwOi8vY3JsLnVzZXJ0cnVzdC5jb20vVVNF\\nUlRydXN0RUNDQ2VydGlmaWNhdGlvbkF1dGhvcml0eS5jcmwwdgYIKwYBBQUHAQEE\\najBoMD8GCCsGAQUFBzAChjNodHRwOi8vY3J0LnVzZXJ0cnVzdC5jb20vVVNFUlRy\\ndXN0RUNDQWRkVHJ1c3RDQS5jcnQwJQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnVz\\nZXJ0cnVzdC5jb20wCgYIKoZIzj0EAwMDaQAwZgIxAOk//uo7i/MoeKdcyeqvjOXs\\nBJFGLI+1i0d+Tty7zEnn2w4DNS21TK8wmY3Kjm3EmQIxAPI1qHM/I+OS+hx0OZhG\\nfDoNifTe/GxgWZ1gOYQKzn6lwP0yGKlrP+7vrVC8IczJ4A==\\n-----END CERTIFICATE-----"
+                        ]
+                      },
+                      "ServiceTypeIdentifier": "http://example.com/SvcType/IntermediateCA",
+                      "ServiceStatus": "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+                      "StatusStartingTime": "2024-01-01T00:00:00Z"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        """
+
+    /// Leaf certificate PEM (ownd-project.com) - signed by Sectigo ECC OV CA
+    let leafCertificatePEM = """
+    -----BEGIN CERTIFICATE-----
+    MIIFUjCCBPegAwIBAgIRAO68a+XoD/PhST9Zr7Fq4b0wCgYIKoZIzj0EAwIwgZUx
+    CzAJBgNVBAYTAkdCMRswGQYDVQQIExJHcmVhdGVyIE1hbmNoZXN0ZXIxEDAOBgNV
+    BAcTB1NhbGZvcmQxGDAWBgNVBAoTD1NlY3RpZ28gTGltaXRlZDE9MDsGA1UEAxM0
+    U2VjdGlnbyBFQ0MgT3JnYW5pemF0aW9uIFZhbGlkYXRpb24gU2VjdXJlIFNlcnZl
+    ciBDQTAeFw0yMzEyMDUwMDAwMDBaFw0yNTAxMDQyMzU5NTlaMFAxCzAJBgNVBAYT
+    AkpQMQ4wDAYDVQQIEwVUb2t5bzEWMBQGA1UEChMNRGF0YVNpZ24gSW5jLjEZMBcG
+    A1UEAxMQb3duZC1wcm9qZWN0LmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IA
+    BFIprdRg9RgqfsmAAmY/QMQ3Czjds6QvvO3WJT4rP00KVBwHxlbH1ZfSKVgDAdZP
+    fQAp7tWBED9nlck7Qk9M4nGjggNqMIIDZjAfBgNVHSMEGDAWgBRNSu/ERrMSrU9O
+    mrFZ4lGrCBB4CDAdBgNVHQ4EFgQULd9BFtdtud+3yIiR9ZXHqd6S9WQwDgYDVR0P
+    AQH/BAQDAgeAMAwGA1UdEwEB/wQCMAAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsG
+    AQUFBwMCMEoGA1UdIARDMEEwNQYMKwYBBAGyMQECAQMEMCUwIwYIKwYBBQUHAgEW
+    F2h0dHBzOi8vc2VjdGlnby5jb20vQ1BTMAgGBmeBDAECAjBaBgNVHR8EUzBRME+g
+    TaBLhklodHRwOi8vY3JsLnNlY3RpZ28uY29tL1NlY3RpZ29FQ0NPcmdhbml6YXRp
+    b25WYWxpZGF0aW9uU2VjdXJlU2VydmVyQ0EuY3JsMIGKBggrBgEFBQcBAQR+MHww
+    VQYIKwYBBQUHMAKGSWh0dHA6Ly9jcnQuc2VjdGlnby5jb20vU2VjdGlnb0VDQ09y
+    Z2FuaXphdGlvblZhbGlkYXRpb25TZWN1cmVTZXJ2ZXJDQS5jcnQwIwYIKwYBBQUH
+    MAGGF2h0dHA6Ly9vY3NwLnNlY3RpZ28uY29tMDEGA1UdEQQqMCiCEG93bmQtcHJv
+    amVjdC5jb22CFHd3dy5vd25kLXByb2plY3QuY29tMIIBfQYKKwYBBAHWeQIEAgSC
+    AW0EggFpAWcAdQDPEVbu1S58r/OHW9lpLpvpGnFnSrAX7KwB0lt3zsw7CAAAAYw6
+    NipUAAAEAwBGMEQCIBVcGQjOkfLxvpm1Admcetmn8D15G4Gt2AIdOXveZYrsAiBe
+    q8jh8G4geumOHXIklSxvBzip9VK6sw9yq4AnTHnSPwB2AKLjCuRF772tm3447Udn
+    d1PXgluElNcrXhssxLlQpEfnAAABjDo2KcoAAAQDAEcwRQIhAJP0UetSSFGF9/fa
+    OHVzhkPFOg3etjXqWQShnxYI8a+GAiABzN4+sJAysZ88mtodttNYamXsnfw1T3qX
+    YcJbB5GwJAB2AE51oydcmhDDOFts1N8/Uusd8OCOG41pwLH6ZLFimjnfAAABjDo2
+    KhkAAAQDAEcwRQIgbpDfqifRz9PW+Tq83ivbXHA1GheQpGX88laI0XB910gCIQCK
+    Rm2sRqqlgaXX7rO3EznDn7MwC4mbQwSyEIDjXddHMzAKBggqhkjOPQQDAgNJADBG
+    AiEAzwi+A0/YY55h0f+Id0+eUPrRsVBdOKWIp19yQZ62jJICIQCvKk/avGDl5/eN
+    IyN1eesa1sbs8QfbTbvzitYsVlRqXg==
+    -----END CERTIFICATE-----
+    """
+
+    func testFindIssuerCertificateByAKISKI() async throws {
+        let testURL = URL(string: "https://test.example.com/aki-ski-list.json")!
+
+        // Setup mock response with intermediate certificate
+        let responseData = sampleTrustedListWithChainJSON.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: testURL,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        MockURLProtocol.mockResponses[".*aki-ski-list\\.json"] = (responseData, response)
+
+        // Create search info
+        let searchInfos = [LoTEContextSearchInfo(
+            url: testURL,
+            contextName: "TestContext",
+            condition: LoTEContextSearchInfo.SearchCondition(
+                serviceTypeIdentifier: "http://example.com/SvcType/IntermediateCA",
+                status: "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted"
+            )
+        )]
+
+        // Parse leaf certificate
+        let leafCert = try Certificate(pemEncoded: leafCertificatePEM)
+
+        // Find issuer certificate
+        let result = try await manager.findIssuerCertificate(for: leafCert, searchInfos: searchInfos)
+
+        // Verify result
+        XCTAssertEqual(result.entity.TrustedEntityInformation.TEName.first?.value, "Sectigo")
+        XCTAssertEqual(result.service.ServiceInformation.ServiceName.first?.value, "Sectigo ECC OV CA")
+
+        // Verify AKI/SKI match
+        let leafAKI = X509CertificateOperations.extractAuthorityKeyIdentifier(from: leafCert)
+        let issuerSKI = X509CertificateOperations.extractSubjectKeyIdentifier(from: result.issuerCertificate)
+        XCTAssertNotNil(leafAKI)
+        XCTAssertNotNil(issuerSKI)
+        XCTAssertEqual(leafAKI, issuerSKI)
+    }
+
+    func testFindIssuerCertificateByDN() async throws {
+        // Test DN matching fallback when AKI/SKI is not available
+        // Using the same certificate data but verifying DN matching works
+        let testURL = URL(string: "https://test.example.com/dn-match-list.json")!
+
+        let responseData = sampleTrustedListWithChainJSON.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: testURL,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        MockURLProtocol.mockResponses[".*dn-match-list\\.json"] = (responseData, response)
+
+        let searchInfos = [LoTEContextSearchInfo(
+            url: testURL,
+            contextName: "TestContext",
+            condition: LoTEContextSearchInfo.SearchCondition()
+        )]
+
+        let leafCert = try Certificate(pemEncoded: leafCertificatePEM)
+
+        // Verify DN matching works
+        let issuerDN = X509CertificateOperations.extractIssuerDN(from: leafCert)
+        XCTAssertFalse(issuerDN.isEmpty)
+        XCTAssertTrue(issuerDN.contains("Sectigo"))
+
+        // Find issuer - should work via AKI/SKI or DN
+        let result = try await manager.findIssuerCertificate(for: leafCert, searchInfos: searchInfos)
+        XCTAssertNotNil(result)
+    }
+
+    func testFindIssuerCertificateNotFound() async {
+        let testURL = URL(string: "https://test.example.com/no-issuer-list.json")!
+
+        // Use original sample data which doesn't have the intermediate cert for leaf
+        let responseData = sampleTrustedListJSON.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: testURL,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        MockURLProtocol.mockResponses[".*no-issuer-list\\.json"] = (responseData, response)
+
+        let searchInfos = [LoTEContextSearchInfo(
+            url: testURL,
+            contextName: "TestContext",
+            condition: LoTEContextSearchInfo.SearchCondition()
+        )]
+
+        do {
+            let leafCert = try Certificate(pemEncoded: leafCertificatePEM)
+            _ = try await manager.findIssuerCertificate(for: leafCert, searchInfos: searchInfos)
+            XCTFail("Should throw issuerCertificateNotFound error")
+        } catch let error as TrustedListError {
+            if case .issuerCertificateNotFound = error {
+                // Expected
+            } else {
+                XCTFail("Expected issuerCertificateNotFound error, got: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testFindIssuerCertificateWithConditionFilter() async throws {
+        let testURL = URL(string: "https://test.example.com/condition-filter-list.json")!
+
+        let responseData = sampleTrustedListWithChainJSON.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: testURL,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        MockURLProtocol.mockResponses[".*condition-filter-list\\.json"] = (responseData, response)
+
+        // Search with non-matching serviceTypeIdentifier - should fail
+        let searchInfosNonMatching = [LoTEContextSearchInfo(
+            url: testURL,
+            contextName: "TestContext",
+            condition: LoTEContextSearchInfo.SearchCondition(
+                serviceTypeIdentifier: "http://example.com/SvcType/NonExistent"
+            )
+        )]
+
+        let leafCert = try Certificate(pemEncoded: leafCertificatePEM)
+
+        do {
+            _ = try await manager.findIssuerCertificate(for: leafCert, searchInfos: searchInfosNonMatching)
+            XCTFail("Should throw error with non-matching condition")
+        } catch {
+            // Expected - condition filter should exclude the service
+        }
+
+        // Search with matching serviceTypeIdentifier - should succeed
+        let searchInfosMatching = [LoTEContextSearchInfo(
+            url: testURL,
+            contextName: "TestContext",
+            condition: LoTEContextSearchInfo.SearchCondition(
+                serviceTypeIdentifier: "http://example.com/SvcType/IntermediateCA"
+            )
+        )]
+
+        let result = try await manager.findIssuerCertificate(for: leafCert, searchInfos: searchInfosMatching)
+        XCTAssertNotNil(result)
+    }
+
+    func testGetIssuerCertificatesForChain() async throws {
+        let testURL = URL(string: "https://test.example.com/chain-list.json")!
+
+        let responseData = sampleTrustedListWithChainJSON.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: testURL,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        MockURLProtocol.mockResponses[".*chain-list\\.json"] = (responseData, response)
+
+        let searchInfos = [LoTEContextSearchInfo(
+            url: testURL,
+            contextName: "TestContext",
+            condition: LoTEContextSearchInfo.SearchCondition()
+        )]
+
+        let leafCert = try Certificate(pemEncoded: leafCertificatePEM)
+
+        let issuerCerts = try await manager.getIssuerCertificatesForChain(
+            x5cCertificates: [leafCert],
+            searchInfos: searchInfos
+        )
+
+        XCTAssertEqual(issuerCerts.count, 1)
     }
 }

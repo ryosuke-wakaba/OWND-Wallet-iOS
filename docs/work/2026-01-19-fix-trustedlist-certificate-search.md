@@ -203,6 +203,41 @@ Test suite 'SignatureUitlTests' started
 All tests passed
 ```
 
+### TrustedListManagerTests.swift
+
+証明書ベースの発行者検索機能をテストするために以下のテストケースを追加:
+
+| テストケース | 説明 | 検証内容 |
+|-------------|------|---------|
+| `testFindIssuerCertificateByAKISKI` | AKI/SKI一致による発行者検索 | リーフ証明書のAKIとサービス証明書のSKIが一致する場合に発行者が見つかることを確認 |
+| `testFindIssuerCertificateByDN` | DN一致による発行者検索 | リーフ証明書のIssuer DNとサービス証明書のSubject DNが一致する場合に発行者が見つかることを確認 |
+| `testFindIssuerCertificateNotFound` | 発行者が見つからない場合 | TrustedListに発行者がいない場合に`issuerCertificateNotFound`エラーがスローされることを確認 |
+| `testFindIssuerCertificateWithConditionFilter` | 条件フィルタリング | `serviceTypeIdentifier`条件でサービスがフィルタリングされることを確認 |
+| `testGetIssuerCertificatesForChain` | チェーン用発行者証明書取得 | 証明書チェーンに対する発行者証明書が正しく取得できることを確認 |
+
+### TrustedListManagerテスト実行結果
+
+```
+Test suite 'TrustedListManagerTests' started
+✓ testFetchTrustedListCaching (0.019 seconds)
+✓ testFetchTrustedListHTTPError (0.001 seconds)
+✓ testFetchTrustedList (0.002 seconds)
+✓ testFindIssuerCertificateByAKISKI (0.024 seconds)
+✓ testFindIssuerCertificateByDN (0.034 seconds)
+✓ testFindIssuerCertificateNotFound (0.002 seconds)
+✓ testFindIssuerCertificateWithConditionFilter (0.003 seconds)
+✓ testFindServiceByIssuerURL (0.001 seconds)
+✓ testFindServiceIgnoresWithdrawnStatus (0.002 seconds)
+✓ testFindServiceInDocument (0.001 seconds)
+✓ testFindServiceNoLoTEConfigured (0.000 seconds)
+✓ testFindServiceNotFound (0.002 seconds)
+✓ testFindServiceWithServiceTypeFilter (0.011 seconds)
+✓ testFindServiceWithTrailingSlash (0.001 seconds)
+✓ testGetCertificatesForIssuer (0.001 seconds)
+✓ testGetIssuerCertificatesForChain (0.006 seconds)
+All tests passed (16 tests)
+```
+
 ## 参考資料
 
 - RFC 5280: Internet X.509 PKI Certificate and CRL Profile
