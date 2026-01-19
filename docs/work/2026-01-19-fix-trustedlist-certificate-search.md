@@ -167,6 +167,41 @@ let verifyResult = await X5CJWTVerifier.verifyJwtWithX5CUsingCertificateSearch(
 
 旧APIは`@available(*, deprecated)`としてマークされていますが、引き続き使用可能です。
 
+## テストケース
+
+### X509CertificateOperationsTest.swift
+
+AKI/SKI関連の機能をテストするために以下のテストケースを追加:
+
+| テストケース | 説明 | 検証内容 |
+|-------------|------|---------|
+| `testExtractAuthorityKeyIdentifier` | AKI抽出テスト | リーフ証明書からAKIが正しく抽出できることを確認 |
+| `testExtractSubjectKeyIdentifier` | SKI抽出テスト | 中間証明書からSKIが正しく抽出できることを確認 |
+| `testAKIMatchesSKI` | AKI/SKI一致テスト | リーフ証明書のAKIと発行者証明書のSKIが一致することを確認 |
+| `testFindIssuerCertificate` | 発行者検索テスト | 候補証明書リストから正しい発行者を見つけられることを確認 |
+| `testExtractDistinguishedNames` | DN抽出テスト | Subject DNとIssuer DNが正しく抽出できることを確認 |
+| `testDoesIssuerMatchSubject` | DN一致テスト | リーフのIssuer DNと発行者のSubject DNが一致することを確認 |
+
+### テストデータ
+
+実際の証明書チェーン（ownd-project.comの証明書チェーン）を使用:
+- リーフ証明書: ownd-project.com
+- 中間証明書: Sectigo ECC Organization Validation Secure Server CA
+- ルート証明書: USERTrust ECC Certification Authority
+
+### テスト実行結果
+
+```
+Test suite 'SignatureUitlTests' started
+✓ testExtractAuthorityKeyIdentifier (0.002 seconds)
+✓ testExtractSubjectKeyIdentifier (0.005 seconds)
+✓ testAKIMatchesSKI (0.036 seconds)
+✓ testFindIssuerCertificate (0.014 seconds)
+✓ testExtractDistinguishedNames (0.004 seconds)
+✓ testDoesIssuerMatchSubject (0.002 seconds)
+All tests passed
+```
+
 ## 参考資料
 
 - RFC 5280: Internet X.509 PKI Certificate and CRL Profile
