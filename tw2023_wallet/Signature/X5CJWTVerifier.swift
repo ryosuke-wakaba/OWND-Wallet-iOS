@@ -23,17 +23,18 @@ enum X5CJWTVerifier {
     /// x5cヘッダーを使用したJWT検証（署名検証 + 証明書チェーン検証）
     /// - Parameters:
     ///   - jwt: 検証対象のJWT文字列
-    ///   - issuerURL: TrustedListから証明書を取得するためのIssuer URL（オプション）
-    ///   - loteSearchInfos: 検索対象のLoTE情報配列
+    ///   - issuerURL: (未使用) 後方互換性のため残す
+    ///   - loteSearchInfos: (未使用) 後方互換性のため残す
     ///   - verifyCertChain: 証明書チェーン検証を行うかどうか
     /// - Returns: 検証済みJWTと証明書、またはエラー
+    /// - Note: 証明書ベースの検索が必要な場合は`verifyJwtWithX5CUsingCertificateSearch`を使用してください
     static func verifyJwtWithX5C(
         jwt: String,
         issuerURL: String?,
         loteSearchInfos: [LoTESearchInfo],
         verifyCertChain: Bool = true
     ) async -> Result<VerifiedX5CJwt, JWTOperations.VerificationError> {
-        // 1. JWTをデコードしてx5cを取得（JWTUtilを使用）
+        // 1. JWTをデコードしてx5cを取得
         let decodeResult = JWTOperations.decodeJwtWithX5C(jwt: jwt)
         guard case .success(let decoded) = decodeResult else {
             if case .failure(let error) = decodeResult {
@@ -76,7 +77,7 @@ enum X5CJWTVerifier {
         }
         print("🔐 [X5CJWTVerifier] SecKey created successfully")
 
-        // 4. JWTの署名を検証（JWTUtilを使用）
+        // 4. JWTの署名を検証
         let jwtValidation = JWTOperations.verifyJwt(jwt: jwt, publicKey: secKey)
         print("🔐 [X5CJWTVerifier] JWT signature validation result: \(jwtValidation)")
 
@@ -86,13 +87,29 @@ enum X5CJWTVerifier {
 
         // 5. 証明書チェーン検証（オプション）
         if verifyCertChain {
-            let chainValidationResult = await validateCertificateChain(
-                certificates: certificates,
-                issuerURL: issuerURL,
-                loteSearchInfos: loteSearchInfos
+            // SecCertificateに変換
+            let secCertificates: [SecCertificate] = certificates.compactMap { cert in
+                let pem = try? cert.serializeAsPEM()
+                guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
+                return SecCertificateCreateWithData(nil, derData as CFData)
+            }
+
+            guard secCertificates.count == certificates.count else {
+                print("🔐 [X5CJWTVerifier] Failed to convert all certificates to SecCertificate")
+                return .failure(.certificateValidationFailed(.chainIncomplete))
+            }
+
+            // デフォルトのTrustAnchorManagerで検証
+            let chainValidation = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
+                certificates: secCertificates,
+                trustAnchorManager: TrustAnchorManager.shared
             )
 
-            if case .failure(let certError) = chainValidationResult {
+            switch chainValidation {
+            case .success:
+                print("🔐 [X5CJWTVerifier] Certificate chain validation succeeded")
+            case .failure(let certError):
+                print("🔐 [X5CJWTVerifier] Certificate chain validation failed: \(certError.errorDescription ?? "unknown")")
                 return .failure(.certificateValidationFailed(certError))
             }
         } else {
@@ -293,64 +310,6 @@ enum X5CJWTVerifier {
         }
 
         // 証明書チェーン検証
-        let chainValidation = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
-            certificates: secCertificates,
-            trustAnchorManager: trustAnchorManager
-        )
-
-        switch chainValidation {
-        case .success:
-            print("🔐 [X5CJWTVerifier] Certificate chain validation succeeded")
-            return .success(())
-        case .failure(let certError):
-            print("🔐 [X5CJWTVerifier] Certificate chain validation failed: \(certError.errorDescription ?? "unknown")")
-            return .failure(certError)
-        }
-    }
-
-    // MARK: - Legacy Private Methods
-
-    /// 証明書チェーン検証（レガシーAPI用）
-    @available(*, deprecated, message: "Use validateCertificateChainWithCertificateSearch instead")
-    private static func validateCertificateChain(
-        certificates: [Certificate],
-        issuerURL: String?,
-        loteSearchInfos: [LoTESearchInfo]
-    ) async -> Result<Void, CertificateValidationError> {
-        // X509.Certificateを SecCertificateに変換
-        let secCertificates: [SecCertificate] = certificates.compactMap { cert in
-            let pem = try? cert.serializeAsPEM()
-            guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
-            return SecCertificateCreateWithData(nil, derData as CFData)
-        }
-
-        guard secCertificates.count == certificates.count else {
-            print("🔐 [X5CJWTVerifier] Failed to convert all certificates to SecCertificate")
-            return .failure(.chainIncomplete)
-        }
-
-        // TrustAnchorManagerを決定
-        let trustAnchorManager: TrustAnchorManager
-        if let issuerURL = issuerURL, !loteSearchInfos.isEmpty {
-            print("🔐 [X5CJWTVerifier] ========== Using TrustedList for issuer: \(issuerURL) ==========")
-            do {
-                let additionalCerts = try await TrustedListManager.shared.getCertificates(
-                    forServiceURL: issuerURL,
-                    loteInfos: loteSearchInfos
-                )
-                trustAnchorManager = TrustAnchorManager.createInstance(
-                    withAdditionalCertificates: additionalCerts
-                )
-            } catch {
-                print("🔐 [X5CJWTVerifier] ⚠️ TrustedList lookup failed: \(error). Using singleton.")
-                trustAnchorManager = TrustAnchorManager.shared
-            }
-        } else {
-            print("🔐 [X5CJWTVerifier] No issuerURL or loteSearchInfos provided, using singleton TrustAnchorManager")
-            trustAnchorManager = TrustAnchorManager.shared
-        }
-
-        // 証明書チェーン検証（SignatureUtilを使用）
         let chainValidation = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
             certificates: secCertificates,
             trustAnchorManager: trustAnchorManager
