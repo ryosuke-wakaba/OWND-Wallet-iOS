@@ -8,6 +8,7 @@
 
 import Foundation
 import Security
+import X509
 
 /// Errors that can occur during trusted list operations
 enum TrustedListError: Error, LocalizedError {
@@ -15,10 +16,12 @@ enum TrustedListError: Error, LocalizedError {
     case fetchFailed(URL, Error)
     case parseError(Error)
     case serviceNotFound(serviceURL: String, serviceType: String)
+    case issuerCertificateNotFound(leafSubject: String)
     case noCertificatesInService
     case certificateParseError
     case noLoTEConfigured
     case signatureVerificationFailed(JAdESSignatureVerifier.JAdESVerificationError)
+    case conditionNotMatched(context: String)
 
     var errorDescription: String? {
         switch self {
@@ -30,6 +33,8 @@ enum TrustedListError: Error, LocalizedError {
             return "Failed to parse trusted list: \(error.localizedDescription)"
         case .serviceNotFound(let serviceURL, let serviceType):
             return "Service not found for \(serviceURL) with type \(serviceType)"
+        case .issuerCertificateNotFound(let leafSubject):
+            return "Issuer certificate not found for leaf: \(leafSubject)"
         case .noCertificatesInService:
             return "No certificates found in service digital identity"
         case .certificateParseError:
@@ -38,6 +43,8 @@ enum TrustedListError: Error, LocalizedError {
             return "No LoTE configured for search"
         case .signatureVerificationFailed(let jadesError):
             return "Trusted list signature verification failed: \(jadesError.localizedDescription)"
+        case .conditionNotMatched(let context):
+            return "No service matched condition for context: \(context)"
         }
     }
 }
@@ -47,6 +54,14 @@ struct TrustedServiceResult {
     let entity: TrustedEntity
     let service: TrustedEntityService
     let certificates: [SecCertificate]
+}
+
+/// Result of certificate-based issuer search
+struct IssuerCertificateResult {
+    let entity: TrustedEntity
+    let service: TrustedEntityService
+    let issuerCertificate: Certificate
+    let issuerSecCertificate: SecCertificate
 }
 
 /// Manages trusted lists (LoTE format) for certificate validation.
@@ -338,5 +353,199 @@ class TrustedListManager {
     ) async throws -> [SecCertificate] {
         let result = try await findService(serviceURL: serviceURL, loteInfos: loteInfos)
         return result.certificates
+    }
+
+    // MARK: - Certificate-Based Search (New API)
+
+    /// Find issuer certificate for a leaf certificate using AKI/SKI or DN matching
+    /// - Parameters:
+    ///   - leafCertificate: The leaf certificate to find issuer for
+    ///   - searchInfos: Array of context-based search infos
+    /// - Returns: IssuerCertificateResult if found
+    /// - Throws: TrustedListError if not found or error occurs
+    func findIssuerCertificate(
+        for leafCertificate: Certificate,
+        searchInfos: [LoTEContextSearchInfo]
+    ) async throws -> IssuerCertificateResult {
+        guard !searchInfos.isEmpty else {
+            print("🔐 [TrustedList] ❌ No LoTE context configured for search")
+            throw TrustedListError.noLoTEConfigured
+        }
+
+        let leafSubject = X509CertificateOperations.extractSubjectDN(from: leafCertificate)
+        let leafAKI = X509CertificateOperations.extractAuthorityKeyIdentifier(from: leafCertificate)
+        let leafIssuerDN = X509CertificateOperations.extractIssuerDN(from: leafCertificate)
+
+        print("🔐 [TrustedList] ========== Finding Issuer Certificate ==========")
+        print("🔐 [TrustedList] Leaf Subject: \(leafSubject)")
+        print("🔐 [TrustedList] Leaf AKI: \(leafAKI ?? "(none)")")
+        print("🔐 [TrustedList] Leaf Issuer DN: \(leafIssuerDN)")
+        print("🔐 [TrustedList] Search contexts: \(searchInfos.count)")
+
+        for searchInfo in searchInfos {
+            print("🔐 [TrustedList] Searching in: \(searchInfo.url)")
+            print("🔐 [TrustedList]   Context: \(searchInfo.contextName)")
+
+            do {
+                let document = try await fetchTrustedList(from: searchInfo.url)
+
+                // Check LoTEType condition
+                if let requiredLoTEType = searchInfo.condition.loteType {
+                    let actualLoTEType = document.LoTE.ListAndSchemeInformation.LoTEType
+                    if actualLoTEType != requiredLoTEType {
+                        print("🔐 [TrustedList]   ⚠️ LoTEType mismatch: expected \(requiredLoTEType), got \(actualLoTEType ?? "(none)")")
+                        continue
+                    }
+                    print("🔐 [TrustedList]   ✓ LoTEType matched: \(requiredLoTEType)")
+                }
+
+                // Search for issuer certificate
+                if let result = searchForIssuerInDocument(
+                    document,
+                    leafCertificate: leafCertificate,
+                    leafAKI: leafAKI,
+                    condition: searchInfo.condition
+                ) {
+                    print("🔐 [TrustedList] ✅ Found issuer certificate!")
+                    print("🔐 [TrustedList]   Entity: \(result.entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown")")
+                    print("🔐 [TrustedList]   Service: \(result.service.ServiceInformation.ServiceName.first?.value ?? "Unknown")")
+                    print("🔐 [TrustedList] ================================================")
+                    return result
+                }
+            } catch {
+                print("🔐 [TrustedList] ⚠️ Error searching in \(searchInfo.url): \(error)")
+            }
+        }
+
+        print("🔐 [TrustedList] ❌ Issuer certificate not found")
+        print("🔐 [TrustedList] ================================================")
+        throw TrustedListError.issuerCertificateNotFound(leafSubject: leafSubject)
+    }
+
+    /// Search for issuer certificate in a document using AKI/SKI or DN matching
+    private func searchForIssuerInDocument(
+        _ document: LoTEDocument,
+        leafCertificate: Certificate,
+        leafAKI: String?,
+        condition: LoTEContextSearchInfo.SearchCondition
+    ) -> IssuerCertificateResult? {
+        for entity in document.LoTE.TrustedEntitiesList {
+            for service in entity.TrustedEntityServices {
+                let info = service.ServiceInformation
+
+                // Check serviceTypeIdentifier condition
+                if let requiredType = condition.serviceTypeIdentifier {
+                    guard info.ServiceTypeIdentifier == requiredType else {
+                        continue
+                    }
+                }
+
+                // Check status condition
+                if let requiredStatus = condition.status {
+                    guard info.ServiceStatus == requiredStatus else {
+                        continue
+                    }
+                }
+
+                // Get certificates from service
+                guard let pemCertificates = info.ServiceDigitalIdentity.X509Certificates,
+                      !pemCertificates.isEmpty else {
+                    continue
+                }
+
+                // Try to find matching issuer certificate
+                for pem in pemCertificates {
+                    // Convert to X509.Certificate for AKI/SKI comparison
+                    guard let x509Cert = convertPEMToX509Certificate(pem) else {
+                        continue
+                    }
+
+                    // Try AKI/SKI matching first
+                    if let aki = leafAKI {
+                        let ski = X509CertificateOperations.extractSubjectKeyIdentifier(from: x509Cert)
+                        if let ski = ski, ski == aki {
+                            if let secCert = createCertificate(from: pem) {
+                                print("🔐 [TrustedList]   ✓ Found by AKI/SKI match")
+                                return IssuerCertificateResult(
+                                    entity: entity,
+                                    service: service,
+                                    issuerCertificate: x509Cert,
+                                    issuerSecCertificate: secCert
+                                )
+                            }
+                        }
+                    }
+
+                    // Fallback: DN matching
+                    if X509CertificateOperations.doesIssuerMatchSubject(
+                        leafCertificate: leafCertificate,
+                        issuerCertificate: x509Cert
+                    ) {
+                        if let secCert = createCertificate(from: pem) {
+                            print("🔐 [TrustedList]   ✓ Found by DN match")
+                            return IssuerCertificateResult(
+                                entity: entity,
+                                service: service,
+                                issuerCertificate: x509Cert,
+                                issuerSecCertificate: secCert
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        return nil
+    }
+
+    /// Convert PEM string to X509.Certificate
+    private func convertPEMToX509Certificate(_ pem: String) -> Certificate? {
+        // Check if PEM has delimiters
+        if pem.contains("-----BEGIN CERTIFICATE-----") {
+            return try? Certificate(pemEncoded: pem)
+        } else {
+            // Assume base64-encoded DER
+            guard let derData = Data(base64Encoded: pem, options: .ignoreUnknownCharacters) else {
+                return nil
+            }
+            return try? Certificate(derEncoded: Array(derData))
+        }
+    }
+
+    // MARK: - Convenience Methods for Certificate-Based Search
+
+    /// Get issuer certificates for a leaf certificate from trusted lists
+    /// - Parameters:
+    ///   - leafCertificate: The leaf certificate to find issuers for
+    ///   - searchInfos: Array of context-based search infos
+    /// - Returns: Array of issuer SecCertificates
+    func getIssuerCertificates(
+        for leafCertificate: Certificate,
+        searchInfos: [LoTEContextSearchInfo]
+    ) async throws -> [SecCertificate] {
+        let result = try await findIssuerCertificate(for: leafCertificate, searchInfos: searchInfos)
+        return [result.issuerSecCertificate]
+    }
+
+    /// Get issuer certificates for certificates in x5c chain from trusted lists
+    /// Uses AKI/SKI or DN matching to find issuer certificates
+    /// - Parameters:
+    ///   - x5cCertificates: Certificate chain from JWT x5c header
+    ///   - searchInfos: Array of context-based search infos
+    /// - Returns: Array of issuer SecCertificates to append to chain
+    func getIssuerCertificatesForChain(
+        x5cCertificates: [Certificate],
+        searchInfos: [LoTEContextSearchInfo]
+    ) async throws -> [SecCertificate] {
+        guard let leafCertificate = x5cCertificates.first else {
+            throw TrustedListError.noCertificatesInService
+        }
+
+        // If x5c has multiple certificates, use the last one (end of provided chain)
+        // Otherwise use the leaf certificate
+        let certificateToMatch = x5cCertificates.last ?? leafCertificate
+
+        let result = try await findIssuerCertificate(for: certificateToMatch, searchInfos: searchInfos)
+        return [result.issuerSecCertificate]
     }
 }

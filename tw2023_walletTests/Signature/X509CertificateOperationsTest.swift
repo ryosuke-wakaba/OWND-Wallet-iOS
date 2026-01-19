@@ -237,4 +237,117 @@ final class SignatureUitlTests: XCTestCase {
             XCTAssertTrue(result?.count == expectedCertificatesNumber)
         }
     }
+
+    // MARK: - AKI/SKI Tests
+
+    func testExtractAuthorityKeyIdentifier() throws {
+        // Parse the certificate chain
+        let certificates = try X509CertificateOperations.convertPemWithDelimitersToX509Certificates(
+            pemChain: fullChain)
+        XCTAssertTrue(certificates.count >= 2)
+
+        // Extract AKI from leaf certificate
+        let leafCert = certificates[0]
+        let aki = X509CertificateOperations.extractAuthorityKeyIdentifier(from: leafCert)
+
+        // The leaf certificate should have an AKI pointing to its issuer
+        XCTAssertNotNil(aki, "Leaf certificate should have AKI")
+        print("Leaf AKI: \(aki ?? "nil")")
+    }
+
+    func testExtractSubjectKeyIdentifier() throws {
+        // Parse the certificate chain
+        let certificates = try X509CertificateOperations.convertPemWithDelimitersToX509Certificates(
+            pemChain: fullChain)
+        XCTAssertTrue(certificates.count >= 2)
+
+        // Extract SKI from intermediate certificate
+        let intermediateCert = certificates[1]
+        let ski = X509CertificateOperations.extractSubjectKeyIdentifier(from: intermediateCert)
+
+        // The intermediate certificate should have an SKI
+        XCTAssertNotNil(ski, "Intermediate certificate should have SKI")
+        print("Intermediate SKI: \(ski ?? "nil")")
+    }
+
+    func testAKIMatchesSKI() throws {
+        // Parse the certificate chain
+        let certificates = try X509CertificateOperations.convertPemWithDelimitersToX509Certificates(
+            pemChain: fullChain)
+        XCTAssertTrue(certificates.count >= 2)
+
+        let leafCert = certificates[0]
+        let intermediateCert = certificates[1]
+
+        // The leaf's AKI should match the intermediate's SKI
+        let doesMatch = X509CertificateOperations.doesAKIMatchSKI(
+            leafCertificate: leafCert,
+            issuerCertificate: intermediateCert
+        )
+
+        XCTAssertTrue(doesMatch, "Leaf AKI should match intermediate SKI")
+    }
+
+    func testFindIssuerCertificate() throws {
+        // Parse the certificate chain
+        let certificates = try X509CertificateOperations.convertPemWithDelimitersToX509Certificates(
+            pemChain: fullChain)
+        XCTAssertTrue(certificates.count >= 2)
+
+        let leafCert = certificates[0]
+        let candidates = Array(certificates.dropFirst()) // All except leaf
+
+        // Find issuer for leaf certificate
+        let issuer = X509CertificateOperations.findIssuerCertificate(
+            for: leafCert,
+            in: candidates
+        )
+
+        XCTAssertNotNil(issuer, "Should find issuer certificate")
+
+        // Verify it's the correct issuer (first intermediate)
+        if let issuer = issuer {
+            let issuerSubject = X509CertificateOperations.extractSubjectDN(from: issuer)
+            let leafIssuerDN = X509CertificateOperations.extractIssuerDN(from: leafCert)
+            print("Found issuer subject: \(issuerSubject)")
+            print("Leaf issuer DN: \(leafIssuerDN)")
+        }
+    }
+
+    func testExtractDistinguishedNames() throws {
+        // Parse the certificate chain
+        let certificates = try X509CertificateOperations.convertPemWithDelimitersToX509Certificates(
+            pemChain: fullChain)
+        XCTAssertTrue(certificates.count >= 1)
+
+        let leafCert = certificates[0]
+
+        // Extract DNs
+        let subjectDN = X509CertificateOperations.extractSubjectDN(from: leafCert)
+        let issuerDN = X509CertificateOperations.extractIssuerDN(from: leafCert)
+
+        XCTAssertFalse(subjectDN.isEmpty, "Subject DN should not be empty")
+        XCTAssertFalse(issuerDN.isEmpty, "Issuer DN should not be empty")
+
+        print("Subject DN: \(subjectDN)")
+        print("Issuer DN: \(issuerDN)")
+    }
+
+    func testDoesIssuerMatchSubject() throws {
+        // Parse the certificate chain
+        let certificates = try X509CertificateOperations.convertPemWithDelimitersToX509Certificates(
+            pemChain: fullChain)
+        XCTAssertTrue(certificates.count >= 2)
+
+        let leafCert = certificates[0]
+        let intermediateCert = certificates[1]
+
+        // The leaf's issuer should match the intermediate's subject
+        let doesMatch = X509CertificateOperations.doesIssuerMatchSubject(
+            leafCertificate: leafCert,
+            issuerCertificate: intermediateCert
+        )
+
+        XCTAssertTrue(doesMatch, "Leaf issuer should match intermediate subject")
+    }
 }

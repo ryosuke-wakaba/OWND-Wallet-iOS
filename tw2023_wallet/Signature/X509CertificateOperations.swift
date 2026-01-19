@@ -562,6 +562,132 @@ enum X509CertificateOperations {
         }
     }
 
+    // MARK: - AKI/SKI Extraction
+
+    /// Extract Authority Key Identifier (AKI) from a certificate
+    /// - Parameter certificate: X509.Certificate to extract AKI from
+    /// - Returns: AKI as hex string (e.g., "B4:74:88:D4:..."), or nil if not present
+    static func extractAuthorityKeyIdentifier(from certificate: Certificate) -> String? {
+        do {
+            guard let aki = try certificate.extensions.authorityKeyIdentifier else {
+                return nil
+            }
+            guard let keyIdentifier = aki.keyIdentifier else {
+                return nil
+            }
+            // Convert to hex string with colon separator
+            return keyIdentifier.map { String(format: "%02X", $0) }.joined(separator: ":")
+        } catch {
+            print("🔐 [X509] Failed to extract AKI: \(error)")
+            return nil
+        }
+    }
+
+    /// Extract Subject Key Identifier (SKI) from a certificate
+    /// - Parameter certificate: X509.Certificate to extract SKI from
+    /// - Returns: SKI as hex string (e.g., "B4:74:88:D4:..."), or nil if not present
+    static func extractSubjectKeyIdentifier(from certificate: Certificate) -> String? {
+        do {
+            guard let ski = try certificate.extensions.subjectKeyIdentifier else {
+                return nil
+            }
+            // Convert to hex string with colon separator
+            return ski.keyIdentifier.map { String(format: "%02X", $0) }.joined(separator: ":")
+        } catch {
+            print("🔐 [X509] Failed to extract SKI: \(error)")
+            return nil
+        }
+    }
+
+    /// Check if a certificate's AKI matches another certificate's SKI
+    /// - Parameters:
+    ///   - leafCertificate: The leaf certificate to check AKI
+    ///   - issuerCertificate: The potential issuer certificate to check SKI
+    /// - Returns: true if AKI matches SKI, false otherwise
+    static func doesAKIMatchSKI(
+        leafCertificate: Certificate,
+        issuerCertificate: Certificate
+    ) -> Bool {
+        guard let aki = extractAuthorityKeyIdentifier(from: leafCertificate),
+              let ski = extractSubjectKeyIdentifier(from: issuerCertificate) else {
+            return false
+        }
+        return aki == ski
+    }
+
+    /// Extract Issuer Distinguished Name from a certificate
+    /// - Parameter certificate: X509.Certificate to extract issuer from
+    /// - Returns: Issuer DN as string
+    static func extractIssuerDN(from certificate: Certificate) -> String {
+        return String(describing: certificate.issuer)
+    }
+
+    /// Extract Subject Distinguished Name from a certificate
+    /// - Parameter certificate: X509.Certificate to extract subject from
+    /// - Returns: Subject DN as string
+    static func extractSubjectDN(from certificate: Certificate) -> String {
+        return String(describing: certificate.subject)
+    }
+
+    /// Check if a certificate's Issuer DN matches another certificate's Subject DN
+    /// - Parameters:
+    ///   - leafCertificate: The leaf certificate to check Issuer DN
+    ///   - issuerCertificate: The potential issuer certificate to check Subject DN
+    /// - Returns: true if Issuer DN matches Subject DN, false otherwise
+    static func doesIssuerMatchSubject(
+        leafCertificate: Certificate,
+        issuerCertificate: Certificate
+    ) -> Bool {
+        // Use DistinguishedName's Equatable conformance for accurate comparison
+        return leafCertificate.issuer == issuerCertificate.subject
+    }
+
+    /// Find the issuer certificate from a list of candidates
+    /// Uses AKI/SKI matching first, then falls back to DN matching
+    /// - Parameters:
+    ///   - leafCertificate: The leaf certificate to find the issuer for
+    ///   - candidates: Array of candidate issuer certificates
+    /// - Returns: The matching issuer certificate, or nil if not found
+    static func findIssuerCertificate(
+        for leafCertificate: Certificate,
+        in candidates: [Certificate]
+    ) -> Certificate? {
+        let leafAKI = extractAuthorityKeyIdentifier(from: leafCertificate)
+        print("🔐 [X509] Finding issuer for certificate")
+        print("🔐 [X509]   Leaf AKI: \(leafAKI ?? "(none)")")
+        print("🔐 [X509]   Leaf Issuer DN: \(extractIssuerDN(from: leafCertificate))")
+        print("🔐 [X509]   Candidates: \(candidates.count)")
+
+        // First try: AKI/SKI matching (more reliable)
+        if leafAKI != nil {
+            for candidate in candidates {
+                let candidateSKI = extractSubjectKeyIdentifier(from: candidate)
+                if let ski = candidateSKI, ski == leafAKI {
+                    print("🔐 [X509] ✅ Found issuer by AKI/SKI match")
+                    print("🔐 [X509]   Issuer SKI: \(ski)")
+                    return candidate
+                }
+            }
+            print("🔐 [X509] ⚠️ No AKI/SKI match found, trying DN matching...")
+        } else {
+            print("🔐 [X509] ⚠️ Leaf certificate has no AKI, using DN matching...")
+        }
+
+        // Fallback: DN matching
+        for candidate in candidates {
+            if doesIssuerMatchSubject(leafCertificate: leafCertificate, issuerCertificate: candidate) {
+                print("🔐 [X509] ✅ Found issuer by DN match")
+                print("🔐 [X509]   Issuer Subject: \(extractSubjectDN(from: candidate))")
+                return candidate
+            }
+        }
+
+        print("🔐 [X509] ❌ No issuer found")
+        return nil
+    }
+
+    // MARK: - SecTrust Error Parsing
+
     /// Parse SecTrust CFError to CertificateValidationError
     private static func parseSecTrustError(
         _ cfError: CFError?,
