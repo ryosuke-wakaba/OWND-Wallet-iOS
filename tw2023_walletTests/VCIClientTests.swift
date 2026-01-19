@@ -545,7 +545,7 @@ final class VCIClientTests: XCTestCase {
 
             // Step 3: Retrieve all metadata
             do {
-                let metadata = try await retrieveAllMetadata(issuer: issuer, loteSearchInfos: [], using: mockSession)
+                let metadata = try await retrieveAllMetadata(issuer: issuer, contextSearchInfos: [], using: mockSession)
 
                 // Verify metadata
                 XCTAssertEqual(metadata.credentialIssuerMetadata.credentialIssuer, issuer)

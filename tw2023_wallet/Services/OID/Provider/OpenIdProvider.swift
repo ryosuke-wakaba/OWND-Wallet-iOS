@@ -77,17 +77,14 @@ class OpenIdProvider {
 
                     if isX509SanDns || isX509Hash {
                         // Verify certificate chain using TrustedList (LoTE) for verifier authentication
-                        let loteSearchInfos = TrustedListConfigLoader.createSearchInfos([("jp-lote", "oid4vp")])
-                        // Remove query parameters from verifier URL for TrustedList lookup
-                        let verifierURL: String? = {
-                            guard let urlString = requestObj?.responseUri ?? requestObj?.redirectUri,
-                                  var components = URLComponents(string: urlString) else {
-                                return nil
-                            }
-                            components.query = nil
-                            return components.string
-                        }()
-                        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: verifierURL, loteSearchInfos: loteSearchInfos, verifyCertChain: true)
+                        let contextSearchInfos = TrustedListConfigLoader.createContextSearchInfos(
+                            contextName: "AccessCertificateVerification"
+                        )
+                        let result = await X5CJWTVerifier.verifyJwtWithX5C(
+                            jwt: jwt,
+                            contextSearchInfos: contextSearchInfos,
+                            verifyCertChain: true
+                        )
                         switch result {
                             case .success(let verifedX5CJwt):
                                 print("verify request jwt success")

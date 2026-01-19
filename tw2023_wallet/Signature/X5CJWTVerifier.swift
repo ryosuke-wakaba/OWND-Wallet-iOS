@@ -20,105 +20,6 @@ enum X5CJWTVerifier {
 
     typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
 
-    /// x5cヘッダーを使用したJWT検証（署名検証 + 証明書チェーン検証）
-    /// - Parameters:
-    ///   - jwt: 検証対象のJWT文字列
-    ///   - issuerURL: (未使用) 後方互換性のため残す
-    ///   - loteSearchInfos: (未使用) 後方互換性のため残す
-    ///   - verifyCertChain: 証明書チェーン検証を行うかどうか
-    /// - Returns: 検証済みJWTと証明書、またはエラー
-    /// - Note: 証明書ベースの検索が必要な場合は`verifyJwtWithX5CUsingCertificateSearch`を使用してください
-    static func verifyJwtWithX5C(
-        jwt: String,
-        issuerURL: String?,
-        loteSearchInfos: [LoTESearchInfo],
-        verifyCertChain: Bool = true
-    ) async -> Result<VerifiedX5CJwt, JWTOperations.VerificationError> {
-        // 1. JWTをデコードしてx5cを取得
-        let decodeResult = JWTOperations.decodeJwtWithX5C(jwt: jwt)
-        guard case .success(let decoded) = decodeResult else {
-            if case .failure(let error) = decodeResult {
-                return .failure(error)
-            }
-            return .failure(.verificationFailed("Unable to decode jwt"))
-        }
-        let (decodedJwt, x5c) = decoded
-
-        // 2. x5cからX509証明書に変換
-        let certificates: [Certificate]
-        do {
-            certificates = try X509CertificateOperations.convertPemToX509Certificates(pemChain: x5c)
-        } catch let error as X509CertificateError {
-            print("🔐 [X5CJWTVerifier] Failed to convert x5c to certificates: \(error.localizedDescription)")
-            return .failure(.verificationFailed(error.localizedDescription))
-        } catch {
-            print("🔐 [X5CJWTVerifier] Failed to convert x5c to certificates: \(error)")
-            return .failure(.verificationFailed("Unable to convert x5c: \(error.localizedDescription)"))
-        }
-        print("🔐 [X5CJWTVerifier] Certificates converted: \(certificates.count)")
-
-        // 3. 最初の証明書から公開鍵を抽出
-        let firstCert = certificates[0]
-        let subjectPublicKeyInfoBytes = firstCert.publicKey.subjectPublicKeyInfoBytes
-        let publicKeyData = Data(subjectPublicKeyInfoBytes)
-        let publicKeyCFData = publicKeyData as CFData
-
-        var error: Unmanaged<CFError>?
-        guard
-            let secKey = SecKeyCreateWithData(
-                publicKeyCFData,
-                [
-                    kSecAttrKeyType: kSecAttrKeyTypeEC,
-                    kSecAttrKeyClass: kSecAttrKeyClassPublic,
-                ] as CFDictionary, &error)
-        else {
-            print("🔐 [X5CJWTVerifier] Failed to create SecKey: \(error?.takeRetainedValue().localizedDescription ?? "unknown")")
-            return .failure(.verificationFailed("Unable to Convert Public Key"))
-        }
-        print("🔐 [X5CJWTVerifier] SecKey created successfully")
-
-        // 4. JWTの署名を検証
-        let jwtValidation = JWTOperations.verifyJwt(jwt: jwt, publicKey: secKey)
-        print("🔐 [X5CJWTVerifier] JWT signature validation result: \(jwtValidation)")
-
-        guard case .success = jwtValidation else {
-            return .failure(.verificationFailed("Unable to verify jwt"))
-        }
-
-        // 5. 証明書チェーン検証（オプション）
-        if verifyCertChain {
-            // SecCertificateに変換
-            let secCertificates: [SecCertificate] = certificates.compactMap { cert in
-                let pem = try? cert.serializeAsPEM()
-                guard let derData = pem.map({ Data($0.derBytes) }) else { return nil }
-                return SecCertificateCreateWithData(nil, derData as CFData)
-            }
-
-            guard secCertificates.count == certificates.count else {
-                print("🔐 [X5CJWTVerifier] Failed to convert all certificates to SecCertificate")
-                return .failure(.certificateValidationFailed(.chainIncomplete))
-            }
-
-            // デフォルトのTrustAnchorManagerで検証
-            let chainValidation = X509CertificateOperations.validateCertificateChainWithCustomAnchors(
-                certificates: secCertificates,
-                trustAnchorManager: TrustAnchorManager.shared
-            )
-
-            switch chainValidation {
-            case .success:
-                print("🔐 [X5CJWTVerifier] Certificate chain validation succeeded")
-            case .failure(let certError):
-                print("🔐 [X5CJWTVerifier] Certificate chain validation failed: \(certError.errorDescription ?? "unknown")")
-                return .failure(.certificateValidationFailed(certError))
-            }
-        } else {
-            print("🔐 [X5CJWTVerifier] Skip ValidateCertificateChain!!!")
-        }
-
-        return .success((decodedJwt, certificates))
-    }
-
     /// x5uヘッダーを使用したJWT検証
     /// - Parameter jwt: 検証対象のJWT文字列
     /// - Returns: 検証済みJWT、またはエラー
@@ -188,16 +89,16 @@ enum X5CJWTVerifier {
         return .failure(.verificationFailed("Unable to verify jwt"))
     }
 
-    // MARK: - New API (Certificate-Based Search)
+    // MARK: - x5c JWT Verification
 
-    /// x5cヘッダーを使用したJWT検証（証明書ベースの発行者検索を使用）
+    /// x5cヘッダーを使用したJWT検証（署名検証 + 証明書チェーン検証）
     /// AKI/SKIまたはDN一致でトラストリストから発行者証明書を検索
     /// - Parameters:
     ///   - jwt: 検証対象のJWT文字列
-    ///   - contextSearchInfos: 検索対象のコンテキスト情報配列
+    ///   - contextSearchInfos: 検索対象のコンテキスト情報配列（空の場合はデフォルトのTrustAnchorManagerを使用）
     ///   - verifyCertChain: 証明書チェーン検証を行うかどうか
     /// - Returns: 検証済みJWTと証明書、またはエラー
-    static func verifyJwtWithX5CUsingCertificateSearch(
+    static func verifyJwtWithX5C(
         jwt: String,
         contextSearchInfos: [LoTEContextSearchInfo],
         verifyCertChain: Bool = true

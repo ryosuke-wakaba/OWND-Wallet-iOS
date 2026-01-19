@@ -15,7 +15,6 @@ enum TrustedListError: Error, LocalizedError {
     case invalidURL(String)
     case fetchFailed(URL, Error)
     case parseError(Error)
-    case serviceNotFound(serviceURL: String, serviceType: String)
     case issuerCertificateNotFound(leafSubject: String)
     case noCertificatesInService
     case certificateParseError
@@ -31,8 +30,6 @@ enum TrustedListError: Error, LocalizedError {
             return "Failed to fetch trusted list from \(url): \(error.localizedDescription)"
         case .parseError(let error):
             return "Failed to parse trusted list: \(error.localizedDescription)"
-        case .serviceNotFound(let serviceURL, let serviceType):
-            return "Service not found for \(serviceURL) with type \(serviceType)"
         case .issuerCertificateNotFound(let leafSubject):
             return "Issuer certificate not found for leaf: \(leafSubject)"
         case .noCertificatesInService:
@@ -47,13 +44,6 @@ enum TrustedListError: Error, LocalizedError {
             return "No service matched condition for context: \(context)"
         }
     }
-}
-
-/// Result of a service search in trusted lists
-struct TrustedServiceResult {
-    let entity: TrustedEntity
-    let service: TrustedEntityService
-    let certificates: [SecCertificate]
 }
 
 /// Result of certificate-based issuer search
@@ -187,131 +177,6 @@ class TrustedListManager {
         return payloadData
     }
 
-    // MARK: - Service Search
-
-    /// Find a service matching the service URL using specified LoTE search infos
-    /// - Parameters:
-    ///   - serviceURL: The service URL to search for
-    ///   - loteInfos: Array of LoTE search infos specifying which LoTEs to search and optional service type filter
-    /// - Returns: TrustedServiceResult if found
-    /// - Throws: TrustedListError.noLoTEConfigured if loteInfos is empty
-    func findService(
-        serviceURL: String,
-        loteInfos: [LoTESearchInfo]
-    ) async throws -> TrustedServiceResult {
-        guard !loteInfos.isEmpty else {
-            print("🔐 [TrustedList] ❌ No LoTE configured for search")
-            throw TrustedListError.noLoTEConfigured
-        }
-
-        print("🔐 [TrustedList] ========== Searching Service ==========")
-        print("🔐 [TrustedList] Service URL: \(serviceURL)")
-        print("🔐 [TrustedList] LoTE count: \(loteInfos.count)")
-
-        for loteInfo in loteInfos {
-            print("🔐 [TrustedList] Searching in: \(loteInfo.url)")
-            if let serviceType = loteInfo.serviceType {
-                print("🔐 [TrustedList]   Service Type filter: \(serviceType)")
-            } else {
-                print("🔐 [TrustedList]   Service Type filter: (none)")
-            }
-
-            do {
-                let document = try await fetchTrustedList(from: loteInfo.url)
-                if let result = searchInDocument(
-                    document,
-                    serviceURL: serviceURL,
-                    serviceType: loteInfo.serviceType
-                ) {
-                    print("🔐 [TrustedList] ✅ Found matching service!")
-                    print("🔐 [TrustedList]   Entity: \(result.entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown")")
-                    print("🔐 [TrustedList]   Service: \(result.service.ServiceInformation.ServiceName.first?.value ?? "Unknown")")
-                    print("🔐 [TrustedList]   Certificates: \(result.certificates.count)")
-                    print("🔐 [TrustedList] ============================================")
-                    return result
-                }
-            } catch {
-                print("🔐 [TrustedList] ⚠️ Error searching in \(loteInfo.url): \(error)")
-            }
-        }
-
-        let serviceTypeDesc = loteInfos.first?.serviceType ?? "(any)"
-        print("🔐 [TrustedList] ❌ Service not found: \(serviceURL)")
-        print("🔐 [TrustedList] ============================================")
-        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceTypeDesc)
-    }
-
-    /// Find a service in a specific trusted list document
-    func findService(
-        in document: LoTEDocument,
-        serviceURL: String,
-        serviceType: String? = nil
-    ) throws -> TrustedServiceResult {
-        if let result = searchInDocument(document, serviceURL: serviceURL, serviceType: serviceType) {
-            return result
-        }
-        throw TrustedListError.serviceNotFound(serviceURL: serviceURL, serviceType: serviceType ?? "(any)")
-    }
-
-    /// Search for a matching service in a document
-    /// - Parameters:
-    ///   - document: The LoTE document to search in
-    ///   - serviceURL: The service URL to find
-    ///   - serviceType: Optional service type filter. If nil, matches any service type.
-    private func searchInDocument(
-        _ document: LoTEDocument,
-        serviceURL: String,
-        serviceType: String?
-    ) -> TrustedServiceResult? {
-        let normalizedServiceURL = normalizeURL(serviceURL)
-
-        for entity in document.LoTE.TrustedEntitiesList {
-            for service in entity.TrustedEntityServices {
-                let info = service.ServiceInformation
-
-                // Filter by service type if specified
-                if let requiredType = serviceType {
-                    guard info.ServiceTypeIdentifier == requiredType else {
-                        continue
-                    }
-                }
-
-                // Check service status (must be granted)
-                guard info.ServiceStatus == TrustedListServiceStatus.granted else {
-                    continue
-                }
-
-                // Check ServiceSupplyPoints contains the service URL
-                if let supplyPoints = info.ServiceSupplyPoints {
-                    for point in supplyPoints {
-                        let normalizedPoint = normalizeURL(point.uriValue)
-                        if normalizedPoint == normalizedServiceURL {
-                            // Found matching service, extract certificates
-                            if let certificates = extractCertificates(from: info.ServiceDigitalIdentity) {
-                                return TrustedServiceResult(
-                                    entity: entity,
-                                    service: service,
-                                    certificates: certificates
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return nil
-    }
-
-    /// Normalize URL for comparison (remove trailing slash)
-    private func normalizeURL(_ url: String) -> String {
-        var normalized = url.trimmingCharacters(in: .whitespaces)
-        if normalized.hasSuffix("/") {
-            normalized = String(normalized.dropLast())
-        }
-        return normalized.lowercased()
-    }
-
     // MARK: - Certificate Extraction
 
     /// Extract SecCertificate array from ServiceDigitalIdentity
@@ -341,21 +206,7 @@ class TrustedListManager {
         return SecCertificateCreateWithData(nil, derData as CFData)
     }
 
-    // MARK: - Convenience Methods
-
-    /// Get certificates for a service URL from trusted lists
-    /// - Parameters:
-    ///   - serviceURL: The service URL to get certificates for
-    ///   - loteInfos: Array of LoTE search infos specifying which LoTEs to search
-    func getCertificates(
-        forServiceURL serviceURL: String,
-        loteInfos: [LoTESearchInfo]
-    ) async throws -> [SecCertificate] {
-        let result = try await findService(serviceURL: serviceURL, loteInfos: loteInfos)
-        return result.certificates
-    }
-
-    // MARK: - Certificate-Based Search (New API)
+    // MARK: - Certificate-Based Search
 
     /// Find issuer certificate for a leaf certificate using AKI/SKI or DN matching
     /// - Parameters:

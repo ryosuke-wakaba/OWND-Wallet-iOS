@@ -82,14 +82,14 @@ func fetchMetadata<T: Decodable>(
 ///   - url: The metadata endpoint URL
 ///   - issuerIdentifier: The credential issuer identifier (for sub validation in signed metadata)
 ///   - preferSignedMetadata: If true, requests signed metadata (application/jwt). Default is false (application/json).
-///   - loteSearchInfos: Array of LoTE search infos specifying which LoTEs to search for certificate validation
+///   - contextSearchInfos: Array of LoTE context search infos for certificate-based issuer lookup
 ///   - session: URLSession to use for the request
 /// - Returns: CredentialIssuerMetadata
 func fetchCredentialIssuerMetadata(
     from url: URL,
     issuerIdentifier: String,
     preferSignedMetadata: Bool = false,
-    loteSearchInfos: [LoTESearchInfo],
+    contextSearchInfos: [LoTEContextSearchInfo] = [],
     using session: URLSession = URLSession.shared
 ) async throws -> CredentialIssuerMetadata {
     // Set Accept header based on preference (OID4VCI Section 12.2.2)
@@ -134,7 +134,7 @@ func fetchCredentialIssuerMetadata(
         let validationResult = await SignedMetadataValidator.validate(
             jwt: jwtString,
             expectedIssuerIdentifier: issuerIdentifier,
-            loteSearchInfos: loteSearchInfos
+            contextSearchInfos: contextSearchInfos
         )
 
         switch validationResult {
@@ -173,7 +173,7 @@ func fetchAuthServerMetadata(from url: URL, using session: URLSession = URLSessi
 func retrieveAllMetadata(
     issuer: String,
     preferSignedMetadata: Bool = false,
-    loteSearchInfos: [LoTESearchInfo],
+    contextSearchInfos: [LoTEContextSearchInfo] = [],
     using session: URLSession = URLSession.shared
 ) async throws -> Metadata {
     guard let issuerUrl = URL(string: issuer) else {
@@ -190,7 +190,7 @@ func retrieveAllMetadata(
         from: credentialIssuerMetadataUrl,
         issuerIdentifier: issuer,
         preferSignedMetadata: preferSignedMetadata,
-        loteSearchInfos: loteSearchInfos,
+        contextSearchInfos: contextSearchInfos,
         using: session
     )
 

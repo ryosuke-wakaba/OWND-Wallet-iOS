@@ -114,7 +114,7 @@ final class CredentialIssuerMetadataTests: XCTestCase {
                     headerFields: ["Content-Type": "application/json"])
             )
             do {
-                let metadata = try await retrieveAllMetadata(issuer: issuer, loteSearchInfos: [], using: mockSession)
+                let metadata = try await retrieveAllMetadata(issuer: issuer, contextSearchInfos: [], using: mockSession)
                 XCTAssertEqual(metadata.credentialIssuerMetadata.credentialIssuer, issuer)
                 XCTAssertEqual(
                     metadata.authorizationServerMetadata.tokenEndpoint, "\(issuer)/token")
