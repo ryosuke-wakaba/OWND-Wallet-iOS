@@ -146,9 +146,10 @@ Distinguished Nameの比較は:
 
 ```swift
 // 1. 設定ファイルからコンテキストベースの検索情報を取得
-let searchInfos = TrustedListConfigLoader.createContextSearchInfos([
-    (loteName: "jp-lote", contextName: "AccessCertificateVerification")
-])
+// 全てのLoTEから指定されたコンテキスト名に一致するものを検索
+let searchInfos = TrustedListConfigLoader.createContextSearchInfos(
+    contextName: "AccessCertificateVerification"
+)
 
 // 2. 証明書ベースの発行者検索（AKI/SKI → DN フォールバック）
 let result = try await TrustedListManager.shared.findIssuerCertificate(

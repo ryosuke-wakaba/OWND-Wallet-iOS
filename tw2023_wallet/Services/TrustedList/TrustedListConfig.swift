@@ -108,11 +108,12 @@ enum TrustedListConfigLoader {
 
     // MARK: - New API (context-based)
 
-    /// 指定されたLoTE名とコンテキスト名からLoTEContextSearchInfo配列を生成
-    /// - Parameter loteContextPairs: (LoTE名, コンテキスト名)のペア配列
+    /// 指定されたコンテキスト名からLoTEContextSearchInfo配列を生成
+    /// 全てのLoTEを検索して、指定されたコンテキストを持つものを返す
+    /// - Parameter contextName: 検索するコンテキスト名（例: "AccessCertificateVerification"）
     /// - Returns: LoTEContextSearchInfo配列
     static func createContextSearchInfos(
-        _ loteContextPairs: [(loteName: String, contextName: String)]
+        contextName: String
     ) -> [LoTEContextSearchInfo] {
         guard let config = loadConfig() else {
             return []
@@ -120,12 +121,7 @@ enum TrustedListConfigLoader {
 
         var searchInfos: [LoTEContextSearchInfo] = []
 
-        for (loteName, contextName) in loteContextPairs {
-            guard let loteConfig = config.lotes[loteName] else {
-                print("TrustedListConfigLoader: [WARN] LoTE '\(loteName)' not found in config")
-                continue
-            }
-
+        for (loteName, loteConfig) in config.lotes {
             guard let url = URL(string: loteConfig.url) else {
                 print("TrustedListConfigLoader: [WARN] Invalid URL for LoTE '\(loteName)': \(loteConfig.url)")
                 continue
@@ -133,7 +129,6 @@ enum TrustedListConfigLoader {
 
             guard let contexts = loteConfig.context,
                   let contextConfig = contexts[contextName] else {
-                print("TrustedListConfigLoader: [WARN] Context '\(contextName)' not found in LoTE '\(loteName)'")
                 continue
             }
 
@@ -148,6 +143,10 @@ enum TrustedListConfigLoader {
                 contextName: contextName,
                 condition: condition
             ))
+        }
+
+        if searchInfos.isEmpty {
+            print("TrustedListConfigLoader: [WARN] Context '\(contextName)' not found in any LoTE")
         }
 
         return searchInfos
