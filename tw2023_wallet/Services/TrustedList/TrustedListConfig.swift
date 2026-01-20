@@ -7,30 +7,53 @@
 
 import Foundation
 
-/// LoTE設定ファイルのルート構造
+// MARK: - New Configuration Models (context-based)
+
+/// LoTE設定ファイルのルート構造（新形式）
 struct TrustedListConfig: Codable {
     let lotes: [String: LoTEConfig]
 }
 
 /// 個別のLoTE設定
+/// - url: トラストリストのURL
+/// - context: 検索コンテキスト（用途別の検索条件）
 struct LoTEConfig: Codable {
     let url: String
-    let services: [String: ServiceConfig]
+    let context: [String: ContextConfig]?
 }
 
-/// サービス設定
-struct ServiceConfig: Codable {
-    let identifier: String
+/// コンテキスト設定
+/// 各コンテキストは特定の用途（例: AccessCertificateVerification）を表す
+struct ContextConfig: Codable {
+    let condition: ConditionConfig
 }
 
-/// VCIMetadataClient等に渡すLoTE検索情報
-struct LoTESearchInfo {
+/// 検索条件
+/// トラストリストからサービスを特定するための条件
+struct ConditionConfig: Codable {
+    let loteType: String?
+    let serviceTypeIdentifier: String?
+    let status: String?
+}
+
+// MARK: - Search Info Models
+
+/// LoTE検索情報（複数条件対応）
+struct LoTEContextSearchInfo {
     let url: URL
-    let serviceType: String?  // nil = フィルタリングなし
+    let contextName: String
+    let condition: SearchCondition
 
-    init(url: URL, serviceType: String? = nil) {
-        self.url = url
-        self.serviceType = serviceType
+    struct SearchCondition {
+        let loteType: String?
+        let serviceTypeIdentifier: String?
+        let status: String?
+
+        init(loteType: String? = nil, serviceTypeIdentifier: String? = nil, status: String? = nil) {
+            self.loteType = loteType
+            self.serviceTypeIdentifier = serviceTypeIdentifier
+            self.status = status
+        }
     }
 }
 
@@ -65,48 +88,47 @@ enum TrustedListConfigLoader {
         }
     }
 
-    /// 指定されたLoTE名とサービス名のペア配列からLoTESearchInfo配列を生成
-    /// - Parameter loteServicePairs: (LoTE名, サービス名)のペア配列（例: [("jp-lote", "oid4vci")]）
-    /// - Returns: LoTESearchInfo配列
-    static func createSearchInfos(
-        _ loteServicePairs: [(loteName: String, serviceName: String)]
-    ) -> [LoTESearchInfo] {
+    /// 指定されたコンテキスト名からLoTEContextSearchInfo配列を生成
+    /// 全てのLoTEを検索して、指定されたコンテキストを持つものを返す
+    /// - Parameter contextName: 検索するコンテキスト名（例: "AccessCertificateVerification"）
+    /// - Returns: LoTEContextSearchInfo配列
+    static func createContextSearchInfos(
+        contextName: String
+    ) -> [LoTEContextSearchInfo] {
         guard let config = loadConfig() else {
             return []
         }
 
-        var searchInfos: [LoTESearchInfo] = []
+        var searchInfos: [LoTEContextSearchInfo] = []
 
-        for (loteName, serviceName) in loteServicePairs {
-            guard let loteConfig = config.lotes[loteName] else {
-                print("TrustedListConfigLoader: [WARN] LoTE '\(loteName)' not found in config")
-                continue
-            }
-
+        for (loteName, loteConfig) in config.lotes {
             guard let url = URL(string: loteConfig.url) else {
                 print("TrustedListConfigLoader: [WARN] Invalid URL for LoTE '\(loteName)': \(loteConfig.url)")
                 continue
             }
 
-            let serviceType = loteConfig.services[serviceName]?.identifier
+            guard let contexts = loteConfig.context,
+                  let contextConfig = contexts[contextName] else {
+                continue
+            }
 
-            searchInfos.append(LoTESearchInfo(url: url, serviceType: serviceType))
+            let condition = LoTEContextSearchInfo.SearchCondition(
+                loteType: contextConfig.condition.loteType,
+                serviceTypeIdentifier: contextConfig.condition.serviceTypeIdentifier,
+                status: contextConfig.condition.status
+            )
+
+            searchInfos.append(LoTEContextSearchInfo(
+                url: url,
+                contextName: contextName,
+                condition: condition
+            ))
+        }
+
+        if searchInfos.isEmpty {
+            print("TrustedListConfigLoader: [WARN] Context '\(contextName)' not found in any LoTE")
         }
 
         return searchInfos
-    }
-
-    /// 全てのLoTEからLoTESearchInfo配列を生成（サービスタイプ指定なし）
-    static func createAllSearchInfos() -> [LoTESearchInfo] {
-        guard let config = loadConfig() else {
-            return []
-        }
-
-        return config.lotes.compactMap { (_, loteConfig) in
-            guard let url = URL(string: loteConfig.url) else {
-                return nil
-            }
-            return LoTESearchInfo(url: url, serviceType: nil)
-        }
     }
 }

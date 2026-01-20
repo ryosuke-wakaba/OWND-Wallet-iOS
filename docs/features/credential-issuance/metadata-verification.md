@@ -26,28 +26,35 @@ classDiagram
     class TrustedListConfigLoader {
         <<enum>>
         +loadConfig() TrustedListConfig?
-        +createSearchInfos(loteServicePairs) [LoTESearchInfo]
+        +createContextSearchInfos(contextName) [LoTEContextSearchInfo]
     }
 
     class TrustedListConfig {
         +lotes: [String: LoTEConfig]
     }
 
-    class LoTESearchInfo {
+    class LoTEContextSearchInfo {
         +url: URL
-        +serviceType: String?
+        +contextName: String
+        +condition: SearchCondition
+    }
+
+    class SearchCondition {
+        +loteType: String?
+        +serviceTypeIdentifier: String?
+        +status: String?
     }
 
     %% Metadata Layer
     class VCIMetadataClient {
         <<Module>>
-        +fetchCredentialIssuerMetadata(url, issuerIdentifier, preferSignedMetadata, loteSearchInfos) CredentialIssuerMetadata
-        +retrieveAllMetadata(issuer, preferSignedMetadata, loteSearchInfos) Metadata
+        +fetchCredentialIssuerMetadata(url, issuerIdentifier, preferSignedMetadata, contextSearchInfos) CredentialIssuerMetadata
+        +retrieveAllMetadata(issuer, preferSignedMetadata, contextSearchInfos) Metadata
     }
 
     class SignedMetadataValidator {
         <<enum>>
-        +validate(jwt, expectedIssuerIdentifier, loteSearchInfos) async Result~SignedMetadataValidationResult~
+        +validate(jwt, expectedIssuerIdentifier, contextSearchInfos) async Result~SignedMetadataValidationResult~
         +extractMetadataJson(payload) Data
     }
 
@@ -64,8 +71,8 @@ classDiagram
         <<Singleton>>
         +shared: TrustedListManager
         +fetchTrustedList(url) async LoTEDocument
-        +findService(serviceURL, loteInfos) async TrustedServiceResult
-        +getCertificates(forServiceURL, loteInfos) async [SecCertificate]
+        +findIssuerCertificate(for leafCertificate, searchInfos) async IssuerCertificateResult
+        +getIssuerCertificatesForChain(x5cCertificates, searchInfos) async [SecCertificate]
     }
 
     class TrustedListModels {
@@ -76,10 +83,11 @@ classDiagram
         +LoTE: LoTE
     }
 
-    class TrustedServiceResult {
+    class IssuerCertificateResult {
         +entity: TrustedEntity
         +service: TrustedEntityService
-        +certificates: [SecCertificate]
+        +issuerCertificate: Certificate
+        +matchMethod: MatchMethod
     }
 
     %% Certificate Validation Layer
@@ -93,7 +101,7 @@ classDiagram
 
     class X5CJWTVerifier {
         <<enum>>
-        +verifyJwtWithX5C(jwt, issuerURL, loteSearchInfos, verifyCertChain) async Result~VerifiedX5CJwt~
+        +verifyJwtWithX5C(jwt, contextSearchInfos, verifyCertChain) async Result~VerifiedX5CJwt~
         +verifyJwtWithX5U(jwt) Result~JWT~
     }
 
@@ -115,7 +123,8 @@ classDiagram
 
     %% Relationships
     TrustedListConfigLoader ..> TrustedListConfig : loads
-    TrustedListConfigLoader ..> LoTESearchInfo : creates
+    TrustedListConfigLoader ..> LoTEContextSearchInfo : creates
+    LoTEContextSearchInfo --> SearchCondition : contains
 
     VCIMetadataClient --> SignedMetadataValidator : uses
     SignedMetadataValidator --> X5CJWTVerifier : uses
@@ -124,13 +133,13 @@ classDiagram
     X5CJWTVerifier --> JWTOperations : uses (decode, verify)
     X5CJWTVerifier --> X509CertificateOperations : uses (chain validation)
     X5CJWTVerifier --> TrustAnchorManager : uses
-    X5CJWTVerifier --> TrustedListManager : uses (get certificates)
+    X5CJWTVerifier --> TrustedListManager : uses (get issuer certificates)
 
     X509CertificateOperations --> TrustAnchorManager : uses
 
     TrustedListManager --> TrustedListModels : uses
     TrustedListManager ..> LoTEDocument : fetches
-    TrustedListManager ..> TrustedServiceResult : returns
+    TrustedListManager ..> IssuerCertificateResult : returns
 ```
 
 ## Sequence Diagram
@@ -151,20 +160,20 @@ sequenceDiagram
     participant Issuer as Credential Issuer
     participant TL as Trust List Server
 
-    App->>CFG: createSearchInfos([("jp-lote", "oid4vci")])
-    CFG-->>App: [LoTESearchInfo]
+    App->>CFG: createContextSearchInfos("AccessCertificateVerification")
+    CFG-->>App: [LoTEContextSearchInfo]
 
-    App->>VMC: retrieveAllMetadata(issuer, loteSearchInfos, preferSignedMetadata: true)
+    App->>VMC: retrieveAllMetadata(issuer, contextSearchInfos, preferSignedMetadata: true)
     VMC->>Issuer: GET /.well-known/openid-credential-issuer<br/>Accept: application/jwt
 
     alt Signed Metadata Response
         Issuer-->>VMC: JWT (Content-Type: application/jwt)
-        VMC->>SMV: validate(jwt, issuerIdentifier, loteSearchInfos)
+        VMC->>SMV: validate(jwt, issuerIdentifier, contextSearchInfos)
 
         Note over SMV: 1. typ検証 (openidvci-issuer-metadata+jwt)
         Note over SMV: 2. 署名方式確認 (x5cのみサポート)
 
-        SMV->>X5C: verifyJwtWithX5C(jwt, issuerURL, loteSearchInfos, verifyCertChain: true)
+        SMV->>X5C: verifyJwtWithX5C(jwt, contextSearchInfos, verifyCertChain: true)
 
         X5C->>JWT: decodeJwtWithX5C(jwt)
         JWT-->>X5C: (decoded, x5c)
@@ -175,11 +184,12 @@ sequenceDiagram
         X5C->>JWT: verifyJwt(jwt, publicKey)
         JWT-->>X5C: Result<JWT>
 
-        X5C->>TLM: getCertificates(forServiceURL, loteInfos)
+        X5C->>TLM: getIssuerCertificatesForChain(x5cCertificates, contextSearchInfos)
 
         alt LoTEが指定されている場合
             TLM->>TL: GET trusted-list.jwt
             TL-->>TLM: LoTEDocument
+            Note over TLM: 証明書ベースの検索 (AKI/SKI or DN)
             TLM-->>X5C: [SecCertificate]
             X5C->>TAM: createInstance(withAdditionalCertificates)
         else LoTE未指定
@@ -206,7 +216,7 @@ sequenceDiagram
     end
 ```
 
-### TrustedListManager内部処理フロー
+### TrustedListManager内部処理フロー (証明書ベース検索)
 
 ```mermaid
 sequenceDiagram
@@ -215,18 +225,20 @@ sequenceDiagram
     participant TL as Trust List Server
     participant SIG as X509CertificateOperations
 
-    Caller->>TLM: getCertificates(forServiceURL, loteInfos)
+    Caller->>TLM: getIssuerCertificatesForChain(x5cCertificates, searchInfos)
 
-    alt loteInfosが空の場合
+    alt searchInfosが空の場合
         TLM-->>Caller: TrustedListError.noLoTEConfigured
     end
 
-    TLM->>TLM: findService(serviceURL, loteInfos)
+    Note over TLM: x5cの末尾証明書(リーフ以外の最後)を取得
 
-    Note over TLM: loteInfosをループ
+    TLM->>TLM: findIssuerCertificate(for leafCertificate, searchInfos)
 
-    loop 各LoTESearchInfo
-        TLM->>TLM: fetchTrustedList(loteInfo.url)
+    Note over TLM: searchInfosをループ
+
+    loop 各LoTEContextSearchInfo
+        TLM->>TLM: fetchTrustedList(searchInfo.url)
         TLM->>TL: GET trusted-list (JSON/JWT)
         TL-->>TLM: Response (JSON or JWT)
 
@@ -239,33 +251,29 @@ sequenceDiagram
 
         TLM->>TLM: JSONDecoder.decode(LoTEDocument)
 
-        TLM->>TLM: searchInDocument(document, serviceURL, loteInfo.serviceType)
+        Note over TLM: 条件フィルタリング適用
+        Note over TLM: - loteType
+        Note over TLM: - serviceTypeIdentifier
+        Note over TLM: - status (default: granted)
 
-        Note over TLM: TrustedEntitiesListをループ
+        loop 各Entity/Service/Certificate
+            Note over TLM: 証明書ベースのマッチング
 
-        loop 各Entity/Service
-            Note over TLM: ServiceStatus == "granted" を確認
-            alt serviceTypeが指定されている場合
-                Note over TLM: ServiceTypeIdentifier == serviceType を確認
+            alt AKI/SKIマッチング (優先)
+                Note over TLM: リーフ証明書のAKI == トラストリスト証明書のSKI
+            else DNマッチング (フォールバック)
+                Note over TLM: リーフ証明書のIssuer DN == トラストリスト証明書のSubject DN
             end
-            Note over TLM: ServiceSupplyPointsにserviceURLが含まれるか確認
 
             alt マッチした場合
-                TLM->>TLM: extractCertificates(ServiceDigitalIdentity)
-
-                loop 各PEM証明書
-                    TLM->>SIG: extractDERFromPEM(pem)
-                    SIG-->>TLM: DER Data
-                    TLM->>TLM: SecCertificateCreateWithData(derData)
-                end
-
-                TLM-->>Caller: [SecCertificate]
+                TLM->>TLM: extractCertificate(ServiceDigitalIdentity)
+                TLM-->>Caller: IssuerCertificateResult
             end
         end
     end
 
-    alt サービスが見つからない場合
-        TLM-->>Caller: TrustedListError.serviceNotFound
+    alt 発行者証明書が見つからない場合
+        TLM-->>Caller: TrustedListError.issuerCertificateNotFound
     end
 ```
 
@@ -315,21 +323,21 @@ sequenceDiagram
 ///   - url: メタデータエンドポイントURL
 ///   - issuerIdentifier: Credential Issuer識別子 (sub検証用)
 ///   - preferSignedMetadata: true=署名付き(application/jwt), false=JSON(application/json)
-///   - loteSearchInfos: 検索対象のLoTE情報配列
+///   - contextSearchInfos: 検索対象のLoTEコンテキスト情報配列
 /// - Returns: CredentialIssuerMetadata
 func fetchCredentialIssuerMetadata(
     from url: URL,
     issuerIdentifier: String,
     preferSignedMetadata: Bool = false,
-    loteSearchInfos: [LoTESearchInfo],
+    contextSearchInfos: [LoTEContextSearchInfo] = [],
     using session: URLSession = URLSession.shared
 ) async throws -> CredentialIssuerMetadata
 
 /// すべてのメタデータ (Issuer + Authorization Server) を取得
 func retrieveAllMetadata(
     issuer: String,
-    loteSearchInfos: [LoTESearchInfo],
     preferSignedMetadata: Bool = false,
+    contextSearchInfos: [LoTEContextSearchInfo] = [],
     using session: URLSession = URLSession.shared
 ) async throws -> Metadata
 ```
@@ -346,11 +354,11 @@ enum SignedMetadataValidator {
     /// - Parameters:
     ///   - jwt: 署名付きメタデータJWT
     ///   - expectedIssuerIdentifier: 期待するCredential Issuer識別子
-    ///   - loteSearchInfos: 検索対象のLoTE情報配列
+    ///   - contextSearchInfos: 検索対象のLoTEコンテキスト情報配列
     static func validate(
         jwt: String,
         expectedIssuerIdentifier: String,
-        loteSearchInfos: [LoTESearchInfo]
+        contextSearchInfos: [LoTEContextSearchInfo] = []
     ) async -> Result<SignedMetadataValidationResult, SignedMetadataError>
 
     /// ペイロードからメタデータJSONを抽出
@@ -369,7 +377,7 @@ struct SignedMetadataValidationResult {
 
 ### TrustedListManager
 
-ETSI TS 119 602 LoTE形式のトラストリスト管理。
+ETSI TS 119 602 LoTE形式のトラストリスト管理。証明書ベースの発行者検索を提供。
 
 ```swift
 // tw2023_wallet/Services/TrustedList/TrustedListManager.swift
@@ -380,30 +388,39 @@ class TrustedListManager {
     /// トラストリストをフェッチ (JSON/JWT両形式対応)
     func fetchTrustedList(from url: URL) async throws -> LoTEDocument
 
-    /// サービスURLに対応するサービスエントリを検索
+    /// リーフ証明書の発行者証明書をトラストリストから検索
+    /// AKI/SKIマッチングを優先し、フォールバックとしてDNマッチングを使用
     /// - Parameters:
-    ///   - serviceURL: 検索対象のサービスURL
-    ///   - loteInfos: 検索対象のLoTE情報配列
-    func findService(
-        serviceURL: String,
-        loteInfos: [LoTESearchInfo]
-    ) async throws -> TrustedServiceResult
+    ///   - leafCertificate: 検索対象のリーフ証明書
+    ///   - searchInfos: 検索対象のLoTEコンテキスト情報配列
+    func findIssuerCertificate(
+        for leafCertificate: Certificate,
+        searchInfos: [LoTEContextSearchInfo]
+    ) async throws -> IssuerCertificateResult
 
-    /// サービスURLから証明書を取得
+    /// x5c証明書チェーンの発行者証明書を取得
+    /// x5cの末尾証明書の発行者をトラストリストから検索
     /// - Parameters:
-    ///   - serviceURL: 検索対象のサービスURL
-    ///   - loteInfos: 検索対象のLoTE情報配列
-    func getCertificates(
-        forServiceURL serviceURL: String,
-        loteInfos: [LoTESearchInfo]
+    ///   - x5cCertificates: x5cヘッダーから取得した証明書チェーン
+    ///   - searchInfos: 検索対象のLoTEコンテキスト情報配列
+    func getIssuerCertificatesForChain(
+        x5cCertificates: [Certificate],
+        searchInfos: [LoTEContextSearchInfo]
     ) async throws -> [SecCertificate]
 }
 
-/// サービス検索結果
-struct TrustedServiceResult {
+/// 発行者証明書検索結果
+struct IssuerCertificateResult {
     let entity: TrustedEntity
     let service: TrustedEntityService
-    let certificates: [SecCertificate]
+    let issuerCertificate: Certificate
+    let matchMethod: MatchMethod  // .akiSki or .distinguishedName
+}
+
+/// マッチング方法
+enum MatchMethod {
+    case akiSki           // AKI/SKIによるマッチング
+    case distinguishedName // DNによるフォールバックマッチング
 }
 ```
 
@@ -445,15 +462,14 @@ enum X5CJWTVerifier {
     typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
 
     /// x5cヘッダーでJWTを検証 (署名検証 + 証明書チェーン検証)
+    /// 証明書ベースの検索でトラストリストから発行者証明書を取得
     /// - Parameters:
     ///   - jwt: 検証対象のJWT
-    ///   - issuerURL: 発行者URL (証明書取得用)
-    ///   - loteSearchInfos: 検索対象のLoTE情報配列
+    ///   - contextSearchInfos: 検索対象のLoTEコンテキスト情報配列
     ///   - verifyCertChain: 証明書チェーン検証を行うか
     static func verifyJwtWithX5C(
         jwt: String,
-        issuerURL: String?,
-        loteSearchInfos: [LoTESearchInfo],
+        contextSearchInfos: [LoTEContextSearchInfo],
         verifyCertChain: Bool = true
     ) async -> Result<VerifiedX5CJwt, JWTVerificationError>
 
@@ -530,11 +546,11 @@ enum MetadataError: LocalizedError {
 
 ```swift
 enum TrustedListError: Error {
-    case noLoTEConfigured                   // LoTE情報が指定されていない
+    case noLoTEConfigured                     // LoTE情報が指定されていない
     case invalidURL(String)
     case fetchFailed(URL, Error)
     case parseError(Error)
-    case serviceNotFound(serviceURL: String, serviceType: String)
+    case issuerCertificateNotFound            // 発行者証明書が見つからない
     case noCertificatesInService
     case certificateParseError
 }
@@ -616,22 +632,26 @@ enum TrustedListError: Error {
 
 ### Trusted List Config (TrustedListConfig.json)
 
-LoTE (List of Trusted Entities) の設定ファイル。JSON形式で複数のLoTEとそのサービスタイプを定義できる。
+LoTE (List of Trusted Entities) の設定ファイル。JSON形式で複数のLoTEとそのコンテキストを定義できる。
 
 ```json
 {
   "lotes": {
     "jp-lote": {
       "url": "https://tl.eujp.ownd-project.com/api/trusted-list.jwt",
-      "services": {
-        "oid4vci": {
-          "identifier": "http://example.com/SvcType/OID4VCI/CredentialIssuance"
+      "context": {
+        "AccessCertificateVerification": {
+          "condition": {
+            "loteType": "http://tl.eujp.ownd-project.com/LoTEType/private",
+            "serviceTypeIdentifier": "http://tl.eujp.ownd-project.com/SvcType/OID4VCI/CredentialIssuance"
+          }
         },
-        "oid4vp": {
-          "identifier": "http://tl.eujp.ownd-project.com/SvcType/OID4VP/Verification"
-        },
-        "diw": {
-          "identifier": "http://tl.eujp.ownd-project.com/SvcType/WalletSolution/WalletProvider"
+        "AccessCertificateStatusConfirmation": {
+          "condition": {
+            "loteType": "http://tl.eujp.ownd-project.com/LoTEType/private",
+            "serviceTypeIdentifier": "http://tl.eujp.ownd-project.com/SvcType/OID4VCI/CredentialIssuance",
+            "status": "granted"
+          }
         }
       }
     }
@@ -641,7 +661,7 @@ LoTE (List of Trusted Entities) の設定ファイル。JSON形式で複数のLo
 
 ### TrustedListConfigLoader
 
-設定ファイルの読み込みとLoTESearchInfo生成を担当。
+設定ファイルの読み込みとLoTEContextSearchInfo生成を担当。
 
 ```swift
 // tw2023_wallet/Services/TrustedList/TrustedListConfig.swift
@@ -650,21 +670,25 @@ enum TrustedListConfigLoader {
     /// 設定ファイルを読み込む
     static func loadConfig() -> TrustedListConfig?
 
-    /// 指定されたLoTE名とサービス名のペア配列からLoTESearchInfo配列を生成
-    /// - Parameter loteServicePairs: (LoTE名, サービス名)のペア配列
-    /// - Returns: LoTESearchInfo配列
-    static func createSearchInfos(
-        _ loteServicePairs: [(loteName: String, serviceName: String)]
-    ) -> [LoTESearchInfo]
-
-    /// 全てのLoTEからLoTESearchInfo配列を生成（サービスタイプ指定なし）
-    static func createAllSearchInfos() -> [LoTESearchInfo]
+    /// 指定されたコンテキスト名からLoTEContextSearchInfo配列を生成
+    /// - Parameter contextName: コンテキスト名 (例: "AccessCertificateVerification")
+    /// - Returns: LoTEContextSearchInfo配列
+    static func createContextSearchInfos(
+        contextName: String
+    ) -> [LoTEContextSearchInfo]
 }
 
-/// VCIMetadataClient等に渡すLoTE検索情報
-struct LoTESearchInfo {
+/// VCIMetadataClient等に渡すLoTEコンテキスト検索情報
+struct LoTEContextSearchInfo {
     let url: URL
-    let serviceType: String?  // nil = フィルタリングなし
+    let contextName: String
+    let condition: SearchCondition
+
+    struct SearchCondition {
+        let loteType: String?
+        let serviceTypeIdentifier: String?
+        let status: String?  // nil = フィルタリングなし (grantedでないものも対象)
+    }
 }
 ```
 
@@ -672,14 +696,14 @@ struct LoTESearchInfo {
 
 ```swift
 // VCIでのメタデータ取得時
-let loteSearchInfos = TrustedListConfigLoader.createSearchInfos([
-    (loteName: "jp-lote", serviceName: "oid4vci")
-])
+let contextSearchInfos = TrustedListConfigLoader.createContextSearchInfos(
+    contextName: "AccessCertificateVerification"
+)
 
 let metadata = try await retrieveAllMetadata(
     issuer: issuerURL,
-    loteSearchInfos: loteSearchInfos,
-    preferSignedMetadata: true
+    preferSignedMetadata: true,
+    contextSearchInfos: contextSearchInfos
 )
 ```
 
@@ -699,6 +723,33 @@ else
 fi
 ```
 
+## Certificate-Based Search
+
+### 概要
+
+トラストリストからの証明書検索は、サービスURL（ServiceSupplyPoints）ではなく、証明書の識別子に基づいて行われます。
+
+### 検索アルゴリズム
+
+1. **AKI/SKIマッチング（優先）**
+   - リーフ証明書のAuthority Key Identifier (AKI) を取得
+   - トラストリスト内の各証明書のSubject Key Identifier (SKI) と比較
+   - マッチした証明書を発行者証明書として返却
+
+2. **DNマッチング（フォールバック）**
+   - AKI/SKIが利用できない場合に使用
+   - リーフ証明書のIssuer Distinguished Name (DN) を取得
+   - トラストリスト内の各証明書のSubject DN と比較
+   - マッチした証明書を発行者証明書として返却
+
+### 条件フィルタリング
+
+検索時に以下の条件でフィルタリングが可能:
+
+- `loteType`: LoTEの種類 (例: private, public)
+- `serviceTypeIdentifier`: サービスタイプ (例: CredentialIssuance)
+- `status`: サービスステータス (例: granted, withdrawn)
+
 ## References
 
 ### Specifications
@@ -707,6 +758,7 @@ fi
 - [OID4VCI 1.0 Section 12.2.3 - Signed Metadata](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.3)
 - [ETSI TS 119 602 - Trusted Lists](https://www.etsi.org/deliver/etsi_ts/119600_119699/119602/01.01.01_60/ts_119602v010101p.pdf)
 - [RFC 7515 - JSON Web Signature](https://www.rfc-editor.org/rfc/rfc7515.html)
+- [RFC 5280 - X.509 PKI Certificate](https://www.rfc-editor.org/rfc/rfc5280.html)
 
 ### Related Documentation
 

@@ -98,12 +98,12 @@ enum SignedMetadataValidator {
     /// - Parameters:
     ///   - jwt: The signed metadata JWT string
     ///   - expectedIssuerIdentifier: The expected credential issuer identifier (for sub validation)
-    ///   - loteSearchInfos: Array of LoTE search infos specifying which LoTEs to search
+    ///   - contextSearchInfos: Array of LoTE context search infos for certificate-based issuer lookup
     /// - Returns: Validation result containing the decoded payload
     static func validate(
         jwt: String,
         expectedIssuerIdentifier: String,
-        loteSearchInfos: [LoTESearchInfo]
+        contextSearchInfos: [LoTEContextSearchInfo] = []
     ) async -> Result<SignedMetadataValidationResult, SignedMetadataError> {
         print("🔐 [SignedMetadata] ========== Validating Signed Metadata ==========")
         print("🔐 [SignedMetadata] Issuer Identifier: \(expectedIssuerIdentifier)")
@@ -149,8 +149,7 @@ enum SignedMetadataValidator {
         print("🔐 [SignedMetadata] Verifying signature with TrustedList lookup...")
         let verificationResult = await X5CJWTVerifier.verifyJwtWithX5C(
             jwt: jwt,
-            issuerURL: expectedIssuerIdentifier,
-            loteSearchInfos: loteSearchInfos,
+            contextSearchInfos: contextSearchInfos,
             verifyCertChain: true
         )
 

@@ -84,7 +84,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -109,7 +109,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -136,7 +136,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -163,7 +163,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -189,7 +189,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -216,7 +216,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -242,7 +242,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -269,7 +269,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {
@@ -297,7 +297,7 @@ final class SignedMetadataValidatorTests: XCTestCase {
         let result = await SignedMetadataValidator.validate(
             jwt: jwt,
             expectedIssuerIdentifier: testIssuerIdentifier,
-            loteSearchInfos: []
+            contextSearchInfos: []
         )
 
         switch result {

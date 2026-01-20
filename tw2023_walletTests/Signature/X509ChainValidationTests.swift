@@ -400,7 +400,7 @@ final class X509ChainValidationTests: XCTestCase {
         )
 
         // Verify JWT using X5CJWTVerifier (which should use custom anchor validation)
-        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, loteSearchInfos: [], verifyCertChain: true)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, contextSearchInfos: [], verifyCertChain: true)
 
         switch result {
         case .success(let verified):
@@ -422,7 +422,7 @@ final class X509ChainValidationTests: XCTestCase {
         )
 
         // Without custom anchors, it falls back to system CA which won't trust our test cert
-        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, loteSearchInfos: [], verifyCertChain: true)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, contextSearchInfos: [], verifyCertChain: true)
 
         switch result {
         case .success:
@@ -515,7 +515,7 @@ final class X509ChainValidationTests: XCTestCase {
         )
 
         // Verify JWT - should succeed because intermediate is in x5c
-        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, loteSearchInfos: [], verifyCertChain: true)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, contextSearchInfos: [], verifyCertChain: true)
 
         switch result {
         case .success(let verified):
@@ -539,7 +539,7 @@ final class X509ChainValidationTests: XCTestCase {
         )
 
         // Verify JWT - should succeed because TrustAnchorManager provides intermediate
-        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, issuerURL: nil, loteSearchInfos: [], verifyCertChain: true)
+        let result = await X5CJWTVerifier.verifyJwtWithX5C(jwt: jwt, contextSearchInfos: [], verifyCertChain: true)
 
         switch result {
         case .success:
