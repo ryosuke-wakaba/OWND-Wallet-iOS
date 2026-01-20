@@ -306,7 +306,8 @@ final class TrustedListManagerTests: XCTestCase {
 
         // Verify AKI/SKI match
         let leafAKI = X509CertificateOperations.extractAuthorityKeyIdentifier(from: leafCert)
-        let issuerSKI = X509CertificateOperations.extractSubjectKeyIdentifier(from: result.issuerCertificate)
+        XCTAssertFalse(result.issuerCertificates.isEmpty, "Should return at least one issuer certificate")
+        let issuerSKI = X509CertificateOperations.extractSubjectKeyIdentifier(from: result.issuerCertificates.first!)
         XCTAssertNotNil(leafAKI)
         XCTAssertNotNil(issuerSKI)
         XCTAssertEqual(leafAKI, issuerSKI)

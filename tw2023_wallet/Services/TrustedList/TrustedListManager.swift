@@ -50,8 +50,8 @@ enum TrustedListError: Error, LocalizedError {
 struct IssuerCertificateResult {
     let entity: TrustedEntity
     let service: TrustedEntityService
-    let issuerCertificate: Certificate
-    let issuerSecCertificate: SecCertificate
+    let issuerCertificates: [Certificate]
+    let issuerSecCertificates: [SecCertificate]
 }
 
 /// Manages trusted lists (LoTE format) for certificate validation.
@@ -257,9 +257,10 @@ class TrustedListManager {
                     leafAKI: leafAKI,
                     condition: searchInfo.condition
                 ) {
-                    print("🔐 [TrustedList] ✅ Found issuer certificate!")
+                    print("🔐 [TrustedList] ✅ Found issuer certificate(s)!")
                     print("🔐 [TrustedList]   Entity: \(result.entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown")")
                     print("🔐 [TrustedList]   Service: \(result.service.ServiceInformation.ServiceName.first?.value ?? "Unknown")")
+                    print("🔐 [TrustedList]   Certificates: \(result.issuerSecCertificates.count)")
                     print("🔐 [TrustedList] ================================================")
                     return result
                 }
@@ -280,68 +281,96 @@ class TrustedListManager {
         leafAKI: String?,
         condition: LoTEContextSearchInfo.SearchCondition
     ) -> IssuerCertificateResult? {
+        print("🔐 [TrustedList]   Condition: serviceTypeIdentifier=\(condition.serviceTypeIdentifier ?? "(any)"), status=\(condition.status ?? "(any)")")
+
         for entity in document.LoTE.TrustedEntitiesList {
+            let entityName = entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown"
             for service in entity.TrustedEntityServices {
                 let info = service.ServiceInformation
+                let serviceName = info.ServiceName.first?.value ?? "Unknown"
 
                 // Check serviceTypeIdentifier condition
                 if let requiredType = condition.serviceTypeIdentifier {
                     guard info.ServiceTypeIdentifier == requiredType else {
+                        print("🔐 [TrustedList]   ⚠️ ServiceType mismatch for \(entityName)/\(serviceName): expected \(requiredType), got \(info.ServiceTypeIdentifier)")
                         continue
                     }
+                    print("🔐 [TrustedList]   ✓ ServiceType matched: \(requiredType)")
                 }
 
                 // Check status condition
                 if let requiredStatus = condition.status {
                     guard info.ServiceStatus == requiredStatus else {
+                        print("🔐 [TrustedList]   ⚠️ Status mismatch for \(entityName)/\(serviceName): expected \(requiredStatus), got \(info.ServiceStatus)")
                         continue
                     }
+                    print("🔐 [TrustedList]   ✓ Status matched: \(requiredStatus)")
                 }
 
                 // Get certificates from service
                 guard let pemCertificates = info.ServiceDigitalIdentity.X509Certificates,
                       !pemCertificates.isEmpty else {
+                    print("🔐 [TrustedList]   ⚠️ No certificates in service \(entityName)/\(serviceName)")
                     continue
                 }
 
-                // Try to find matching issuer certificate
-                for pem in pemCertificates {
-                    // Convert to X509.Certificate for AKI/SKI comparison
-                    guard let x509Cert = convertPEMToX509Certificate(pem) else {
-                        continue
+                print("🔐 [TrustedList]   Checking \(pemCertificates.count) certificate(s) in \(entityName)/\(serviceName)")
+
+                // First, parse all certificates in this service
+                var allX509Certs: [Certificate] = []
+                var allSecCerts: [SecCertificate] = []
+                for (index, pem) in pemCertificates.enumerated() {
+                    if let x509Cert = convertPEMToX509Certificate(pem),
+                       let secCert = createCertificate(from: pem) {
+                        allX509Certs.append(x509Cert)
+                        allSecCerts.append(secCert)
+                    } else {
+                        print("🔐 [TrustedList]   ⚠️ Failed to parse certificate[\(index)]")
                     }
+                }
+
+                // Try to find matching issuer certificate
+                var foundMatch = false
+                for (index, x509Cert) in allX509Certs.enumerated() {
+                    let certSubject = X509CertificateOperations.extractSubjectDN(from: x509Cert)
+                    let certSKI = X509CertificateOperations.extractSubjectKeyIdentifier(from: x509Cert)
+                    print("🔐 [TrustedList]   Certificate[\(index)] Subject: \(certSubject)")
+                    print("🔐 [TrustedList]   Certificate[\(index)] SKI: \(certSKI ?? "(none)")")
 
                     // Try AKI/SKI matching first
                     if let aki = leafAKI {
-                        let ski = X509CertificateOperations.extractSubjectKeyIdentifier(from: x509Cert)
-                        if let ski = ski, ski == aki {
-                            if let secCert = createCertificate(from: pem) {
-                                print("🔐 [TrustedList]   ✓ Found by AKI/SKI match")
-                                return IssuerCertificateResult(
-                                    entity: entity,
-                                    service: service,
-                                    issuerCertificate: x509Cert,
-                                    issuerSecCertificate: secCert
-                                )
-                            }
+                        if let ski = certSKI, ski == aki {
+                            print("🔐 [TrustedList]   ✓ Found by AKI/SKI match at index \(index)")
+                            foundMatch = true
+                            break
+                        } else {
+                            print("🔐 [TrustedList]   ⚠️ AKI/SKI mismatch: leaf AKI=\(aki), cert SKI=\(certSKI ?? "(none)")")
                         }
                     }
 
                     // Fallback: DN matching
+                    let leafIssuerDN = X509CertificateOperations.extractIssuerDN(from: leafCertificate)
                     if X509CertificateOperations.doesIssuerMatchSubject(
                         leafCertificate: leafCertificate,
                         issuerCertificate: x509Cert
                     ) {
-                        if let secCert = createCertificate(from: pem) {
-                            print("🔐 [TrustedList]   ✓ Found by DN match")
-                            return IssuerCertificateResult(
-                                entity: entity,
-                                service: service,
-                                issuerCertificate: x509Cert,
-                                issuerSecCertificate: secCert
-                            )
-                        }
+                        print("🔐 [TrustedList]   ✓ Found by DN match at index \(index)")
+                        foundMatch = true
+                        break
+                    } else {
+                        print("🔐 [TrustedList]   ⚠️ DN mismatch: leaf issuer=\(leafIssuerDN), cert subject=\(certSubject)")
                     }
+                }
+
+                // If a match was found, return ALL certificates from this service
+                if foundMatch {
+                    print("🔐 [TrustedList]   Returning all \(allSecCerts.count) certificate(s) from this service")
+                    return IssuerCertificateResult(
+                        entity: entity,
+                        service: service,
+                        issuerCertificates: allX509Certs,
+                        issuerSecCertificates: allSecCerts
+                    )
                 }
             }
         }
@@ -375,7 +404,7 @@ class TrustedListManager {
         searchInfos: [LoTEContextSearchInfo]
     ) async throws -> [SecCertificate] {
         let result = try await findIssuerCertificate(for: leafCertificate, searchInfos: searchInfos)
-        return [result.issuerSecCertificate]
+        return result.issuerSecCertificates
     }
 
     /// Get issuer certificates for certificates in x5c chain from trusted lists
@@ -397,6 +426,7 @@ class TrustedListManager {
         let certificateToMatch = x5cCertificates.last ?? leafCertificate
 
         let result = try await findIssuerCertificate(for: certificateToMatch, searchInfos: searchInfos)
-        return [result.issuerSecCertificate]
+        return result.issuerSecCertificates
     }
 }
+
