@@ -6,12 +6,24 @@
 
 ```mermaid
 sequenceDiagram
-    participant JWT as JWTOperations
-    participant SIG as X509CertificateOperations
+    participant Caller as X5CJWTVerifier
+    participant TLM as TrustedListManager
     participant TAM as TrustAnchorManager
+    participant SIG as X509CertificateOperations
     participant SEC as SecTrust API
 
-    JWT->>SIG: validateCertificateChainWithCustomAnchors(x5cCerts, trustAnchorManager)
+    Note over Caller: JWT署名検証完了後
+
+    alt contextSearchInfosが指定されている場合
+        Caller->>TLM: getIssuerCertificatesForChain(x5cCerts, searchInfos)
+        TLM-->>Caller: [SecCertificate] (発行者証明書)
+        Caller->>TAM: createInstance(withAdditionalCertificates)
+        TAM-->>Caller: 使い捨てTrustAnchorManager
+    else contextSearchInfos未指定
+        Note over Caller: TrustAnchorManager.shared を使用
+    end
+
+    Caller->>SIG: validateCertificateChainWithCustomAnchors(secCerts, trustAnchorManager)
 
     Note over SIG: x5c証明書数を確認
 
@@ -31,17 +43,37 @@ sequenceDiagram
     SIG->>SEC: SecTrustEvaluateWithError()
     SEC-->>SIG: Result
 
-    SIG-->>JWT: Result<Void>
+    SIG-->>Caller: Result<Void, CertificateValidationError>
 ```
 
 ## 検証パターン
 
-### パターンA: x5cにリーフのみ（推奨）
+### パターンA: TrustedListから発行者証明書を取得
 
 ```
+contextSearchInfos指定あり:
+  1. TrustedListManagerがx5cの末尾証明書のAKI/SKIで発行者を検索
+  2. 見つかった発行者証明書で使い捨てTrustAnchorManagerを生成
+  3. 生成したTrustAnchorManagerで証明書チェーンを検証
+
 JWT x5c Header: [Leaf Certificate]
               ↓
-TrustAnchorManager: [Intermediate1, Intermediate2] + [Root]
+TrustedListManager: AKI/SKI検索 → [Issuer Certificate(s)]
+              ↓
+TrustAnchorManager.createInstance(): 使い捨てインスタンス生成
+              ↓
+SecTrust: Leaf → Issuer → Root ✓
+```
+
+### パターンB: シングルトンTrustAnchorManagerを使用
+
+```
+contextSearchInfos未指定またはTrustedList検索失敗:
+  TrustAnchorManager.sharedの証明書で検証
+
+JWT x5c Header: [Leaf Certificate]
+              ↓
+TrustAnchorManager.shared: [Intermediate1, Intermediate2] + [Root]
               ↓
 SecTrust: Leaf → Intermediate → Root ✓
 ```
@@ -107,11 +139,48 @@ SecTrustSetAnchorCertificatesOnly(trust, useCustomAnchorsOnly)
 カスタムアンカーが設定されていない場合（`TrustAnchorManager.hasCustomAnchors == false`）、システムCAのみで検証が行われます：
 
 ```swift
-guard manager.hasCustomAnchors else {
+guard trustAnchorManager.hasCustomAnchors else {
     // カスタムアンカーなし → システムCAで検証
-    return try validateTrust(leafCertificates, customAnchors: nil, useCustomAnchorsOnly: false)
+    return validateTrust(
+        certificates,
+        customAnchors: nil,
+        useCustomAnchorsOnly: false
+    )
 }
 ```
+
+**注意:** `validateCertificateChainWithCustomAnchors`は`Result<Void, CertificateValidationError>`を返します。throwsではありません。
+
+---
+
+## CertificateValidationError
+
+証明書チェーン検証の結果は`Result<Void, CertificateValidationError>`で返されます。
+
+```swift
+enum CertificateValidationError: LocalizedError {
+    case trustCreationFailed              // SecTrust作成失敗
+    case anchorSettingFailed              // アンカー設定失敗
+    case untrustedRoot(certificateName: String)      // 信頼されていないルートCA
+    case certificateExpired(certificateName: String)  // 証明書期限切れ
+    case certificateRevoked(certificateName: String)  // 証明書失効
+    case certificateNotYetValid(certificateName: String)  // 証明書がまだ有効ではない
+    case invalidCertificate(certificateName: String, reason: String)  // 無効な証明書
+    case chainIncomplete                  // チェーン不完全
+    case unknownError(description: String) // 不明なエラー
+}
+```
+
+### エラーマッピング
+
+SecTrustのOSStatusコードから`CertificateValidationError`へのマッピング：
+
+| OSStatus | エラー |
+|----------|-------|
+| `-67818` (errSecCertificateExpired) | `certificateExpired` |
+| `-67819` (errSecCertificateNotValidYet) | `certificateNotYetValid` |
+| `-67820` (errSecCertificateRevoked) | `certificateRevoked` |
+| `-67843` (errSecNotTrusted) | `untrustedRoot` |
 
 ---
 
@@ -188,7 +257,35 @@ SecTrust内部:
 
 これにより、中間証明書の順序を気にせずに渡すことができます。
 
-### 参考リンク
+---
+
+## デバッグログ
+
+`validateCertificateChainWithCustomAnchors`は検証プロセスを詳細にログ出力します：
+
+```
+🔐 [CertValidation] ========== Certificate Chain Validation ==========
+🔐 [CertValidation] Input certificates: 1
+🔐 [CertValidation]   [0] example.com
+🔐 [CertValidation] Custom anchors available: true
+🔐 [CertValidation]   Anchors: 1
+🔐 [CertValidation]   Intermediates: 1
+🔐 [CertValidation] Added 1 intermediate(s) to chain
+🔐 [CertValidation] Validating with custom anchors...
+🔐 [CertValidation] ✅ Certificate chain validation PASSED
+🔐 [CertValidation] =================================================
+```
+
+### ログプレフィックス
+
+| プレフィックス | 意味 |
+|--------------|------|
+| `🔐 [CertValidation]` | 証明書チェーン検証 |
+| `🔐 [X509]` | AKI/SKI抽出、発行者検索 |
+
+---
+
+## 参考リンク
 
 - [Apple Developer: Certificate, Key, and Trust Services](https://developer.apple.com/documentation/security/certificate_key_and_trust_services)
 - [SecTrust Reference](https://developer.apple.com/documentation/security/sectrust)

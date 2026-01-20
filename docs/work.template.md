@@ -20,7 +20,7 @@
 - docs/features/credential-issuance
 - docs/features/credential-presentation
 - docs/data-storage.md
-- docs/x509-certificate-chain-validation.md
+- docs/x509-certificate-chain-validation
 
 ### ブランチ
 - 現在のブランチで対応して下さい。

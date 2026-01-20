@@ -385,17 +385,8 @@ enum TrustedListConfigLoader {
 }
 
 /// VCIMetadataClient等に渡すLoTEコンテキスト検索情報
-struct LoTEContextSearchInfo {
-    let url: URL
-    let contextName: String
-    let condition: SearchCondition
-
-    struct SearchCondition {
-        let loteType: String?
-        let serviceTypeIdentifier: String?
-        let status: String?  // nil = フィルタリングなし (grantedでないものも対象)
-    }
-}
+/// 詳細は x509-certificate-chain-validation/trusted-list.md を参照
+struct LoTEContextSearchInfo { ... }
 ```
 
 ### 使用例
@@ -415,19 +406,7 @@ let metadata = try await retrieveAllMetadata(
 
 ### Build Phase設定
 
-Xcode Build Phaseに「Copy Trusted List Config」スクリプトを追加:
-
-```bash
-CONFIG_SOURCE="${SRCROOT}/TrustedListConfig.json"
-CONFIG_DEST="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TrustedListConfig.json"
-
-if [ -f "$CONFIG_SOURCE" ]; then
-    cp "$CONFIG_SOURCE" "$CONFIG_DEST"
-    echo "TrustedListConfig.json copied to bundle"
-else
-    echo "TrustedListConfig.json not found (optional)"
-fi
-```
+TrustedListConfig.jsonをアプリバンドルにコピーするBuild Phaseスクリプトの設定は [X.509 Certificate Chain Validation - セットアップ](../../x509-certificate-chain-validation/setup.md#3-xcode-build-phaseの設定) を参照してください。
 
 ## References
 
