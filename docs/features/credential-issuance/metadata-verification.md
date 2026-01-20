@@ -4,7 +4,7 @@
 
 OID4VCI 1.0 Section 12.2.2/12.2.3に準拠したメタデータの取得と検証機能を提供します。Issuerメタデータの信頼性を検証するため、署名付きメタデータ(Signed Metadata)に対応しています。
 
-トラストリストと証明書チェーン検証の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation.md) を参照してください。
+トラストリストと証明書チェーン検証の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) を参照してください。
 
 ### 主な機能
 
@@ -87,7 +87,7 @@ classDiagram
     X5CJWTVerifier --> TrustedListManager : uses
 ```
 
-> **Note**: TrustedListManager, X5CJWTVerifier, TrustAnchorManager, X509CertificateOperations の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation.md) を参照してください。
+> **Note**: TrustedListManager, X5CJWTVerifier, TrustAnchorManager, X509CertificateOperations の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) を参照してください。
 
 ## Sequence Diagram
 
@@ -163,7 +163,7 @@ sequenceDiagram
     end
 ```
 
-> **Note**: TrustedListManager内部処理フローと証明書チェーン検証フローの詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation.md) を参照してください。
+> **Note**: TrustedListManager内部処理フローと証明書チェーン検証フローの詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) を参照してください。
 
 ## API Reference
 
@@ -293,7 +293,7 @@ enum MetadataError: LocalizedError {
 }
 ```
 
-> **Note**: TrustedListError の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation.md) を参照してください。
+> **Note**: TrustedListError の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/components.md) を参照してください。
 
 ## Data Models
 
@@ -318,7 +318,7 @@ enum MetadataError: LocalizedError {
 }
 ```
 
-> **Note**: LoTE Document Structure の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation.md) を参照してください。
+> **Note**: LoTE Document Structure の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/trusted-list.md) を参照してください。
 
 ## Implementation Files
 
@@ -439,7 +439,7 @@ fi
 
 ### Related Documentation
 
-- [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation.md) - トラストリスト、証明書チェーン検証
+- [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) - トラストリスト、証明書チェーン検証
 - [API Reference](./api.md)
 - [Security](./security.md)
 
