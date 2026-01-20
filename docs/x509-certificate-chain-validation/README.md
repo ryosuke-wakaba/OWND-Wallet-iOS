@@ -46,7 +46,8 @@ X.509証明書チェーン検証とトラストリスト（ETSI TS 119 602 LoTE�
 | [components.md](./components.md) | コンポーネントAPI（TrustAnchorManager, X509CertificateOperations, TrustedListManager, X5CJWTVerifier） |
 | [trusted-list.md](./trusted-list.md) | トラストリスト（Certificate-Based Search, LoTE Data Models） |
 | [chain-validation.md](./chain-validation.md) | 証明書チェーン検証（SecTrust API, useCustomAnchorsOnly, 検証フロー） |
-| [setup.md](./setup.md) | セットアップ、テスト、トラブルシューティング |
+| [setup.md](./setup.md) | セットアップ、起動時ログ、トラブルシューティング |
+| [testing.md](./testing.md) | テスト（テストケース、証明書生成、有効期間の注意点） |
 
 ## 関連ファイル
 

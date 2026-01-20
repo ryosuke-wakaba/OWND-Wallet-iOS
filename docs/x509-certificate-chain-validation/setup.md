@@ -15,37 +15,73 @@ Certificates/
 └── intermediate2.cer  # 中間証明書2
 ```
 
-### 2. Xcode Build Phaseの設定
+### 2. TrustedListConfig.jsonの配置
 
-証明書をアプリバンドルにコピーするRun Scriptを追加：
+トラストリスト（LoTE）の設定ファイルをプロジェクトルートに配置：
+
+```
+TrustedListConfig.json
+```
+
+設定ファイルの形式については [TrustedListConfig.swift](../../tw2023_wallet/Services/TrustedList/TrustedListConfig.swift) を参照してください。
+
+### 3. Xcode Build Phaseの設定
+
+証明書とTrustedListConfig.jsonをアプリバンドルにコピーするRun Scriptを追加します。
 
 1. **TARGETS** → `tw2023_wallet` → **Build Phases**
 2. **+** → **New Run Script Phase**
 3. **Copy Bundle Resources**の前に配置
-4. 以下のスクリプトを設定：
+4. **Build Settings** → **User Script Sandboxing** → **No**
+
+#### Copy Certificates
 
 ```bash
+# Copy certificates from certs-pub if they exist
+echo "SRCROOT: ${SRCROOT}"
+echo "Looking for: ${SRCROOT}/Certificates"
+ls -la "${SRCROOT}/Certificates" || echo "Directory not found"
 CERT_SOURCE="${SRCROOT}/Certificates"
 CERT_DEST="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Certificates"
 
-mkdir -p "$CERT_DEST"
+# Clear destination directory first
+rm -rf "$CERT_DEST"
 
 if [ -d "$CERT_SOURCE" ]; then
-    cp "$CERT_SOURCE"/*.cer "$CERT_DEST/" 2>/dev/null || true
-    echo "Certificates copied"
+    mkdir -p "$CERT_DEST"
+    cp -R "$CERT_SOURCE"/*.cer "$CERT_DEST/" 2>/dev/null || true
+    cp -R "$CERT_SOURCE"/*.pem "$CERT_DEST/" 2>/dev/null || true
+    cp -R "$CERT_SOURCE"/*.crt "$CERT_DEST/" 2>/dev/null || true
+    echo "Certificates copied from $CERT_SOURCE to $CERT_DEST"
+else
+    echo "No certificates directory found at $CERT_SOURCE (skipping)"
 fi
 ```
 
-5. **Build Settings** → **User Script Sandboxing** → **No**
+#### Copy Trusted List Config
 
-### 3. 証明書のGit除外
+```bash
+# Copy Trusted List Config
+CONFIG_SOURCE="${SRCROOT}/TrustedListConfig.json"
+CONFIG_DEST="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TrustedListConfig.json"
 
-証明書ファイルはコミットしない場合、`.gitignore`に追加：
+if [ -f "$CONFIG_SOURCE" ]; then
+    cp "$CONFIG_SOURCE" "$CONFIG_DEST"
+    echo "TrustedListConfig.json copied to bundle"
+else
+    echo "TrustedListConfig.json not found (optional)"
+fi
+```
+
+### 4. Git除外設定
+
+証明書ファイルや設定ファイルをコミットしない場合、`.gitignore`に追加：
 
 ```gitignore
 Certificates/*.cer
 Certificates/*.pem
 Certificates/*.crt
+TrustedListConfig.json
 ```
 
 ---
@@ -78,73 +114,7 @@ TrustAnchorManager:   [1] Example Intermediate CA 2
 TrustAnchorManager: ==============================
 ```
 
----
-
-## テスト
-
-### テストファイル
-
-| ファイル | 内容 |
-|---------|------|
-| `TrustAnchorManagerTests.swift` | TrustAnchorManagerの単体テスト |
-| `X509ChainValidationTests.swift` | 証明書チェーン検証の統合テスト |
-
-### 主なテストケース
-
-#### TrustAnchorManagerTests
-
-- `testSharedInstance` - シングルトンの確認
-- `testAddAnchorCertificate` - ルートCA追加
-- `testAddIntermediateCertificate` - 中間証明書追加
-- `testSelfSignedCertificateDetection` - 自己署名検出
-- `testNonSelfSignedCertificateDetection` - 非自己署名検出
-
-#### X509ChainValidationTests
-
-- `testValidCertificateChainWithCustomAnchors` - 単一チェーンの検証
-- `testValidCertificateChainWithTwoTrustChains` - 複数チェーンの検証
-- `testInvalidChainWithMissingIntermediate` - 中間証明書欠落時の検証失敗
-- `testInvalidChainWithUnknownRoot` - 未知のルートCAでの検証失敗
-- `testJwtWithX5CHeaderValidation` - JWT x5cヘッダーの検証
-
-### テスト用証明書の生成
-
-テストでは動的に証明書チェーンを生成：
-
-```swift
-// ルートCA生成（自己署名）
-let rootCert = try generateRootCACertificate(
-    privateKey: rootPrivateKey,
-    commonName: "Test Root CA"
-)
-
-// 中間CA生成
-let intermediateCert = try generateIntermediateCACertificate(
-    subjectPrivateKey: intermediatePrivateKey,
-    issuerPrivateKey: rootPrivateKey,
-    issuerCertificate: rootCert,
-    commonName: "Test Intermediate CA"
-)
-
-// リーフ証明書生成
-let leafCert = try generateLeafCertificate(
-    subjectPrivateKey: leafPrivateKey,
-    issuerPrivateKey: intermediatePrivateKey,
-    issuerCertificate: intermediateCert,
-    commonName: "test.example.com"
-)
-```
-
-### 証明書有効期間の注意点
-
-テスト証明書は `notValidBefore` を現在時刻の1時間前に設定：
-
-```swift
-let notBefore = Date().addingTimeInterval(-60 * 60)  // 1時間前
-let notAfter = Date().addingTimeInterval(60 * 60 * 24 * 365)  // 1年後
-```
-
-これにより、タイミングによる「証明書が一時的に無効」エラーを回避します。
+テストについては [テスト](./testing.md) を参照してください。
 
 ---
 
@@ -156,13 +126,16 @@ let notAfter = Date().addingTimeInterval(60 * 60 * 24 * 365)  // 1年後
 2. `User Script Sandboxing`が`No`になっているか確認
 3. 証明書ファイルの形式（DER/PEM）を確認
 
+### TrustedListConfig.jsonが読み込まれない
+
+1. ビルドログで「TrustedListConfig.json copied to bundle」が出力されているか確認
+2. ファイルがプロジェクトルートに存在するか確認
+3. JSONの形式が正しいか確認
+
 ### チェーン検証が失敗する
 
 1. 起動時ログで証明書の読み込み状況を確認
 2. 中間証明書が正しく登録されているか確認
 3. 証明書の有効期限を確認
 
-### テストが不安定
-
-1. `notValidBefore`の設定を確認
-2. テスト間の状態クリア（`setUp`/`tearDown`）を確認
+テスト関連のトラブルシューティングは [テスト](./testing.md#トラブルシューティング) を参照してください。
