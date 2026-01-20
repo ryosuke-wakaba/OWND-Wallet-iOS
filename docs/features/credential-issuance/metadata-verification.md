@@ -2,7 +2,9 @@
 
 ## Overview
 
-OID4VCI 1.0 Section 12.2.2/12.2.3に準拠したメタデータの取得と検証機能を提供します。Issuerメタデータの信頼性を検証するため、署名付きメタデータ(Signed Metadata)とトラストリスト(ETSI TS 119 602 LoTE形式)に対応しています。
+OID4VCI 1.0 Section 12.2.2/12.2.3に準拠したメタデータの取得と検証機能を提供します。Issuerメタデータの信頼性を検証するため、署名付きメタデータ(Signed Metadata)に対応しています。
+
+トラストリストと証明書チェーン検証の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) を参照してください。
 
 ### 主な機能
 
@@ -10,7 +12,6 @@ OID4VCI 1.0 Section 12.2.2/12.2.3に準拠したメタデータの取得と検�
 |------|------|------|
 | Signed Metadata | 署名付きメタデータの検証 | OID4VCI 1.0 Section 12.2.3 |
 | Accept Header制御 | 署名付き/JSONメタデータの選択 | OID4VCI 1.0 Section 12.2.2 |
-| Trust List | トラストリストからの証明書取得 | ETSI TS 119 602 |
 
 ### 対応状況
 
@@ -29,20 +30,10 @@ classDiagram
         +createContextSearchInfos(contextName) [LoTEContextSearchInfo]
     }
 
-    class TrustedListConfig {
-        +lotes: [String: LoTEConfig]
-    }
-
     class LoTEContextSearchInfo {
         +url: URL
         +contextName: String
         +condition: SearchCondition
-    }
-
-    class SearchCondition {
-        +loteType: String?
-        +serviceTypeIdentifier: String?
-        +status: String?
     }
 
     %% Metadata Layer
@@ -66,81 +57,37 @@ classDiagram
         +expiresAt: Date?
     }
 
-    %% Trust List Layer
+    %% Trust List Layer (詳細は x509-certificate-chain-validation.md 参照)
     class TrustedListManager {
         <<Singleton>>
         +shared: TrustedListManager
-        +fetchTrustedList(url) async LoTEDocument
-        +findIssuerCertificate(for leafCertificate, searchInfos) async IssuerCertificateResult
         +getIssuerCertificatesForChain(x5cCertificates, searchInfos) async [SecCertificate]
     }
 
-    class TrustedListModels {
-        <<Module>>
-    }
-
-    class LoTEDocument {
-        +LoTE: LoTE
-    }
-
-    class IssuerCertificateResult {
-        +entity: TrustedEntity
-        +service: TrustedEntityService
-        +issuerCertificate: Certificate
-        +matchMethod: MatchMethod
-    }
-
-    %% Certificate Validation Layer
-    class TrustAnchorManager {
-        <<Singleton>>
-        +shared: TrustAnchorManager
-        +anchorCertificates: [SecCertificate]
-        +intermediateCertificates: [SecCertificate]
-        +createInstance(withAdditionalCertificates) TrustAnchorManager
-    }
-
+    %% Certificate Validation Layer (詳細は x509-certificate-chain-validation.md 参照)
     class X5CJWTVerifier {
         <<enum>>
         +verifyJwtWithX5C(jwt, contextSearchInfos, verifyCertChain) async Result~VerifiedX5CJwt~
-        +verifyJwtWithX5U(jwt) Result~JWT~
     }
 
     class JWTOperations {
         <<enum>>
-        +sign(keyAlias, header, payload) Result~String~
         +verifyJwt(jwt, publicKey) Result~JWT~
-        +decodeJwt(jwt) tuple
         +decodeJwtWithX5C(jwt) Result~tuple~
-        +decodeJwtWithX5U(jwt) Result~tuple~
-    }
-
-    class X509CertificateOperations {
-        <<enum>>
-        +validateCertificateChainWithCustomAnchors(certificates) Result~Void~
-        +validateCertificateChainWithCustomAnchors(certificates, trustAnchorManager) Result~Void~
-        +convertPemToX509Certificates(pemChain) [Certificate]
     }
 
     %% Relationships
-    TrustedListConfigLoader ..> TrustedListConfig : loads
     TrustedListConfigLoader ..> LoTEContextSearchInfo : creates
-    LoTEContextSearchInfo --> SearchCondition : contains
 
     VCIMetadataClient --> SignedMetadataValidator : uses
     SignedMetadataValidator --> X5CJWTVerifier : uses
     SignedMetadataValidator ..> SignedMetadataValidationResult : creates
 
-    X5CJWTVerifier --> JWTOperations : uses (decode, verify)
-    X5CJWTVerifier --> X509CertificateOperations : uses (chain validation)
-    X5CJWTVerifier --> TrustAnchorManager : uses
-    X5CJWTVerifier --> TrustedListManager : uses (get issuer certificates)
-
-    X509CertificateOperations --> TrustAnchorManager : uses
-
-    TrustedListManager --> TrustedListModels : uses
-    TrustedListManager ..> LoTEDocument : fetches
-    TrustedListManager ..> IssuerCertificateResult : returns
+    X5CJWTVerifier --> JWTOperations : uses
+    X5CJWTVerifier --> TrustedListManager : uses
 ```
+
+> **Note**: TrustedListManager, X5CJWTVerifier, TrustAnchorManager, X509CertificateOperations の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) を参照してください。
 
 ## Sequence Diagram
 
@@ -216,98 +163,7 @@ sequenceDiagram
     end
 ```
 
-### TrustedListManager内部処理フロー (証明書ベース検索)
-
-```mermaid
-sequenceDiagram
-    participant Caller as X5CJWTVerifier
-    participant TLM as TrustedListManager
-    participant TL as Trust List Server
-    participant SIG as X509CertificateOperations
-
-    Caller->>TLM: getIssuerCertificatesForChain(x5cCertificates, searchInfos)
-
-    alt searchInfosが空の場合
-        TLM-->>Caller: TrustedListError.noLoTEConfigured
-    end
-
-    Note over TLM: x5cの末尾証明書(リーフ以外の最後)を取得
-
-    TLM->>TLM: findIssuerCertificate(for leafCertificate, searchInfos)
-
-    Note over TLM: searchInfosをループ
-
-    loop 各LoTEContextSearchInfo
-        TLM->>TLM: fetchTrustedList(searchInfo.url)
-        TLM->>TL: GET trusted-list (JSON/JWT)
-        TL-->>TLM: Response (JSON or JWT)
-
-        alt JWT形式 (eyJで始まる)
-            TLM->>TLM: extractPayloadFromJWT(jwt)
-            Note over TLM: Base64URLデコード
-        else JSON形式
-            Note over TLM: そのまま使用
-        end
-
-        TLM->>TLM: JSONDecoder.decode(LoTEDocument)
-
-        Note over TLM: 条件フィルタリング適用
-        Note over TLM: - loteType
-        Note over TLM: - serviceTypeIdentifier
-        Note over TLM: - status (default: granted)
-
-        loop 各Entity/Service/Certificate
-            Note over TLM: 証明書ベースのマッチング
-
-            alt AKI/SKIマッチング (優先)
-                Note over TLM: リーフ証明書のAKI == トラストリスト証明書のSKI
-            else DNマッチング (フォールバック)
-                Note over TLM: リーフ証明書のIssuer DN == トラストリスト証明書のSubject DN
-            end
-
-            alt マッチした場合
-                TLM->>TLM: extractCertificate(ServiceDigitalIdentity)
-                TLM-->>Caller: IssuerCertificateResult
-            end
-        end
-    end
-
-    alt 発行者証明書が見つからない場合
-        TLM-->>Caller: TrustedListError.issuerCertificateNotFound
-    end
-```
-
-### 証明書チェーン検証フロー
-
-```mermaid
-sequenceDiagram
-    participant JWT as JWTOperations
-    participant SIG as X509CertificateOperations
-    participant TAM as TrustAnchorManager
-    participant SEC as SecTrust API
-
-    JWT->>SIG: validateCertificateChainWithCustomAnchors(x5cCerts, trustAnchorManager)
-
-    Note over SIG: x5c証明書数を確認
-
-    alt x5c = [Leaf] (1証明書)
-        SIG->>TAM: intermediateCertificates
-        TAM-->>SIG: [Intermediate1, Intermediate2, ...]
-        Note over SIG: fullChain = [Leaf] + [Intermediates]
-    else x5c = [Leaf, Intermediate, ...] (複数証明書)
-        Note over SIG: fullChain = x5c (そのまま使用)
-    end
-
-    SIG->>TAM: anchorCertificates
-    TAM-->>SIG: [Root CA]
-
-    SIG->>SEC: SecTrustCreateWithCertificates(fullChain)
-    SIG->>SEC: SecTrustSetAnchorCertificates(anchors)
-    SIG->>SEC: SecTrustEvaluateWithError()
-    SEC-->>SIG: Result
-
-    SIG-->>JWT: Result<Void>
-```
+> **Note**: TrustedListManager内部処理フローと証明書チェーン検証フローの詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) を参照してください。
 
 ## API Reference
 
@@ -375,111 +231,6 @@ struct SignedMetadataValidationResult {
 }
 ```
 
-### TrustedListManager
-
-ETSI TS 119 602 LoTE形式のトラストリスト管理。証明書ベースの発行者検索を提供。
-
-```swift
-// tw2023_wallet/Services/TrustedList/TrustedListManager.swift
-
-class TrustedListManager {
-    static let shared = TrustedListManager()
-
-    /// トラストリストをフェッチ (JSON/JWT両形式対応)
-    func fetchTrustedList(from url: URL) async throws -> LoTEDocument
-
-    /// リーフ証明書の発行者証明書をトラストリストから検索
-    /// AKI/SKIマッチングを優先し、フォールバックとしてDNマッチングを使用
-    /// - Parameters:
-    ///   - leafCertificate: 検索対象のリーフ証明書
-    ///   - searchInfos: 検索対象のLoTEコンテキスト情報配列
-    func findIssuerCertificate(
-        for leafCertificate: Certificate,
-        searchInfos: [LoTEContextSearchInfo]
-    ) async throws -> IssuerCertificateResult
-
-    /// x5c証明書チェーンの発行者証明書を取得
-    /// x5cの末尾証明書の発行者をトラストリストから検索
-    /// - Parameters:
-    ///   - x5cCertificates: x5cヘッダーから取得した証明書チェーン
-    ///   - searchInfos: 検索対象のLoTEコンテキスト情報配列
-    func getIssuerCertificatesForChain(
-        x5cCertificates: [Certificate],
-        searchInfos: [LoTEContextSearchInfo]
-    ) async throws -> [SecCertificate]
-}
-
-/// 発行者証明書検索結果
-struct IssuerCertificateResult {
-    let entity: TrustedEntity
-    let service: TrustedEntityService
-    let issuerCertificate: Certificate
-    let matchMethod: MatchMethod  // .akiSki or .distinguishedName
-}
-
-/// マッチング方法
-enum MatchMethod {
-    case akiSki           // AKI/SKIによるマッチング
-    case distinguishedName // DNによるフォールバックマッチング
-}
-```
-
-### TrustAnchorManager
-
-信頼アンカー証明書の管理。
-
-```swift
-// tw2023_wallet/Signature/TrustAnchorManager.swift
-
-class TrustAnchorManager {
-    static let shared = TrustAnchorManager()
-
-    /// ルートCA証明書
-    private(set) var anchorCertificates: [SecCertificate]
-
-    /// 中間証明書
-    private(set) var intermediateCertificates: [SecCertificate]
-
-    /// カスタムアンカーが設定されているか
-    var hasCustomAnchors: Bool
-
-    /// 追加証明書を持つ使い捨てインスタンスを生成
-    /// (シングルトンの証明書を継承 + 追加証明書)
-    static func createInstance(
-        withAdditionalCertificates additionalCertificates: [SecCertificate]
-    ) -> TrustAnchorManager
-}
-```
-
-### X5CJWTVerifier
-
-x5c/x5uヘッダーを使用したJWT検証のラッパー層。JWTOperationsとX509CertificateOperationsを統合して証明書チェーン検証を行う。
-
-```swift
-// tw2023_wallet/Signature/X5CJWTVerifier.swift
-
-enum X5CJWTVerifier {
-    typealias VerifiedX5CJwt = (decoded: JWT, certs: [Certificate])
-
-    /// x5cヘッダーでJWTを検証 (署名検証 + 証明書チェーン検証)
-    /// 証明書ベースの検索でトラストリストから発行者証明書を取得
-    /// - Parameters:
-    ///   - jwt: 検証対象のJWT
-    ///   - contextSearchInfos: 検索対象のLoTEコンテキスト情報配列
-    ///   - verifyCertChain: 証明書チェーン検証を行うか
-    static func verifyJwtWithX5C(
-        jwt: String,
-        contextSearchInfos: [LoTEContextSearchInfo],
-        verifyCertChain: Bool = true
-    ) async -> Result<VerifiedX5CJwt, JWTVerificationError>
-
-    /// x5uヘッダーでJWTを検証
-    static func verifyJwtWithX5U(
-        jwt: String
-    ) -> Result<JWT, JWTVerificationError>
-}
-```
-
 ### JWTOperations
 
 純粋なJWT操作（署名、検証、デコード）を提供。
@@ -542,19 +293,7 @@ enum MetadataError: LocalizedError {
 }
 ```
 
-### TrustedListError
-
-```swift
-enum TrustedListError: Error {
-    case noLoTEConfigured                     // LoTE情報が指定されていない
-    case invalidURL(String)
-    case fetchFailed(URL, Error)
-    case parseError(Error)
-    case issuerCertificateNotFound            // 発行者証明書が見つからない
-    case noCertificatesInService
-    case certificateParseError
-}
-```
+> **Note**: TrustedListError の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/components.md) を参照してください。
 
 ## Data Models
 
@@ -579,40 +318,7 @@ enum TrustedListError: Error {
 }
 ```
 
-### LoTE Document Structure (ETSI TS 119 602)
-
-```json
-{
-  "LoTE": {
-    "ListAndSchemeInformation": {
-      "SchemeOperatorName": [{ "lang": "en", "value": "Operator Name" }],
-      "ListIssueDateTime": "2026-01-01T00:00:00Z",
-      "NextUpdate": "2026-06-01T00:00:00Z"
-    },
-    "TrustedEntitiesList": [
-      {
-        "TrustedEntityInformation": {
-          "TEName": [{ "lang": "en", "value": "Entity Name" }]
-        },
-        "TrustedEntityServices": [
-          {
-            "ServiceInformation": {
-              "ServiceTypeIdentifier": "http://example.com/SvcType/CredentialIssuance",
-              "ServiceStatus": "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
-              "ServiceSupplyPoints": [
-                { "uriValue": "https://issuer.example.com" }
-              ],
-              "ServiceDigitalIdentity": {
-                "X509Certificates": ["-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"]
-              }
-            }
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+> **Note**: LoTE Document Structure の詳細は [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/trusted-list.md) を参照してください。
 
 ## Implementation Files
 
@@ -723,54 +429,25 @@ else
 fi
 ```
 
-## Certificate-Based Search
-
-### 概要
-
-トラストリストからの証明書検索は、サービスURL（ServiceSupplyPoints）ではなく、証明書の識別子に基づいて行われます。
-
-### 検索アルゴリズム
-
-1. **AKI/SKIマッチング（優先）**
-   - リーフ証明書のAuthority Key Identifier (AKI) を取得
-   - トラストリスト内の各証明書のSubject Key Identifier (SKI) と比較
-   - マッチした証明書を発行者証明書として返却
-
-2. **DNマッチング（フォールバック）**
-   - AKI/SKIが利用できない場合に使用
-   - リーフ証明書のIssuer Distinguished Name (DN) を取得
-   - トラストリスト内の各証明書のSubject DN と比較
-   - マッチした証明書を発行者証明書として返却
-
-### 条件フィルタリング
-
-検索時に以下の条件でフィルタリングが可能:
-
-- `loteType`: LoTEの種類 (例: private, public)
-- `serviceTypeIdentifier`: サービスタイプ (例: CredentialIssuance)
-- `status`: サービスステータス (例: granted, withdrawn)
-
 ## References
 
 ### Specifications
 
 - [OID4VCI 1.0 Section 12.2.2 - Obtaining Credential Issuer Metadata](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.2)
 - [OID4VCI 1.0 Section 12.2.3 - Signed Metadata](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.3)
-- [ETSI TS 119 602 - Trusted Lists](https://www.etsi.org/deliver/etsi_ts/119600_119699/119602/01.01.01_60/ts_119602v010101p.pdf)
 - [RFC 7515 - JSON Web Signature](https://www.rfc-editor.org/rfc/rfc7515.html)
-- [RFC 5280 - X.509 PKI Certificate](https://www.rfc-editor.org/rfc/rfc5280.html)
 
 ### Related Documentation
 
-- [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation.md)
+- [X.509 Certificate Chain Validation](../../x509-certificate-chain-validation/README.md) - トラストリスト、証明書チェーン検証
 - [API Reference](./api.md)
 - [Security](./security.md)
 
 ### Work Documents
 
-- [Signed Metadata Implementation](../../work/2026-01-05-signed-metadata-implementation.md)
-- [Accept Header Fix](../../work/2026-01-06-signed-metadata-accept-header-fix.md)
-- [Trust List Support](../../work/2026-01-07-work-trusted-list-support.md)
-- [Metadata Validation Refactoring](../../work/2026-01-08-metadata-validation-refactoring.md)
-- [JWT Chain Validation Refactoring](../../work/2026-01-08-refactor-jwt-chain-validation.md)
-- [LoTE Service Type Support](../../work/2026-01-09-lote-service-type-support.md)
+- [Signed Metadata Implementation](../../work/2026-01/2026-01-05-signed-metadata-implementation.md)
+- [Accept Header Fix](../../work/2026-01/2026-01-06-signed-metadata-accept-header-fix.md)
+- [Trust List Support](../../work/2026-01/2026-01-07-work-trusted-list-support.md)
+- [Metadata Validation Refactoring](../../work/2026-01/2026-01-08-metadata-validation-refactoring.md)
+- [JWT Chain Validation Refactoring](../../work/2026-01/2026-01-08-refactor-jwt-chain-validation.md)
+- [LoTE Service Type Support](../../work/2026-01/2026-01-09-lote-service-type-support.md)
