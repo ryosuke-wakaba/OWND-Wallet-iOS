@@ -1558,6 +1558,23 @@
         }
       }
     },
+    "use_trust_list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Trust List"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラストリストを使用する"
+          }
+        }
+      }
+    },
     "restore_from_backup_file" : {
       "localizations" : {
         "ja" : {
@@ -1777,6 +1794,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "利用規約"
+          }
+        }
+      }
+    },
+    "trust_list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust List"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラストリスト"
           }
         }
       }

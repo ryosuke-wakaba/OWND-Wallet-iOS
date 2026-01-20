@@ -16,6 +16,7 @@ class PreferencesDataStore {
     private let lastBackupAtKey = "last_backup_at_key"
     private let preferSignedMetadataKey = "prefer_signed_metadata"
     private let useDPoPKey = "use_dpop"
+    private let useTrustListKey = "use_trust_list"
 
     func saveLastBackupAtKey(_ value: String) {
         defaults.set(value, forKey: lastBackupAtKey)
@@ -43,6 +44,18 @@ class PreferencesDataStore {
             return true
         }
         return defaults.bool(forKey: useDPoPKey)
+    }
+
+    func setUseTrustList(_ value: Bool) {
+        defaults.set(value, forKey: useTrustListKey)
+    }
+
+    func getUseTrustList() -> Bool {
+        // Return true (Trust List enabled) if the key has never been set
+        if defaults.object(forKey: useTrustListKey) == nil {
+            return true
+        }
+        return defaults.bool(forKey: useTrustListKey)
     }
 
     func saveSeed(_ value: String) throws {

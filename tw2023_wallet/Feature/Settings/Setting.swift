@@ -12,6 +12,7 @@ struct Setting: View {
     @State private var showTermsOfUse = false
     @State private var preferSignedMetadata = false
     @State private var useDPoP = true
+    @State private var useTrustList = true
 
     var body: some View {
         NavigationStack {
@@ -46,6 +47,17 @@ struct Setting: View {
                 .padding(.vertical, 16)
                 .onChange(of: useDPoP) { _, newValue in
                     PreferencesDataStore.shared.setUseDPoP(newValue)
+                }
+
+                // trust list section
+                Text("trust_list").modifier(Title3Black())
+
+                Toggle(isOn: $useTrustList) {
+                    Text("use_trust_list").modifier(BodyBlack())
+                }
+                .padding(.vertical, 16)
+                .onChange(of: useTrustList) { _, newValue in
+                    PreferencesDataStore.shared.setUseTrustList(newValue)
                 }
 
                 // this app section
@@ -115,6 +127,7 @@ struct Setting: View {
             .onAppear {
                 preferSignedMetadata = PreferencesDataStore.shared.getPreferSignedMetadata()
                 useDPoP = PreferencesDataStore.shared.getUseDPoP()
+                useTrustList = PreferencesDataStore.shared.getUseTrustList()
             }
         }
     }
