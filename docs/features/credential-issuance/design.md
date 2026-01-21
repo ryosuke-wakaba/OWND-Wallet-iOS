@@ -37,77 +37,101 @@
 
 ```mermaid
 classDiagram
-    %% View Layer
-    class CredentialOfferViewModel {
-        <<ViewModel>>
+    namespace ViewLayer {
+        class CredentialOfferViewModel {
+            <<ViewModel>>
+        }
     }
 
-    %% Service Layer - Protocols
-    class CredentialIssuanceServiceProtocol {
-        <<protocol>>
-    }
-    class TokenIssuanceServiceProtocol {
-        <<protocol>>
-    }
-    class ProofGenerationServiceProtocol {
-        <<protocol>>
-    }
-    class CredentialRequestServiceProtocol {
-        <<protocol>>
-    }
-    class CredentialStorageServiceProtocol {
-        <<protocol>>
-    }
-
-    %% Service Layer - Implementations
-    class CredentialIssuanceService {
-        <<Facade>>
-    }
-    class TokenIssuanceService
-    class ProofGenerationService
-    class CredentialRequestService
-    class CredentialStorageService
-
-    %% VCI Layer
-    class VCIClient
-    class DPoPService {
-        <<enum>>
-    }
-    class WalletAttestationService {
-        <<Singleton>>
-        +generateClientAttestation()
-        +generateClientAttestationPoP()
+    namespace ServiceProtocols {
+        class CredentialIssuanceServiceProtocol {
+            <<protocol>>
+            +issueCredential()
+        }
+        class TokenIssuanceServiceProtocol {
+            <<protocol>>
+            +issueToken()
+            +fetchNonce()
+        }
+        class ProofGenerationServiceProtocol {
+            <<protocol>>
+            +generateProof()
+        }
+        class CredentialRequestServiceProtocol {
+            <<protocol>>
+            +requestCredential()
+        }
+        class CredentialStorageServiceProtocol {
+            <<protocol>>
+            +saveCredential()
+        }
     }
 
-    %% Data Layer
-    class CredentialDataManager
-    class PreferencesDataStore {
-        <<Singleton>>
+    namespace ServiceImplementations {
+        class CredentialIssuanceService {
+            <<Facade>>
+        }
+        class TokenIssuanceService
+        class ProofGenerationService
+        class CredentialRequestService
+        class CredentialStorageService
     }
 
-    %% Relationships
+    namespace VCILayer {
+        class VCIClient {
+            +issueToken()
+            +fetchNonce()
+            +issueCredential()
+        }
+        class DPoPService {
+            <<enum>>
+            +createProof()
+            +createProofWithAccessToken()
+        }
+        class WalletAttestationService {
+            <<Singleton>>
+            +getClientAttestation()
+            +generateClientAttestationPoP()
+        }
+    }
+
+    namespace DataLayer {
+        class CredentialDataManager
+        class PreferencesDataStore {
+            <<Singleton>>
+            +getUseDPoP()
+            +getUseClientAttestation()
+        }
+    }
+
+    %% View -> Service
     CredentialOfferViewModel --> CredentialIssuanceServiceProtocol : uses
     CredentialOfferViewModel --> PreferencesDataStore : reads settings
 
-    CredentialIssuanceService ..|> CredentialIssuanceServiceProtocol : implements
-    TokenIssuanceService ..|> TokenIssuanceServiceProtocol : implements
-    ProofGenerationService ..|> ProofGenerationServiceProtocol : implements
-    CredentialRequestService ..|> CredentialRequestServiceProtocol : implements
-    CredentialStorageService ..|> CredentialStorageServiceProtocol : implements
+    %% Protocol Implementations
+    CredentialIssuanceService ..|> CredentialIssuanceServiceProtocol
+    TokenIssuanceService ..|> TokenIssuanceServiceProtocol
+    ProofGenerationService ..|> ProofGenerationServiceProtocol
+    CredentialRequestService ..|> CredentialRequestServiceProtocol
+    CredentialStorageService ..|> CredentialStorageServiceProtocol
 
-    CredentialIssuanceService --> TokenIssuanceServiceProtocol : uses
-    CredentialIssuanceService --> ProofGenerationServiceProtocol : uses
-    CredentialIssuanceService --> CredentialRequestServiceProtocol : uses
-    CredentialIssuanceService --> CredentialStorageServiceProtocol : uses
+    %% Facade Dependencies
+    CredentialIssuanceService --> TokenIssuanceServiceProtocol
+    CredentialIssuanceService --> ProofGenerationServiceProtocol
+    CredentialIssuanceService --> CredentialRequestServiceProtocol
+    CredentialIssuanceService --> CredentialStorageServiceProtocol
     CredentialIssuanceService --> VCIClient : creates
 
-    TokenIssuanceService --> VCIClient : uses
-    TokenIssuanceService --> DPoPService : uses
-    VCIClient --> WalletAttestationService : uses (optional)
-    CredentialRequestService --> VCIClient : uses
-    CredentialRequestService --> DPoPService : uses
-    CredentialStorageService --> CredentialDataManager : uses
-    WalletAttestationService --> PreferencesDataStore : stores attestation
+    %% Service -> VCI Layer
+    TokenIssuanceService --> VCIClient
+    TokenIssuanceService --> DPoPService
+    CredentialRequestService --> VCIClient
+    CredentialRequestService --> DPoPService
+    VCIClient --> WalletAttestationService : optional
+
+    %% Data Layer
+    CredentialStorageService --> CredentialDataManager
+    WalletAttestationService --> PreferencesDataStore
 ```
 
 ## Layer Architecture
