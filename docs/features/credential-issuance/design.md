@@ -73,12 +73,21 @@ classDiagram
     class DPoPService {
         <<enum>>
     }
+    class WalletAttestationService {
+        <<Singleton>>
+        +generateClientAttestation()
+        +generateClientAttestationPoP()
+    }
 
     %% Data Layer
     class CredentialDataManager
+    class PreferencesDataStore {
+        <<Singleton>>
+    }
 
     %% Relationships
     CredentialOfferViewModel --> CredentialIssuanceServiceProtocol : uses
+    CredentialOfferViewModel --> PreferencesDataStore : reads settings
 
     CredentialIssuanceService ..|> CredentialIssuanceServiceProtocol : implements
     TokenIssuanceService ..|> TokenIssuanceServiceProtocol : implements
@@ -94,9 +103,11 @@ classDiagram
 
     TokenIssuanceService --> VCIClient : uses
     TokenIssuanceService --> DPoPService : uses
+    VCIClient --> WalletAttestationService : uses (optional)
     CredentialRequestService --> VCIClient : uses
     CredentialRequestService --> DPoPService : uses
     CredentialStorageService --> CredentialDataManager : uses
+    WalletAttestationService --> PreferencesDataStore : stores attestation
 ```
 
 ## Layer Architecture
@@ -106,8 +117,19 @@ classDiagram
 | View Layer | UI表示、ユーザー操作処理 |
 | Service Layer (Facade) | 発行フロー全体のオーケストレーション |
 | Service Layer (Individual) | 個別機能（トークン発行、Proof生成、リクエスト、保存） |
-| VCI Layer | OID4VCI プロトコル通信、DPoP Proof生成 |
-| Data Layer | CoreDataへの永続化 |
+| VCI Layer | OID4VCI プロトコル通信、DPoP Proof生成、Client Attestation |
+| Data Layer | CoreDataへの永続化、UserDefaultsへの設定保存 |
+
+## Settings
+
+設定画面から以下のオプションを制御可能：
+
+| 設定 | 説明 | デフォルト |
+|------|------|-----------|
+| Use DPoP | DPoP (RFC 9449) によるSender-Constrained Token | ON |
+| Use Client Authentication | OAuth 2.0 Attestation-Based Client Authentication | OFF |
+| Require Server Authentication | 署名付きメタデータを要求 | OFF |
+| Use Trust List | トラストリストによる証明書検証 | ON |
 
 ## Data Flow
 
@@ -124,20 +146,125 @@ graph TD
     E -->|Yes| F{Flow Type?}
     F -->|Pre-Authorized| G[Exchange Pre-Auth Code]
     F -->|Authorization| H[Authorization Flow - 未実装]
-    G --> I[Get Access Token with DPoP]
+    G --> I[Get Access Token]
     H -.-> I
     I --> J[Fetch Nonce + DPoP-Nonce]
     J --> K[Generate Key Pair]
     K --> L[Create KB-JWT]
-    L --> M[Request Credential with DPoP]
+    L --> M[Request Credential]
     M --> N[Validate Credential]
     N --> O[Store in CoreData]
     O --> P[Show Success]
+
+    subgraph Token Request Options
+        I --> I1{DPoP Enabled?}
+        I1 -->|Yes| I2[Add DPoP Header]
+        I --> I3{Client Auth Enabled?}
+        I3 -->|Yes| I4[Add Attestation Headers]
+    end
 ```
+
+## Token Request Authentication
+
+トークンリクエストでは、設定に応じて以下の認証方式を使用：
+
+### DPoP (RFC 9449)
+- 設定: `Use DPoP`
+- HTTPヘッダー: `DPoP: <dpop-proof-jwt>`
+- Sender-Constrained Tokenを実現
+
+### Client Attestation (OAuth 2.0 Attestation-Based Client Authentication)
+- 設定: `Use Client Authentication`
+- HTTPヘッダー:
+  - `OAuth-Client-Attestation: <client-attestation-jwt>`
+  - `OAuth-Client-Attestation-PoP: <client-attestation-pop-jwt>`
+
+#### Client Attestation JWT構造
+```
+Header:
+  typ: oauth-client-attestation+jwt
+  alg: ES256
+  x5c: [certificate-chain]
+
+Payload:
+  iss: <wallet-provider-identifier>
+  sub: <client-id>
+  exp: <expiration>
+  nbf: <not-before>
+  cnf: { jwk: <wallet-public-key> }
+  wallet_name: "OWND Wallet"
+  wallet_link: <url>
+```
+
+#### Client Attestation PoP JWT構造
+```
+Header:
+  typ: oauth-client-attestation-pop+jwt
+  alg: ES256
+
+Payload:
+  iss: <client-id>
+  aud: <authorization-server-issuer>
+  jti: <unique-identifier>
+  iat: <issued-at>
+```
+
+### 関連仕様
+- [OID4VCI Appendix E - Wallet Attestations](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-E)
+- [OAuth 2.0 Attestation-Based Client Authentication](https://drafts.oauth.net/draft-ietf-oauth-attestation-based-client-auth/draft-ietf-oauth-attestation-based-client-auth.html)
+- [HAIP 4.4.1 - Wallet Attestation](https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0-05.html#name-wallet-attestation)
 
 ## Sequence Diagram
 
-詳細なシーケンス図は将来追加予定。
+### Token Request with Client Attestation
+
+```mermaid
+sequenceDiagram
+    participant W as Wallet
+    participant WAS as WalletAttestationService
+    participant AS as Authorization Server
+
+    W->>WAS: getClientAttestation()
+    WAS-->>W: Client Attestation JWT
+
+    W->>WAS: generateClientAttestationPoP(audience)
+    WAS-->>W: Client Attestation PoP JWT
+
+    W->>AS: POST /token
+    Note over W,AS: Headers:<br/>OAuth-Client-Attestation: <jwt><br/>OAuth-Client-Attestation-PoP: <jwt><br/>DPoP: <dpop-proof> (optional)
+    AS-->>W: Access Token
+```
+
+### Full Credential Issuance Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as Wallet
+    participant I as Issuer
+
+    U->>W: Scan QR Code
+    W->>I: GET /.well-known/openid-credential-issuer
+    I-->>W: Credential Issuer Metadata
+    W->>I: GET /.well-known/oauth-authorization-server
+    I-->>W: Authorization Server Metadata
+
+    W->>U: Display Issuer Info
+    U->>W: Accept
+
+    W->>I: POST /token (with DPoP & Client Attestation)
+    I-->>W: Access Token
+
+    W->>I: POST /nonce
+    I-->>W: c_nonce, DPoP-Nonce
+
+    W->>W: Generate KB-JWT with c_nonce
+    W->>I: POST /credential (with DPoP)
+    I-->>W: Credential
+
+    W->>W: Store Credential
+    W->>U: Show Success
+```
 
 ## Accessibility
 
