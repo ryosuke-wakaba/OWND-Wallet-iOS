@@ -5,6 +5,7 @@
 //  Utilities for loading PEM-encoded keys and certificates from bundled files.
 //
 
+import CryptoKit
 import Foundation
 import Security
 
@@ -15,6 +16,7 @@ enum PEMUtils {
         case invalidPEMFormat
         case keyCreationFailed
         case certificateCreationFailed
+        case unsupportedKeyFormat
 
         var errorDescription: String? {
             switch self {
@@ -26,6 +28,8 @@ enum PEMUtils {
                 return "Failed to create key from PEM data"
             case .certificateCreationFailed:
                 return "Failed to create certificate from PEM data"
+            case .unsupportedKeyFormat:
+                return "Unsupported key format"
             }
         }
     }
@@ -41,21 +45,23 @@ enum PEMUtils {
     }
 
     /// Create SecKey from PEM-encoded private key string
+    /// Supports both PKCS#8 (-----BEGIN PRIVATE KEY-----) and SEC1 (-----BEGIN EC PRIVATE KEY-----) formats
     /// - Parameter pem: PEM-encoded private key string
     /// - Returns: SecKey private key
     static func createPrivateKey(fromPEM pem: String) throws -> SecKey {
-        // Extract base64 content from PEM
-        let base64Content = try extractBase64Content(
-            from: pem,
-            beginMarker: "-----BEGIN EC PRIVATE KEY-----",
-            endMarker: "-----END EC PRIVATE KEY-----",
-            alternateBeginMarker: "-----BEGIN PRIVATE KEY-----",
-            alternateEndMarker: "-----END PRIVATE KEY-----"
-        )
+        // Use CryptoKit to parse the PEM, which handles both PKCS#8 and SEC1 formats
+        let p256PrivateKey: P256.Signing.PrivateKey
 
-        guard let keyData = Data(base64Encoded: base64Content) else {
+        do {
+            p256PrivateKey = try P256.Signing.PrivateKey(pemRepresentation: pem)
+        } catch {
+            print("[PEMUtils] CryptoKit failed to parse PEM: \(error)")
             throw PEMError.invalidPEMFormat
         }
+
+        // Convert CryptoKit key to SecKey using x963 representation
+        // x963 format: 04 || x || y || d (65 bytes for public + 32 bytes for private = 97 bytes for P-256)
+        let x963Data = p256PrivateKey.x963Representation
 
         let attributes: [String: Any] = [
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
@@ -64,11 +70,12 @@ enum PEMUtils {
         ]
 
         var error: Unmanaged<CFError>?
-        guard let privateKey = SecKeyCreateWithData(keyData as CFData, attributes as CFDictionary, &error) else {
-            print("[PEMUtils] Failed to create private key: \(error?.takeRetainedValue().localizedDescription ?? "unknown")")
+        guard let privateKey = SecKeyCreateWithData(x963Data as CFData, attributes as CFDictionary, &error) else {
+            print("[PEMUtils] Failed to create SecKey from x963 data: \(error?.takeRetainedValue().localizedDescription ?? "unknown")")
             throw PEMError.keyCreationFailed
         }
 
+        print("[PEMUtils] Successfully loaded EC P-256 private key")
         return privateKey
     }
 
