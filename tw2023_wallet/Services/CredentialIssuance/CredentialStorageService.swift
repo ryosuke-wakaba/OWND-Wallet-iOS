@@ -7,8 +7,8 @@
 
 import Foundation
 
-/// Default implementation of CredentialStorageServiceProtocol
-class CredentialStorageService: CredentialStorageServiceProtocol {
+/// Service responsible for storing credentials
+class CredentialStorageService {
 
     private let credentialDataManager: CredentialDataManager
 

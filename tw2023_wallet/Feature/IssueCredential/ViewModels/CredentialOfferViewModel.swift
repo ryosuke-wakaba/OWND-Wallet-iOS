@@ -28,10 +28,9 @@ class CredentialOfferViewModel: ObservableObject {
     /// Error message to display in alert dialog
     @Published var errorMessage: String?
 
-    private let issuanceService: CredentialIssuanceServiceProtocol
+    private let issuanceService: CredentialIssuanceService
 
-    // Dependency injection with default implementation
-    init(issuanceService: CredentialIssuanceServiceProtocol = CredentialIssuanceService()) {
+    init(issuanceService: CredentialIssuanceService = CredentialIssuanceService()) {
         self.issuanceService = issuanceService
     }
 

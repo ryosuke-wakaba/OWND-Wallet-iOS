@@ -8,18 +8,18 @@
 import Foundation
 
 /// Facade service that orchestrates the complete credential issuance flow
-class CredentialIssuanceService: CredentialIssuanceServiceProtocol {
+class CredentialIssuanceService {
 
-    private let tokenService: TokenIssuanceServiceProtocol
-    private let proofService: ProofGenerationServiceProtocol
-    private let requestService: CredentialRequestServiceProtocol
-    private let storageService: CredentialStorageServiceProtocol
+    private let tokenService: TokenIssuanceService
+    private let proofService: ProofGenerationService
+    private let requestService: CredentialRequestService
+    private let storageService: CredentialStorageService
 
     init(
-        tokenService: TokenIssuanceServiceProtocol = TokenIssuanceService(),
-        proofService: ProofGenerationServiceProtocol = ProofGenerationService(),
-        requestService: CredentialRequestServiceProtocol = CredentialRequestService(),
-        storageService: CredentialStorageServiceProtocol = CredentialStorageService()
+        tokenService: TokenIssuanceService = TokenIssuanceService(),
+        proofService: ProofGenerationService = ProofGenerationService(),
+        requestService: CredentialRequestService = CredentialRequestService(),
+        storageService: CredentialStorageService = CredentialStorageService()
     ) {
         self.tokenService = tokenService
         self.proofService = proofService

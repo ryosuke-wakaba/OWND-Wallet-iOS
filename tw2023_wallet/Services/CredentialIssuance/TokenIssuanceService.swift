@@ -7,8 +7,24 @@
 
 import Foundation
 
-/// Default implementation of TokenIssuanceServiceProtocol
-class TokenIssuanceService: TokenIssuanceServiceProtocol {
+// MARK: - Data Types
+
+/// Result of token issuance including DPoP-related information
+struct TokenIssuanceResult {
+    let accessToken: String
+    let tokenType: String
+}
+
+/// Result of nonce fetch including DPoP nonce
+struct NonceResult {
+    let cNonce: String
+    let dpopNonce: String?
+}
+
+// MARK: - Service
+
+/// Service responsible for issuing OAuth tokens
+class TokenIssuanceService {
 
     func issueToken(vciClient: VCIClient, txCode: String?, useDPoP: Bool, useClientAttestation: Bool) async throws -> TokenIssuanceResult {
         print("[TokenService] Issuing token...")

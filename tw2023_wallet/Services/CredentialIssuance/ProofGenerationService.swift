@@ -7,8 +7,8 @@
 
 import Foundation
 
-/// Default implementation of ProofGenerationServiceProtocol
-class ProofGenerationService: ProofGenerationServiceProtocol {
+/// Service responsible for generating cryptographic proofs
+class ProofGenerationService {
 
     private let keyAlias: String
 

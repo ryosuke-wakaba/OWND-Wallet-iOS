@@ -136,7 +136,6 @@
 		8B8964AB2EC7150600DD917E /* TokenIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8964A12EC7150600DD917E /* TokenIssuanceService.swift */; };
 		8B8964AC2EC7150600DD917E /* CredentialRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649E2EC7150600DD917E /* CredentialRequestService.swift */; };
 		8B8964AD2EC7150600DD917E /* CredentialIssuanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */; };
-		8B8964AE2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */; };
 		8B91B1542B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B91B1532B6B9F3C00A1AA1A /* ScreensOnFullScreen.swift */; };
 		8BA7D7762F0BB08D0054F75E /* SignedMetadataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7752F0BB08D0054F75E /* SignedMetadataValidator.swift */; };
 		8BA7D7772F0BB08D0054F75E /* SignedMetadataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA7D7752F0BB08D0054F75E /* SignedMetadataValidator.swift */; };
@@ -442,7 +441,6 @@
 		8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWTParsingUtil.swift; sourceTree = "<group>"; };
 		8B8964972EC70CF100DD917E /* MetadataDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataDecoder.swift; sourceTree = "<group>"; };
 		8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialIssuanceService.swift; sourceTree = "<group>"; };
-		8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialIssuanceServiceProtocols.swift; sourceTree = "<group>"; };
 		8B89649E2EC7150600DD917E /* CredentialRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialRequestService.swift; sourceTree = "<group>"; };
 		8B89649F2EC7150600DD917E /* CredentialStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialStorageService.swift; sourceTree = "<group>"; };
 		8B8964A02EC7150600DD917E /* ProofGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProofGenerationService.swift; sourceTree = "<group>"; };
@@ -1073,7 +1071,6 @@
 			isa = PBXGroup;
 			children = (
 				8B89649C2EC7150600DD917E /* CredentialIssuanceService.swift */,
-				8B89649D2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift */,
 				8B89649E2EC7150600DD917E /* CredentialRequestService.swift */,
 				8B89649F2EC7150600DD917E /* CredentialStorageService.swift */,
 				8B8964A02EC7150600DD917E /* ProofGenerationService.swift */,
@@ -1800,7 +1797,6 @@
 				8B8964AB2EC7150600DD917E /* TokenIssuanceService.swift in Sources */,
 				8B8964AC2EC7150600DD917E /* CredentialRequestService.swift in Sources */,
 				8B8964AD2EC7150600DD917E /* CredentialIssuanceService.swift in Sources */,
-				8B8964AE2EC7150600DD917E /* CredentialIssuanceServiceProtocols.swift in Sources */,
 				A8C810442B82042300CF8CD6 /* SharingToRow.swift in Sources */,
 				A89297542B3AA151007315BE /* ZipUtil.swift in Sources */,
 				A83039CB2B4E6E92004139A7 /* credential_sharing_history.proto in Sources */,

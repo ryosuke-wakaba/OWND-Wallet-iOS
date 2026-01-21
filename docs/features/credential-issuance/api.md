@@ -290,7 +290,6 @@ let pop = try WalletAttestationService.shared.generateClientAttestationPoP(
 | `tw2023_wallet/Services/WalletAttestation/WalletAttestationService.swift` | Wallet Attestation Service実装 |
 | `tw2023_wallet/Services/CredentialIssuance/CredentialIssuanceService.swift` | Credential Issuance Facade |
 | `tw2023_wallet/Services/CredentialIssuance/TokenIssuanceService.swift` | Token Issuance Service |
-| `tw2023_wallet/Services/CredentialIssuance/CredentialIssuanceServiceProtocols.swift` | Service Protocols |
 | `tw2023_wallet/Utils/PEMUtils.swift` | PEM file loading utilities |
 | `tw2023_wallet/datastore/PreferencesDataStore.swift` | Settings storage |
 

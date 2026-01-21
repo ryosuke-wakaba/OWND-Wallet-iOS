@@ -43,38 +43,24 @@ classDiagram
         }
     }
 
-    namespace ServiceProtocols {
-        class CredentialIssuanceServiceProtocol {
-            <<protocol>>
+    namespace ServiceLayer {
+        class CredentialIssuanceService {
+            <<Facade>>
             +issueCredential()
         }
-        class TokenIssuanceServiceProtocol {
-            <<protocol>>
+        class TokenIssuanceService {
             +issueToken()
             +fetchNonce()
         }
-        class ProofGenerationServiceProtocol {
-            <<protocol>>
+        class ProofGenerationService {
             +generateProof()
         }
-        class CredentialRequestServiceProtocol {
-            <<protocol>>
+        class CredentialRequestService {
             +requestCredential()
         }
-        class CredentialStorageServiceProtocol {
-            <<protocol>>
+        class CredentialStorageService {
             +saveCredential()
         }
-    }
-
-    namespace ServiceImplementations {
-        class CredentialIssuanceService {
-            <<Facade>>
-        }
-        class TokenIssuanceService
-        class ProofGenerationService
-        class CredentialRequestService
-        class CredentialStorageService
     }
 
     namespace VCILayer {
@@ -105,21 +91,14 @@ classDiagram
     }
 
     %% View -> Service
-    CredentialOfferViewModel --> CredentialIssuanceServiceProtocol : uses
+    CredentialOfferViewModel --> CredentialIssuanceService : uses
     CredentialOfferViewModel --> PreferencesDataStore : reads settings
 
-    %% Protocol Implementations
-    CredentialIssuanceService ..|> CredentialIssuanceServiceProtocol
-    TokenIssuanceService ..|> TokenIssuanceServiceProtocol
-    ProofGenerationService ..|> ProofGenerationServiceProtocol
-    CredentialRequestService ..|> CredentialRequestServiceProtocol
-    CredentialStorageService ..|> CredentialStorageServiceProtocol
-
     %% Facade Dependencies
-    CredentialIssuanceService --> TokenIssuanceServiceProtocol
-    CredentialIssuanceService --> ProofGenerationServiceProtocol
-    CredentialIssuanceService --> CredentialRequestServiceProtocol
-    CredentialIssuanceService --> CredentialStorageServiceProtocol
+    CredentialIssuanceService --> TokenIssuanceService
+    CredentialIssuanceService --> ProofGenerationService
+    CredentialIssuanceService --> CredentialRequestService
+    CredentialIssuanceService --> CredentialStorageService
     CredentialIssuanceService --> VCIClient : creates
 
     %% Service -> VCI Layer
