@@ -1558,6 +1558,23 @@
         }
       }
     },
+    "use_client_attestation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Client Authentication"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クライアント認証を使用する"
+          }
+        }
+      }
+    },
     "use_trust_list" : {
       "extractionState" : "manual",
       "localizations" : {

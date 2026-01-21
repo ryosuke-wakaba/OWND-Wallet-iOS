@@ -28,10 +28,9 @@ class CredentialOfferViewModel: ObservableObject {
     /// Error message to display in alert dialog
     @Published var errorMessage: String?
 
-    private let issuanceService: CredentialIssuanceServiceProtocol
+    private let issuanceService: CredentialIssuanceService
 
-    // Dependency injection with default implementation
-    init(issuanceService: CredentialIssuanceServiceProtocol = CredentialIssuanceService()) {
+    init(issuanceService: CredentialIssuanceService = CredentialIssuanceService()) {
         self.issuanceService = issuanceService
     }
 
@@ -43,14 +42,16 @@ class CredentialOfferViewModel: ObservableObject {
             throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
-        // Delegate to service layer with DPoP setting from preferences
+        // Delegate to service layer with DPoP and Client Attestation settings from preferences
         let useDPoP = PreferencesDataStore.shared.getUseDPoP()
+        let useClientAttestation = PreferencesDataStore.shared.getUseClientAttestation()
         try await issuanceService.issueCredential(
             credentialOffer: offer,
             metadata: metadata,
             credentialConfigurationId: configId,
             txCode: txCode,
-            useDPoP: useDPoP
+            useDPoP: useDPoP,
+            useClientAttestation: useClientAttestation
         )
     }
 

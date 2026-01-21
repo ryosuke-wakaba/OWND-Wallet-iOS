@@ -7,8 +7,8 @@
 
 import Foundation
 
-/// Default implementation of CredentialRequestServiceProtocol
-class CredentialRequestService: CredentialRequestServiceProtocol {
+/// Service responsible for requesting credentials
+class CredentialRequestService {
 
     func requestCredential(
         vciClient: VCIClient,
