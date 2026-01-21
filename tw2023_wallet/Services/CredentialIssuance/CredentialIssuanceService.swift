@@ -32,7 +32,8 @@ class CredentialIssuanceService: CredentialIssuanceServiceProtocol {
         metadata: Metadata,
         credentialConfigurationId: String,
         txCode: String?,
-        useDPoP: Bool = true
+        useDPoP: Bool = true,
+        useClientAttestation: Bool = false
     ) async throws {
         print("[Issuance] ================================================")
         print("[Issuance] Starting Credential Issuance Flow")
@@ -40,6 +41,7 @@ class CredentialIssuanceService: CredentialIssuanceServiceProtocol {
         print("[Issuance] Credential Issuer: \(credentialOffer.credentialIssuer)")
         print("[Issuance] Credential Configuration ID: \(credentialConfigurationId)")
         print("[Issuance] DPoP Enabled: \(useDPoP)")
+        print("[Issuance] Client Attestation Enabled: \(useClientAttestation)")
         print("[Issuance] TX Code Provided: \(txCode != nil)")
 
         // Initialize VCI Client
@@ -49,12 +51,13 @@ class CredentialIssuanceService: CredentialIssuanceServiceProtocol {
         print("[Issuance] Token Endpoint: \(vciClient.getTokenEndpoint())")
         print("[Issuance] Credential Endpoint: \(vciClient.getCredentialEndpoint())")
 
-        // Step 1: Issue token (with optional DPoP)
+        // Step 1: Issue token (with optional DPoP and Client Attestation)
         print("[Issuance] ---- Step 1: Token Issuance ----")
         let tokenResult = try await tokenService.issueToken(
             vciClient: vciClient,
             txCode: txCode,
-            useDPoP: useDPoP
+            useDPoP: useDPoP,
+            useClientAttestation: useClientAttestation
         )
         print("[Issuance] Token issued successfully")
         print("[Issuance] Token Type: \(tokenResult.tokenType)")

@@ -17,6 +17,8 @@ class PreferencesDataStore {
     private let preferSignedMetadataKey = "prefer_signed_metadata"
     private let useDPoPKey = "use_dpop"
     private let useTrustListKey = "use_trust_list"
+    private let useClientAttestationKey = "use_client_attestation"
+    private let clientAttestationJwtKey = "client_attestation_jwt"
 
     func saveLastBackupAtKey(_ value: String) {
         defaults.set(value, forKey: lastBackupAtKey)
@@ -56,6 +58,29 @@ class PreferencesDataStore {
             return true
         }
         return defaults.bool(forKey: useTrustListKey)
+    }
+
+    // MARK: - Client Attestation Settings
+
+    func setUseClientAttestation(_ value: Bool) {
+        defaults.set(value, forKey: useClientAttestationKey)
+    }
+
+    func getUseClientAttestation() -> Bool {
+        // Return false (disabled) if the key has never been set
+        return defaults.bool(forKey: useClientAttestationKey)
+    }
+
+    func saveClientAttestationJwt(_ value: String) {
+        defaults.set(value, forKey: clientAttestationJwtKey)
+    }
+
+    func getClientAttestationJwt() -> String? {
+        defaults.string(forKey: clientAttestationJwtKey)
+    }
+
+    func clearClientAttestationJwt() {
+        defaults.removeObject(forKey: clientAttestationJwtKey)
     }
 
     func saveSeed(_ value: String) throws {

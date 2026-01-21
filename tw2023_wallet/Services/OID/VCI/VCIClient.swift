@@ -288,6 +288,7 @@ func createCredentialRequest(
 
 func postTokenRequest(
     to url: URL, with tokenRequest: OAuthTokenRequest, dpopProof: String? = nil,
+    clientAttestation: String? = nil, clientAttestationPoP: String? = nil,
     using session: URLSession = URLSession.shared
 ) async throws -> OAuthTokenResponse {
     var request = URLRequest(url: url)
@@ -297,6 +298,14 @@ func postTokenRequest(
     // Add DPoP header if provided
     if let dpopProof = dpopProof {
         request.setValue(dpopProof, forHTTPHeaderField: "DPoP")
+    }
+
+    // Add Client Attestation headers if provided (OAuth 2.0 Attestation-Based Client Authentication)
+    if let clientAttestation = clientAttestation {
+        request.setValue(clientAttestation, forHTTPHeaderField: "OAuth-Client-Attestation")
+    }
+    if let clientAttestationPoP = clientAttestationPoP {
+        request.setValue(clientAttestationPoP, forHTTPHeaderField: "OAuth-Client-Attestation-PoP")
     }
 
     let encoder = URLEncodedFormEncoder()
@@ -313,6 +322,15 @@ func postTokenRequest(
         print("[VCI] DPoP header length: \(dpopProof.count) characters")
     } else {
         print("[VCI] DPoP: Disabled (no DPoP header)")
+    }
+    if clientAttestation != nil {
+        print("[VCI] Client Attestation: Enabled")
+        print("[VCI] OAuth-Client-Attestation header length: \(clientAttestation!.count) characters")
+        if let pop = clientAttestationPoP {
+            print("[VCI] OAuth-Client-Attestation-PoP header length: \(pop.count) characters")
+        }
+    } else {
+        print("[VCI] Client Attestation: Disabled")
     }
     print("[VCI] =====================================")
 
@@ -523,15 +541,19 @@ class VCIClient {
         credentialEndpoint = credentialEndpointUrl
     }
 
-    /// Issue token with optional DPoP support
+    /// Issue token with optional DPoP and Client Attestation support
     /// - Parameters:
     ///   - txCode: Transaction code if required
     ///   - useDPoP: Whether to use DPoP for sender-constrained tokens
+    ///   - useClientAttestation: Whether to use Client Attestation for authentication
     ///   - session: URLSession to use
     /// - Returns: OAuth token response
-    func issueToken(txCode: String?, useDPoP: Bool = false, using session: URLSession = URLSession.shared) async throws
-        -> OAuthTokenResponse
-    {
+    func issueToken(
+        txCode: String?,
+        useDPoP: Bool = false,
+        useClientAttestation: Bool = false,
+        using session: URLSession = URLSession.shared
+    ) async throws -> OAuthTokenResponse {
         let grants = credentialOffer.grants
 
         let tokenRequest: OAuthTokenRequest = OAuthTokenRequest(
@@ -551,8 +573,25 @@ class VCIClient {
             )
         }
 
+        // Get Client Attestation headers if enabled
+        var clientAttestation: String? = nil
+        var clientAttestationPoP: String? = nil
+        if useClientAttestation {
+            do {
+                clientAttestation = try WalletAttestationService.shared.getClientAttestation()
+                // Use the Authorization Server's issuer URL as audience for PoP
+                let audience = metadata.authorizationServerMetadata.issuer ?? tokenEndpoint.absoluteString
+                clientAttestationPoP = try WalletAttestationService.shared.generateClientAttestationPoP(audience: audience)
+            } catch {
+                print("[VCI] Warning: Failed to get Client Attestation: \(error)")
+                // Continue without attestation if it fails
+            }
+        }
+
         return try await postTokenRequest(
-            to: tokenEndpoint, with: tokenRequest, dpopProof: dpopProof, using: session)
+            to: tokenEndpoint, with: tokenRequest, dpopProof: dpopProof,
+            clientAttestation: clientAttestation, clientAttestationPoP: clientAttestationPoP,
+            using: session)
     }
 
     /// Issue credential with optional DPoP support

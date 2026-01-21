@@ -179,6 +179,10 @@
 		8BF1A1C72ED0400E008CE820 /* dcqlQuery.json in Resources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */; };
 		8BF1A1C92ED07045008CE820 /* JWE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWE.swift */; };
 		8BF1A1CA2ED07045008CE820 /* JWE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF1A1C82ED07045008CE820 /* JWE.swift */; };
+		8BF53E202F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */; };
+		8BF53E212F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */; };
+		8BF53E232F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
+		8BF53E242F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
 		8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF745982B4FF85F000F74A9 /* JOSESwift */; };
 		A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
@@ -466,6 +470,8 @@
 		8BF1A1C12ED03FE9008CE820 /* DCQLMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCQLMatcher.swift; sourceTree = "<group>"; };
 		8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = dcqlQuery.json; sourceTree = "<group>"; };
 		8BF1A1C82ED07045008CE820 /* JWE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWE.swift; sourceTree = "<group>"; };
+		8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletAttestationService.swift; sourceTree = "<group>"; };
+		8BF53E222F20B4D300E346E5 /* PEMUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PEMUtils.swift; sourceTree = "<group>"; };
 		A80BFE752CAD070A00E30249 /* ProviderUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUtils.swift; sourceTree = "<group>"; };
 		A80FFF322B7F3D300076718E /* SharingToViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A80FFF342B7F3D990076718E /* SharingToModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
@@ -662,6 +668,7 @@
 		8B297C312B393B5600D2998D /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				8BF53E1F2F20B4BD00E346E5 /* WalletAttestation */,
 				8BA7D77C2F0DF2AE0054F75E /* TrustedList */,
 				8B8964A22EC7150600DD917E /* CredentialIssuance */,
 				8B0E0A952B3BC3790080F6A3 /* Pairwise */,
@@ -1118,6 +1125,14 @@
 			path = Helper;
 			sourceTree = "<group>";
 		};
+		8BF53E1F2F20B4BD00E346E5 /* WalletAttestation */ = {
+			isa = PBXGroup;
+			children = (
+				8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */,
+			);
+			path = WalletAttestation;
+			sourceTree = "<group>";
+		};
 		A81087102B3B0694004425DE /* Signature */ = {
 			isa = PBXGroup;
 			children = (
@@ -1348,6 +1363,7 @@
 		A8E8922E2B3A6FBC009F3755 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				8BF53E222F20B4D300E346E5 /* PEMUtils.swift */,
 				8B8964962EC70CF100DD917E /* JWTParsingUtil.swift */,
 				8B8964972EC70CF100DD917E /* MetadataDecoder.swift */,
 				A8E8922F2B3A705D009F3755 /* SerializeUtil.swift */,
@@ -1790,6 +1806,7 @@
 				8B80569F2B60E2FB009A87C8 /* PreferencesDataStore.swift in Sources */,
 				A82ECC802C23A6AB00B9784B /* UrlEncoder.swift in Sources */,
 				A84AB6F02B4FC0C200E8C88B /* credential_data.pb.swift in Sources */,
+				8BF53E212F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */,
 				8B2AF5D32ED6E07600F5FE17 /* PersistenceController.swift in Sources */,
 				F699A8C42B3D6EE400F60B91 /* CredentialOfferModel.swift in Sources */,
 				F6A239A42B4E284C00B09F17 /* ClientInfo.swift in Sources */,
@@ -1858,6 +1875,7 @@
 				F6E0A0192B3FFE8C00C2B541 /* CredentialSubjectLow.swift in Sources */,
 				8B43AE342B3A81960016CF83 /* Enums.swift in Sources */,
 				F6EECE542B6B82DD00011E12 /* RecipientList.swift in Sources */,
+				8BF53E242F20B4D300E346E5 /* PEMUtils.swift in Sources */,
 				8B2AF5D52ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */,
 				8B4CAB6E2B7F60440006FF4D /* FileDocument.swift in Sources */,
 				8BA7D77D2F0DF2AE0054F75E /* TrustedListModels.swift in Sources */,
@@ -1966,6 +1984,7 @@
 				8BB2BA7A2B4BC95700C668BA /* AuthenticationView.swift in Sources */,
 				8B27ECCF2EFB86E100A00345 /* DPoPService.swift in Sources */,
 				8B5C659F2B552C2700D72289 /* VerificationArgs.swift in Sources */,
+				8BF53E202F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */,
 				8BB2BA752B4BC46400C668BA /* BiometricAuth.swift in Sources */,
 				8B5370942EDEB9D800E87858 /* X509HashValidationTests.swift in Sources */,
 				8B0E0AAA2B3EEFC20080F6A3 /* AuthRequest.swift in Sources */,
@@ -1983,6 +2002,7 @@
 				8B43AE302B3A5B2C0016CF83 /* MockURLProtocol.swift in Sources */,
 				A8AF228D2C12A6C100D6EDA5 /* RestoreHelperTests.swift in Sources */,
 				8B3706FF2F1A3483006B5C4D /* JAdESSignatureVerifierTests.swift in Sources */,
+				8BF53E232F20B4D300E346E5 /* PEMUtils.swift in Sources */,
 				8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */,
 				8B2AF5DA2ED6EC1F00F5FE17 /* X509ChainValidationTests.swift in Sources */,
 				8B43AE352B3A81960016CF83 /* Enums.swift in Sources */,

@@ -30,8 +30,9 @@ protocol TokenIssuanceServiceProtocol {
     ///   - vciClient: The VCI client
     ///   - txCode: Optional transaction code (PIN)
     ///   - useDPoP: Whether to use DPoP for sender-constrained tokens
+    ///   - useClientAttestation: Whether to use Client Attestation for authentication
     /// - Returns: The token issuance result
-    func issueToken(vciClient: VCIClient, txCode: String?, useDPoP: Bool) async throws -> TokenIssuanceResult
+    func issueToken(vciClient: VCIClient, txCode: String?, useDPoP: Bool, useClientAttestation: Bool) async throws -> TokenIssuanceResult
 
     /// Fetch a fresh nonce for proof generation
     /// - Parameter vciClient: The VCI client
@@ -108,11 +109,13 @@ protocol CredentialIssuanceServiceProtocol {
     ///   - credentialConfigurationId: The credential configuration ID
     ///   - txCode: Optional transaction code (PIN)
     ///   - useDPoP: Whether to use DPoP for sender-constrained tokens (default: true)
+    ///   - useClientAttestation: Whether to use Client Attestation for authentication (default: false)
     func issueCredential(
         credentialOffer: CredentialOffer,
         metadata: Metadata,
         credentialConfigurationId: String,
         txCode: String?,
-        useDPoP: Bool
+        useDPoP: Bool,
+        useClientAttestation: Bool
     ) async throws
 }

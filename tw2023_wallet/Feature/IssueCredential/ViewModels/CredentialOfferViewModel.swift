@@ -43,14 +43,16 @@ class CredentialOfferViewModel: ObservableObject {
             throw CredentialIssuanceError.loadDataDidNotFinishSuccessfully
         }
 
-        // Delegate to service layer with DPoP setting from preferences
+        // Delegate to service layer with DPoP and Client Attestation settings from preferences
         let useDPoP = PreferencesDataStore.shared.getUseDPoP()
+        let useClientAttestation = PreferencesDataStore.shared.getUseClientAttestation()
         try await issuanceService.issueCredential(
             credentialOffer: offer,
             metadata: metadata,
             credentialConfigurationId: configId,
             txCode: txCode,
-            useDPoP: useDPoP
+            useDPoP: useDPoP,
+            useClientAttestation: useClientAttestation
         )
     }
 

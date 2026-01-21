@@ -13,6 +13,7 @@ struct Setting: View {
     @State private var preferSignedMetadata = false
     @State private var useDPoP = true
     @State private var useTrustList = true
+    @State private var useClientAttestation = false
 
     var body: some View {
         NavigationStack {
@@ -47,6 +48,25 @@ struct Setting: View {
                 .padding(.vertical, 16)
                 .onChange(of: useDPoP) { _, newValue in
                     PreferencesDataStore.shared.setUseDPoP(newValue)
+                }
+
+                Toggle(isOn: $useClientAttestation) {
+                    Text("use_client_attestation").modifier(BodyBlack())
+                }
+                .padding(.vertical, 16)
+                .onChange(of: useClientAttestation) { _, newValue in
+                    PreferencesDataStore.shared.setUseClientAttestation(newValue)
+                    if newValue {
+                        Task {
+                            do {
+                                try await WalletAttestationService.shared.generateAndStoreClientAttestation()
+                            } catch {
+                                print("[Settings] Failed to generate client attestation: \(error)")
+                            }
+                        }
+                    } else {
+                        PreferencesDataStore.shared.clearClientAttestationJwt()
+                    }
                 }
 
                 // trust list section
@@ -128,6 +148,7 @@ struct Setting: View {
                 preferSignedMetadata = PreferencesDataStore.shared.getPreferSignedMetadata()
                 useDPoP = PreferencesDataStore.shared.getUseDPoP()
                 useTrustList = PreferencesDataStore.shared.getUseTrustList()
+                useClientAttestation = PreferencesDataStore.shared.getUseClientAttestation()
             }
         }
     }

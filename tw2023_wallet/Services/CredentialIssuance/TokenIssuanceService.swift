@@ -10,13 +10,18 @@ import Foundation
 /// Default implementation of TokenIssuanceServiceProtocol
 class TokenIssuanceService: TokenIssuanceServiceProtocol {
 
-    func issueToken(vciClient: VCIClient, txCode: String?, useDPoP: Bool) async throws -> TokenIssuanceResult {
+    func issueToken(vciClient: VCIClient, txCode: String?, useDPoP: Bool, useClientAttestation: Bool) async throws -> TokenIssuanceResult {
         print("[TokenService] Issuing token...")
         print("[TokenService] Token Endpoint: \(vciClient.getTokenEndpoint())")
         print("[TokenService] DPoP Enabled: \(useDPoP)")
+        print("[TokenService] Client Attestation Enabled: \(useClientAttestation)")
         print("[TokenService] TX Code Provided: \(txCode != nil)")
 
-        let token = try await vciClient.issueToken(txCode: txCode, useDPoP: useDPoP)
+        let token = try await vciClient.issueToken(
+            txCode: txCode,
+            useDPoP: useDPoP,
+            useClientAttestation: useClientAttestation
+        )
 
         print("[TokenService] Token issued successfully")
         print("[TokenService] Token Type: \(token.tokenType)")
