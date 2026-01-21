@@ -183,6 +183,8 @@
 		8BF53E212F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */; };
 		8BF53E232F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
 		8BF53E242F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
+		8BF53E272F20B71500E346E5 /* wallet_provider_key.pem in Resources */ = {isa = PBXBuildFile; fileRef = 8BF53E262F20B71500E346E5 /* wallet_provider_key.pem */; };
+		8BF53E282F20B71500E346E5 /* wallet_provider_cert.pem in Resources */ = {isa = PBXBuildFile; fileRef = 8BF53E252F20B71500E346E5 /* wallet_provider_cert.pem */; };
 		8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF745982B4FF85F000F74A9 /* JOSESwift */; };
 		A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
@@ -472,6 +474,8 @@
 		8BF1A1C82ED07045008CE820 /* JWE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWE.swift; sourceTree = "<group>"; };
 		8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletAttestationService.swift; sourceTree = "<group>"; };
 		8BF53E222F20B4D300E346E5 /* PEMUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PEMUtils.swift; sourceTree = "<group>"; };
+		8BF53E252F20B71500E346E5 /* wallet_provider_cert.pem */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet_provider_cert.pem; sourceTree = "<group>"; };
+		8BF53E262F20B71500E346E5 /* wallet_provider_key.pem */ = {isa = PBXFileReference; lastKnownFileType = text; path = wallet_provider_key.pem; sourceTree = "<group>"; };
 		A80BFE752CAD070A00E30249 /* ProviderUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUtils.swift; sourceTree = "<group>"; };
 		A80FFF322B7F3D300076718E /* SharingToViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A80FFF342B7F3D990076718E /* SharingToModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
@@ -918,6 +922,8 @@
 		8B81E2E02B34320000ED3B4E /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				8BF53E252F20B71500E346E5 /* wallet_provider_cert.pem */,
+				8BF53E262F20B71500E346E5 /* wallet_provider_key.pem */,
 				8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */,
 				F6D913D82B53D5EE001D804D /* jwtVcJsonClaim.json */,
 				F6A239A52B4E2A6500B09F17 /* clientInfo.json */,
@@ -1668,6 +1674,8 @@
 				8B0E0AB22B4054E80080F6A3 /* presentation_definition.json in Resources */,
 				8BF1A1C72ED0400E008CE820 /* dcqlQuery.json in Resources */,
 				8B81E2A42B33CC4200ED3B4E /* Preview Assets.xcassets in Resources */,
+				8BF53E272F20B71500E346E5 /* wallet_provider_key.pem in Resources */,
+				8BF53E282F20B71500E346E5 /* wallet_provider_cert.pem in Resources */,
 				F657D5C72B3C44F100901A6A /* sharingHistoryData.json in Resources */,
 				A8AB4BC82C295C9500C009A1 /* credential_offer_tx_code_required.json in Resources */,
 				A8AB4BD02C296AB900C009A1 /* claim_map_empty.json in Resources */,
