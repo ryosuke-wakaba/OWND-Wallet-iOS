@@ -249,110 +249,14 @@ class WalletAttestationService {
         print("[WalletAttestation]   exp: \(exp)")
         print("[WalletAttestation]   wallet_name: \(Constants.WalletAttestation.WALLET_NAME)")
 
-        // Sign with provider's private key
-        let jwt = try signJwtWithSecKey(
-            privateKey: providerPrivateKey,
-            header: header,
-            payload: payload
-        )
-
-        return jwt
-    }
-
-    /// Sign JWT with a SecKey (provider's private key)
-    /// - Parameters:
-    ///   - privateKey: SecKey private key for signing
-    ///   - header: JWT header dictionary
-    ///   - payload: JWT payload dictionary
-    /// - Returns: Signed JWT string
-    private func signJwtWithSecKey(
-        privateKey: SecKey,
-        header: [String: Any],
-        payload: [String: Any]
-    ) throws -> String {
-        // Encode header and payload to base64url
-        guard let headerData = try? JSONSerialization.data(withJSONObject: header),
-              let payloadData = try? JSONSerialization.data(withJSONObject: payload) else {
-            throw WalletAttestationError.signingFailed("Failed to serialize header/payload")
+        // Sign with provider's private key using JWTOperations
+        let result = JWTOperations.sign(privateKey: providerPrivateKey, header: header, payload: payload)
+        switch result {
+        case .success(let jwt):
+            return jwt
+        case .failure(let error):
+            throw WalletAttestationError.signingFailed("\(error)")
         }
-
-        let headerBase64 = headerData.base64URLEncodedString()
-        let payloadBase64 = payloadData.base64URLEncodedString()
-        let tbsContent = "\(headerBase64).\(payloadBase64)"
-
-        guard let tbsData = tbsContent.data(using: .utf8) else {
-            throw WalletAttestationError.signingFailed("Failed to encode TBS content")
-        }
-
-        // Sign with ES256
-        let algorithm: SecKeyAlgorithm = .ecdsaSignatureMessageX962SHA256
-
-        guard SecKeyIsAlgorithmSupported(privateKey, .sign, algorithm) else {
-            throw WalletAttestationError.signingFailed("Algorithm not supported")
-        }
-
-        var error: Unmanaged<CFError>?
-        guard let signature = SecKeyCreateSignature(
-            privateKey,
-            algorithm,
-            tbsData as CFData,
-            &error
-        ) as Data? else {
-            let errorDesc = error?.takeRetainedValue().localizedDescription ?? "unknown"
-            throw WalletAttestationError.signingFailed(errorDesc)
-        }
-
-        // Convert DER signature to JWT format (r||s)
-        let jwtSignature = try convertDERSignatureToJWT(signature)
-        let signatureBase64 = jwtSignature.base64URLEncodedString()
-
-        return "\(tbsContent).\(signatureBase64)"
-    }
-
-    /// Convert DER-encoded ECDSA signature to JWT format (r||s concatenation)
-    private func convertDERSignatureToJWT(_ derSignature: Data) throws -> Data {
-        // DER signature format: 0x30 [length] 0x02 [r-length] [r] 0x02 [s-length] [s]
-        let bytes = [UInt8](derSignature)
-
-        guard bytes.count > 8,
-              bytes[0] == 0x30 else {
-            throw WalletAttestationError.signingFailed("Invalid DER signature format")
-        }
-
-        var index = 2 // Skip 0x30 and length byte
-
-        // Parse r
-        guard bytes[index] == 0x02 else {
-            throw WalletAttestationError.signingFailed("Invalid DER signature: expected INTEGER tag for r")
-        }
-        index += 1
-        let rLength = Int(bytes[index])
-        index += 1
-        var r = Data(bytes[index..<(index + rLength)])
-        index += rLength
-
-        // Parse s
-        guard bytes[index] == 0x02 else {
-            throw WalletAttestationError.signingFailed("Invalid DER signature: expected INTEGER tag for s")
-        }
-        index += 1
-        let sLength = Int(bytes[index])
-        index += 1
-        var s = Data(bytes[index..<(index + sLength)])
-
-        // Remove leading zero bytes (ASN.1 integer padding)
-        if r.count == 33 && r[0] == 0x00 {
-            r = r.dropFirst()
-        }
-        if s.count == 33 && s[0] == 0x00 {
-            s = s.dropFirst()
-        }
-
-        // Pad to 32 bytes if needed
-        while r.count < 32 { r.insert(0x00, at: 0) }
-        while s.count < 32 { s.insert(0x00, at: 0) }
-
-        return r + s
     }
 
     /// Check if attestation JWT is expired

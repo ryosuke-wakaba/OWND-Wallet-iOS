@@ -152,13 +152,22 @@ enum JWTOperations {
      In addition, appropriate libraries may be introduced as a means to achieve this.
      */
 
+    /// Sign JWT using a key alias (retrieves key from KeyPairUtil)
     static func sign(keyAlias: String, header: [String: Any], payload: [String: Any])
         -> Result<String, SigningError>
     {
         guard let privateKey = KeyPairUtil.getPrivateKey(alias: keyAlias) else {
             return .failure(.signingKeyNotFound)
         }
+        return sign(privateKey: privateKey, header: header, payload: payload)
+    }
 
+    /// Sign JWT using a SecKey directly
+    /// Use this overload when you have a SecKey from a source other than KeyPairUtil
+    /// (e.g., loaded from a PEM file)
+    static func sign(privateKey: SecKey, header: [String: Any], payload: [String: Any])
+        -> Result<String, SigningError>
+    {
         guard
             let h = try? header.toBase64UrlString(),
             let p = try? payload.toBase64UrlString()
