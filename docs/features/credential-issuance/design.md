@@ -219,31 +219,11 @@ Payload:
 
 ## Sequence Diagram
 
-### Token Request with Client Attestation
-
-```mermaid
-sequenceDiagram
-    participant W as Wallet
-    participant WAS as WalletAttestationService
-    participant AS as Authorization Server
-
-    W->>WAS: getClientAttestation()
-    WAS-->>W: Client Attestation JWT
-
-    W->>WAS: generateClientAttestationPoP(audience)
-    WAS-->>W: Client Attestation PoP JWT
-
-    W->>AS: POST /token
-    Note over W,AS: Headers:<br/>OAuth-Client-Attestation: <jwt><br/>OAuth-Client-Attestation-PoP: <jwt><br/>DPoP: <dpop-proof> (optional)
-    AS-->>W: Access Token
-```
-
-### Full Credential Issuance Flow
-
 ```mermaid
 sequenceDiagram
     participant U as User
     participant W as Wallet
+    participant WP as Wallet Provider
     participant I as Issuer
 
     U->>W: Scan QR Code
@@ -255,7 +235,15 @@ sequenceDiagram
     W->>U: Display Issuer Info
     U->>W: Accept
 
-    W->>I: POST /token (with DPoP & Client Attestation)
+    opt Client Attestation Enabled
+        W->>WP: Request Client Attestation
+        Note over W,WP: 現在はテスト目的で<br/>Wallet Provider処理を内部実装
+        WP-->>W: Client Attestation JWT
+        W->>W: Generate Client Attestation PoP
+    end
+
+    W->>I: POST /token
+    Note over W,I: Headers: DPoP, OAuth-Client-Attestation (optional)
     I-->>W: Access Token
 
     W->>I: POST /nonce
