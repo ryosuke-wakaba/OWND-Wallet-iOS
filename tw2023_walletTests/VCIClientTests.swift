@@ -643,4 +643,171 @@ final class VCIClientTests: XCTestCase {
         }
     }
 
+    // MARK: - Client Attestation Header Tests
+
+    /// Test that token request includes OAuth-Client-Attestation headers when enabled
+    /// Specification: OAuth 2.0 Attestation-Based Client Authentication Section 6.1
+    /// - OAuth-Client-Attestation: Client Attestation JWT
+    /// - OAuth-Client-Attestation-PoP: Client Attestation PoP JWT
+    func testTokenRequestIncludesAttestationHeaders() {
+        runAsyncTest {
+            // Skip if provider credentials are not available
+            guard WalletAttestationService.shared.isAttestationEnabled() else {
+                throw XCTSkip("Client attestation is not enabled or provider credentials not available")
+            }
+
+            // Setup mock session
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [MockURLProtocol.self]
+            let mockSession = URLSession(configuration: configuration)
+
+            // Mock token endpoint
+            let tokenUrl = URL(string: "\(self.issuer)/token")!
+            guard let mockData = try? loadJsonTestData(fileName: "token_response") else {
+                XCTFail("Cannot read token_response.json")
+                return
+            }
+            let response = HTTPURLResponse(
+                url: tokenUrl, statusCode: 200, httpVersion: nil, headerFields: nil)
+            MockURLProtocol.mockResponses[tokenUrl.absoluteString] = (mockData, response)
+
+            // Setup metadata
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            guard
+                let jsonIssuerMetaData = try? loadCredentialIssuerMetadata(
+                    credentialSupportedFileNames: ["credential_supported_jwt_vc"]),
+                let jsonAuthorizationServerData = try? loadJsonTestData(
+                    fileName: "authorization_server")
+            else {
+                XCTFail("Cannot read resource json")
+                return
+            }
+            let credentialIssuerMetadata = try decoder.decode(
+                CredentialIssuerMetadata.self, from: jsonIssuerMetaData)
+            let authorizationServerMetadata = try decoder.decode(
+                AuthorizationServerMetadata.self, from: jsonAuthorizationServerData)
+            let metadata = Metadata(
+                credentialIssuerMetadata: credentialIssuerMetadata,
+                authorizationServerMetadata: authorizationServerMetadata)
+
+            guard let offer = self.credentialOffer else {
+                XCTFail("credential offer is not initialized properly")
+                return
+            }
+
+            // Clear previous request
+            MockURLProtocol.lastRequest = nil
+
+            do {
+                let vciClient = try await VCIClient(credentialOffer: offer, metaData: metadata)
+                _ = try await vciClient.issueToken(
+                    txCode: "493536",
+                    useDPoP: false,
+                    useClientAttestation: true,
+                    using: mockSession
+                )
+
+                // Verify attestation headers were included
+                guard let lastRequest = MockURLProtocol.lastRequest else {
+                    XCTFail("No request was captured")
+                    return
+                }
+
+                let attestationHeader = lastRequest.value(forHTTPHeaderField: "OAuth-Client-Attestation")
+                let attestationPoPHeader = lastRequest.value(forHTTPHeaderField: "OAuth-Client-Attestation-PoP")
+
+                XCTAssertNotNil(attestationHeader,
+                               "OAuth-Client-Attestation header should be present")
+                XCTAssertNotNil(attestationPoPHeader,
+                               "OAuth-Client-Attestation-PoP header should be present")
+
+                // Verify headers contain valid JWTs (3 parts separated by dots)
+                if let attestation = attestationHeader {
+                    let parts = attestation.components(separatedBy: ".")
+                    XCTAssertEqual(parts.count, 3, "OAuth-Client-Attestation should be a valid JWT")
+                }
+
+                if let pop = attestationPoPHeader {
+                    let parts = pop.components(separatedBy: ".")
+                    XCTAssertEqual(parts.count, 3, "OAuth-Client-Attestation-PoP should be a valid JWT")
+                }
+            }
+            catch {
+                XCTFail("Request should not fail: \(error)")
+            }
+        }
+    }
+
+    /// Test that token request does NOT include attestation headers when disabled
+    func testTokenRequestExcludesAttestationHeadersWhenDisabled() {
+        runAsyncTest {
+            // Setup mock session
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [MockURLProtocol.self]
+            let mockSession = URLSession(configuration: configuration)
+
+            // Mock token endpoint
+            let tokenUrl = URL(string: "\(self.issuer)/token")!
+            guard let mockData = try? loadJsonTestData(fileName: "token_response") else {
+                XCTFail("Cannot read token_response.json")
+                return
+            }
+            let response = HTTPURLResponse(
+                url: tokenUrl, statusCode: 200, httpVersion: nil, headerFields: nil)
+            MockURLProtocol.mockResponses[tokenUrl.absoluteString] = (mockData, response)
+
+            // Setup metadata
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            guard
+                let jsonIssuerMetaData = try? loadCredentialIssuerMetadata(
+                    credentialSupportedFileNames: ["credential_supported_jwt_vc"]),
+                let jsonAuthorizationServerData = try? loadJsonTestData(
+                    fileName: "authorization_server")
+            else {
+                XCTFail("Cannot read resource json")
+                return
+            }
+            let credentialIssuerMetadata = try decoder.decode(
+                CredentialIssuerMetadata.self, from: jsonIssuerMetaData)
+            let authorizationServerMetadata = try decoder.decode(
+                AuthorizationServerMetadata.self, from: jsonAuthorizationServerData)
+            let metadata = Metadata(
+                credentialIssuerMetadata: credentialIssuerMetadata,
+                authorizationServerMetadata: authorizationServerMetadata)
+
+            guard let offer = self.credentialOffer else {
+                XCTFail("credential offer is not initialized properly")
+                return
+            }
+
+            // Clear previous request
+            MockURLProtocol.lastRequest = nil
+
+            do {
+                let vciClient = try await VCIClient(credentialOffer: offer, metaData: metadata)
+                // useClientAttestation = false (default)
+                _ = try await vciClient.issueToken(txCode: "493536", using: mockSession)
+
+                // Verify attestation headers were NOT included
+                guard let lastRequest = MockURLProtocol.lastRequest else {
+                    XCTFail("No request was captured")
+                    return
+                }
+
+                let attestationHeader = lastRequest.value(forHTTPHeaderField: "OAuth-Client-Attestation")
+                let attestationPoPHeader = lastRequest.value(forHTTPHeaderField: "OAuth-Client-Attestation-PoP")
+
+                XCTAssertNil(attestationHeader,
+                            "OAuth-Client-Attestation header should NOT be present when disabled")
+                XCTAssertNil(attestationPoPHeader,
+                            "OAuth-Client-Attestation-PoP header should NOT be present when disabled")
+            }
+            catch {
+                XCTFail("Request should not fail: \(error)")
+            }
+        }
+    }
+
 }

@@ -95,6 +95,7 @@
 		8B80569C2B5F7815009A87C8 /* SharingCredentialArgs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B80569B2B5F7815009A87C8 /* SharingCredentialArgs.swift */; };
 		8B80569D2B5F7815009A87C8 /* SharingCredentialArgs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B80569B2B5F7815009A87C8 /* SharingCredentialArgs.swift */; };
 		8B80569F2B60E2FB009A87C8 /* PreferencesDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B80569E2B60E2FB009A87C8 /* PreferencesDataStore.swift */; };
+		8B8056A02B60E2FB009A87C8 /* PreferencesDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B80569E2B60E2FB009A87C8 /* PreferencesDataStore.swift */; };
 		8B81E29D2B33CC4000ED3B4E /* tw2023_walletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B81E29C2B33CC4000ED3B4E /* tw2023_walletApp.swift */; };
 		8B81E29F2B33CC4000ED3B4E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B81E29E2B33CC4000ED3B4E /* ContentView.swift */; };
 		8B81E2A12B33CC4200ED3B4E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B81E2A02B33CC4200ED3B4E /* Assets.xcassets */; };
@@ -182,6 +183,8 @@
 		8BF53E212F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */; };
 		8BF53E232F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
 		8BF53E242F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
+		8BF53E342F2335AD00E346E5 /* WalletAttestationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E322F2335AD00E346E5 /* WalletAttestationServiceTests.swift */; };
+		8BF53E362F2335BB00E346E5 /* PEMUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E352F2335BB00E346E5 /* PEMUtilsTests.swift */; };
 		8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF745982B4FF85F000F74A9 /* JOSESwift */; };
 		A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
@@ -470,6 +473,8 @@
 		8BF1A1C82ED07045008CE820 /* JWE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWE.swift; sourceTree = "<group>"; };
 		8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletAttestationService.swift; sourceTree = "<group>"; };
 		8BF53E222F20B4D300E346E5 /* PEMUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PEMUtils.swift; sourceTree = "<group>"; };
+		8BF53E322F2335AD00E346E5 /* WalletAttestationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletAttestationServiceTests.swift; sourceTree = "<group>"; };
+		8BF53E352F2335BB00E346E5 /* PEMUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PEMUtilsTests.swift; sourceTree = "<group>"; };
 		A80BFE752CAD070A00E30249 /* ProviderUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUtils.swift; sourceTree = "<group>"; };
 		A80FFF322B7F3D300076718E /* SharingToViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A80FFF342B7F3D990076718E /* SharingToModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
@@ -1095,6 +1100,7 @@
 		8BA7D7842F0DF2DA0054F75E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				8BF53E332F2335AD00E346E5 /* WalletAttestation */,
 				8BA7D7832F0DF2DA0054F75E /* TrustedList */,
 			);
 			path = Services;
@@ -1126,6 +1132,14 @@
 			isa = PBXGroup;
 			children = (
 				8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */,
+			);
+			path = WalletAttestation;
+			sourceTree = "<group>";
+		};
+		8BF53E332F2335AD00E346E5 /* WalletAttestation */ = {
+			isa = PBXGroup;
+			children = (
+				8BF53E322F2335AD00E346E5 /* WalletAttestationServiceTests.swift */,
 			);
 			path = WalletAttestation;
 			sourceTree = "<group>";
@@ -1199,6 +1213,7 @@
 		A83039B62B4E4229004139A7 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				8BF53E352F2335BB00E346E5 /* PEMUtilsTests.swift */,
 				A88BF3522CB7806B00401ACC /* SerializeUtilTest.swift */,
 				A83039B72B4E4229004139A7 /* JWTOperationsTest.swift */,
 				A83039B82B4E4229004139A7 /* CertificateUtilTest.swift */,
@@ -1752,24 +1767,6 @@
 			shellPath = /bin/sh;
 			shellScript = "  # Copy Trusted List Config\n  CONFIG_SOURCE=\"${SRCROOT}/TrustedListConfig.json\"\n  CONFIG_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/TrustedListConfig.json\"\n\n  if [ -f \"$CONFIG_SOURCE\" ]; then\n      cp \"$CONFIG_SOURCE\" \"$CONFIG_DEST\"\n      echo \"TrustedListConfig.json copied to bundle\"\n  else\n      echo \"TrustedListConfig.json not found (optional)\"\n  fi\n";
 		};
-		A84AB6F12B4FFB7200E8C88B /* Copy Certificates */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Copy Certificates";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = " # Copy certificates from certs-pub if they exist\n  echo \"SRCROOT: ${SRCROOT}\"\n  echo \"Looking for: ${SRCROOT}/Certificates\"\n  ls -la \"${SRCROOT}/Certificates\" || echo \"Directory not found\"\n  CERT_SOURCE=\"${SRCROOT}/Certificates\"\n  CERT_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Certificates\"\n\n  # Clear destination directory first\n  rm -rf \"$CERT_DEST\"\n\n  if [ -d \"$CERT_SOURCE\" ]; then\n      mkdir -p \"$CERT_DEST\"\n      cp -R \"$CERT_SOURCE\"/*.cer \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.pem \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.crt \"$CERT_DEST/\" 2>/dev/null || true\n      echo \"Certificates copied from $CERT_SOURCE to $CERT_DEST\"\n  else\n      echo \"No certificates directory found at $CERT_SOURCE (skipping)\"\n  fi\n";
-		};
 		8BF53E2D2F23200000E346E5 /* Copy Wallet Provider Credentials */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1787,6 +1784,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Copy Wallet Provider Credentials\nPROVIDER_SOURCE=\"${SRCROOT}/WalletProviderCert\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\n\nif [ -d \"$PROVIDER_SOURCE\" ]; then\n    cp \"$PROVIDER_SOURCE/wallet-provider-private.key\" \"$DEST/\" 2>/dev/null || echo \"wallet-provider-private.key not found\"\n    cp \"$PROVIDER_SOURCE/wallet-provider.cer\" \"$DEST/\" 2>/dev/null || echo \"wallet-provider.cer not found\"\n    echo \"Wallet Provider credentials copied to bundle\"\nelse\n    echo \"WalletProviderCert directory not found at $PROVIDER_SOURCE (skipping)\"\nfi\n";
+		};
+		A84AB6F12B4FFB7200E8C88B /* Copy Certificates */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Certificates";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = " # Copy certificates from certs-pub if they exist\n  echo \"SRCROOT: ${SRCROOT}\"\n  echo \"Looking for: ${SRCROOT}/Certificates\"\n  ls -la \"${SRCROOT}/Certificates\" || echo \"Directory not found\"\n  CERT_SOURCE=\"${SRCROOT}/Certificates\"\n  CERT_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Certificates\"\n\n  # Clear destination directory first\n  rm -rf \"$CERT_DEST\"\n\n  if [ -d \"$CERT_SOURCE\" ]; then\n      mkdir -p \"$CERT_DEST\"\n      cp -R \"$CERT_SOURCE\"/*.cer \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.pem \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.crt \"$CERT_DEST/\" 2>/dev/null || true\n      echo \"Certificates copied from $CERT_SOURCE to $CERT_DEST\"\n  else\n      echo \"No certificates directory found at $CERT_SOURCE (skipping)\"\n  fi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1968,6 +1983,7 @@
 				A81087222B3D33F5004425DE /* X509CertificateOperationsTest.swift in Sources */,
 				8B81E2AE2B33CC4300ED3B4E /* tw2023_walletTests.swift in Sources */,
 				A810871E2B3BC9DF004425DE /* ES256KTest.swift in Sources */,
+				8BF53E362F2335BB00E346E5 /* PEMUtilsTests.swift in Sources */,
 				8BA7D78C2F0F98A40054F75E /* X5CJWTVerifier.swift in Sources */,
 				8B297C382B3953D700D2998D /* VCIMetadata.swift in Sources */,
 				A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */,
@@ -2000,6 +2016,7 @@
 				8B27ECCF2EFB86E100A00345 /* DPoPService.swift in Sources */,
 				8B5C659F2B552C2700D72289 /* VerificationArgs.swift in Sources */,
 				8BF53E202F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */,
+				8B8056A02B60E2FB009A87C8 /* PreferencesDataStore.swift in Sources */,
 				8BB2BA752B4BC46400C668BA /* BiometricAuth.swift in Sources */,
 				8B5370942EDEB9D800E87858 /* X509HashValidationTests.swift in Sources */,
 				8B0E0AAA2B3EEFC20080F6A3 /* AuthRequest.swift in Sources */,
@@ -2019,6 +2036,7 @@
 				8B3706FF2F1A3483006B5C4D /* JAdESSignatureVerifierTests.swift in Sources */,
 				8BF53E232F20B4D300E346E5 /* PEMUtils.swift in Sources */,
 				8B2AF5D92ED6EC1F00F5FE17 /* TrustAnchorManagerTests.swift in Sources */,
+				8BF53E342F2335AD00E346E5 /* WalletAttestationServiceTests.swift in Sources */,
 				8B2AF5DA2ED6EC1F00F5FE17 /* X509ChainValidationTests.swift in Sources */,
 				8B43AE352B3A81960016CF83 /* Enums.swift in Sources */,
 				8B2AF5D62ED6EC0800F5FE17 /* TrustAnchorManager.swift in Sources */,
