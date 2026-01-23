@@ -58,10 +58,10 @@ class WalletAttestationService {
     }
 
     /// Provider key PEM filename (bundled at build time)
-    private let providerKeyFilename = "wallet_provider_key"
+    private let providerKeyFilename = "wallet-provider-private"
 
-    /// Provider certificate PEM filename (bundled at build time)
-    private let providerCertFilename = "wallet_provider_cert"
+    /// Provider certificate filename (bundled at build time)
+    private let providerCertFilename = "wallet-provider"
 
     // MARK: - Initialization
 
