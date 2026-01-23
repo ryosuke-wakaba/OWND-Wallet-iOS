@@ -182,8 +182,6 @@
 		8BF53E212F20B4BD00E346E5 /* WalletAttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */; };
 		8BF53E232F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
 		8BF53E242F20B4D300E346E5 /* PEMUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF53E222F20B4D300E346E5 /* PEMUtils.swift */; };
-		8BF53E2B2F23171D00E346E5 /* wallet-provider-private.key in Resources */ = {isa = PBXBuildFile; fileRef = 8BF53E2A2F23171D00E346E5 /* wallet-provider-private.key */; };
-		8BF53E2C2F23171D00E346E5 /* wallet-provider.cer in Resources */ = {isa = PBXBuildFile; fileRef = 8BF53E292F23171D00E346E5 /* wallet-provider.cer */; };
 		8BF745992B4FF85F000F74A9 /* JOSESwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF745982B4FF85F000F74A9 /* JOSESwift */; };
 		A80BFE762CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
 		A80BFE772CAD070E00E30249 /* ProviderUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80BFE752CAD070A00E30249 /* ProviderUtils.swift */; };
@@ -472,8 +470,6 @@
 		8BF1A1C82ED07045008CE820 /* JWE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JWE.swift; sourceTree = "<group>"; };
 		8BF53E1E2F20B4BD00E346E5 /* WalletAttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletAttestationService.swift; sourceTree = "<group>"; };
 		8BF53E222F20B4D300E346E5 /* PEMUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PEMUtils.swift; sourceTree = "<group>"; };
-		8BF53E292F23171D00E346E5 /* wallet-provider.cer */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wallet-provider.cer"; sourceTree = "<group>"; };
-		8BF53E2A2F23171D00E346E5 /* wallet-provider-private.key */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wallet-provider-private.key"; sourceTree = "<group>"; };
 		A80BFE752CAD070A00E30249 /* ProviderUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderUtils.swift; sourceTree = "<group>"; };
 		A80FFF322B7F3D300076718E /* SharingToViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToViewModel.swift; sourceTree = "<group>"; };
 		A80FFF342B7F3D990076718E /* SharingToModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingToModel.swift; sourceTree = "<group>"; };
@@ -920,8 +916,6 @@
 		8B81E2E02B34320000ED3B4E /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				8BF53E292F23171D00E346E5 /* wallet-provider.cer */,
-				8BF53E2A2F23171D00E346E5 /* wallet-provider-private.key */,
 				8BF1A1C62ED0400E008CE820 /* dcqlQuery.json */,
 				F6D913D82B53D5EE001D804D /* jwtVcJsonClaim.json */,
 				F6A239A52B4E2A6500B09F17 /* clientInfo.json */,
@@ -1531,6 +1525,7 @@
 				8B81E2972B33CC4000ED3B4E /* Resources */,
 				A84AB6F12B4FFB7200E8C88B /* Copy Certificates */,
 				8B7A1FEA2F10ECAC005498C7 /* Copy Trusted List Config */,
+				8BF53E2D2F23200000E346E5 /* Copy Wallet Provider Credentials */,
 			);
 			buildRules = (
 			);
@@ -1678,8 +1673,6 @@
 				8BB513902B3B24C400D4EFB3 /* credential_response_mock.json in Resources */,
 				F6A239A62B4E2A6500B09F17 /* clientInfo.json in Resources */,
 				8B81E2E62B34413A00ED3B4E /* credentialData.json in Resources */,
-				8BF53E2B2F23171D00E346E5 /* wallet-provider-private.key in Resources */,
-				8BF53E2C2F23171D00E346E5 /* wallet-provider.cer in Resources */,
 				8B498A2B2EC5A6B900DA02AC /* credential_issuer_metadata_base.json in Resources */,
 				A88D32452C27001F00429E75 /* credential_display_minimum.json in Resources */,
 				8B0E0AAC2B3FD6660080F6A3 /* client_metadata.json in Resources */,
@@ -1776,6 +1769,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = " # Copy certificates from certs-pub if they exist\n  echo \"SRCROOT: ${SRCROOT}\"\n  echo \"Looking for: ${SRCROOT}/Certificates\"\n  ls -la \"${SRCROOT}/Certificates\" || echo \"Directory not found\"\n  CERT_SOURCE=\"${SRCROOT}/Certificates\"\n  CERT_DEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Certificates\"\n\n  # Clear destination directory first\n  rm -rf \"$CERT_DEST\"\n\n  if [ -d \"$CERT_SOURCE\" ]; then\n      mkdir -p \"$CERT_DEST\"\n      cp -R \"$CERT_SOURCE\"/*.cer \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.pem \"$CERT_DEST/\" 2>/dev/null || true\n      cp -R \"$CERT_SOURCE\"/*.crt \"$CERT_DEST/\" 2>/dev/null || true\n      echo \"Certificates copied from $CERT_SOURCE to $CERT_DEST\"\n  else\n      echo \"No certificates directory found at $CERT_SOURCE (skipping)\"\n  fi\n";
+		};
+		8BF53E2D2F23200000E346E5 /* Copy Wallet Provider Credentials */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Wallet Provider Credentials";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy Wallet Provider Credentials\nPROVIDER_SOURCE=\"${SRCROOT}/WalletProviderCert\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\n\nif [ -d \"$PROVIDER_SOURCE\" ]; then\n    cp \"$PROVIDER_SOURCE/wallet-provider-private.key\" \"$DEST/\" 2>/dev/null || echo \"wallet-provider-private.key not found\"\n    cp \"$PROVIDER_SOURCE/wallet-provider.cer\" \"$DEST/\" 2>/dev/null || echo \"wallet-provider.cer not found\"\n    echo \"Wallet Provider credentials copied to bundle\"\nelse\n    echo \"WalletProviderCert directory not found at $PROVIDER_SOURCE (skipping)\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

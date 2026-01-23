@@ -66,9 +66,10 @@ Payload:
 ### Phase 1: Infrastructure
 
 #### 1.1 Provider Key Bundle
-- [ ] Provider秘密鍵 (`wallet-provider-private.key`) をプロジェクトに追加 (要準備)
-- [ ] Provider証明書 (`wallet-provider.cer`) をプロジェクトに追加 (要準備)
+- [ ] Provider秘密鍵 (`WalletProviderCert/wallet-provider-private.key`) を配置 (要準備)
+- [ ] Provider証明書 (`WalletProviderCert/wallet-provider.cer`) を配置 (要準備)
 - [x] PEM読み込みユーティリティを実装 (`tw2023_wallet/Utils/PEMUtils.swift`)
+- [x] ビルドスクリプトでWalletProviderCertからバンドルにコピー
 
 #### 1.2 Settings & Storage
 - [x] `PreferencesDataStore` に `useClientAttestation` 設定を追加
@@ -153,8 +154,8 @@ func issueToken(
 |------|-------------|
 | `tw2023_wallet/Services/WalletAttestation/WalletAttestationService.swift` | Attestation生成サービス |
 | `tw2023_wallet/Utils/PEMUtils.swift` | PEMファイル読み込みユーティリティ |
-| `tw2023_wallet/Resources/wallet-provider-private.key` | Provider秘密鍵 (要準備) |
-| `tw2023_wallet/Resources/wallet-provider.cer` | Provider証明書 (要準備) |
+| `WalletProviderCert/wallet-provider-private.key` | Provider秘密鍵 (要準備、ビルド時コピー) |
+| `WalletProviderCert/wallet-provider.cer` | Provider証明書 (要準備、ビルド時コピー) |
 
 ### Modified Files
 | Path | Changes |
