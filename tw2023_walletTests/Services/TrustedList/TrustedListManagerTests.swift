@@ -36,7 +36,7 @@ final class TrustedListManagerTests: XCTestCase {
                   "ServiceName": [{ "lang": "en", "value": "Test Issuer" }],
                   "ServiceDigitalIdentity": {
                     "X509Certificates": [
-                      "-----BEGIN CERTIFICATE-----\\nMIIBdzCCAR2gAwIBAgIUU5zz087ESNzLz0l0luR5JvFPo38wCgYIKoZIzj0EAwIwETEPMA0GA1UEAwwGdGVzdGNhMB4XDTI2MDEwODA2MjE0MFoXDTI3MDEwODA2MjE0MFowETEPMA0GA1UEAwwGdGVzdGNhMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEeqf0vRgYFn1x8n2/Y+ucsy0Vlb40w1HbvausSpllS4hsmhDwTNQY7OdozBIDU33V1kvBjJ6+KQDO8S2Ca8xHXaNTMFEwHQYDVR0OBBYEFCO/bo5hyffXWVlGEsqXDvTj2IYLMB8GA1UdIwQYMBaAFCO/bo5hyffXWVlGEsqXDvTj2IYLMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDSAAwRQIgLKOhMsiUBdLXgwkSVSYlJQ2CqNEKA12hZMCZgi5wPywCIQClCC8E6Y4Bh2XEzSkd3aoc6gwJG18tMPF+AZ91M7oecg==\\n-----END CERTIFICATE-----"
+                      { "val": "MIIBdzCCAR2gAwIBAgIUU5zz087ESNzLz0l0luR5JvFPo38wCgYIKoZIzj0EAwIwETEPMA0GA1UEAwwGdGVzdGNhMB4XDTI2MDEwODA2MjE0MFoXDTI3MDEwODA2MjE0MFowETEPMA0GA1UEAwwGdGVzdGNhMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEeqf0vRgYFn1x8n2/Y+ucsy0Vlb40w1HbvausSpllS4hsmhDwTNQY7OdozBIDU33V1kvBjJ6+KQDO8S2Ca8xHXaNTMFEwHQYDVR0OBBYEFCO/bo5hyffXWVlGEsqXDvTj2IYLMB8GA1UdIwQYMBaAFCO/bo5hyffXWVlGEsqXDvTj2IYLMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDSAAwRQIgLKOhMsiUBdLXgwkSVSYlJQ2CqNEKA12hZMCZgi5wPywCIQClCC8E6Y4Bh2XEzSkd3aoc6gwJG18tMPF+AZ91M7oecg==" }
                     ]
                   },
                   "ServiceTypeIdentifier": "http://example.com/SvcType/CredentialIssuance",
@@ -67,7 +67,7 @@ final class TrustedListManagerTests: XCTestCase {
                 "ServiceInformation": {
                   "ServiceName": [{ "lang": "en", "value": "Withdrawn Service" }],
                   "ServiceDigitalIdentity": {
-                    "X509Certificates": ["-----BEGIN CERTIFICATE-----\\nMIIBkTCB+w...\\n-----END CERTIFICATE-----"]
+                    "X509Certificates": [{ "val": "MIIBkTCB+w" }]
                   },
                   "ServiceTypeIdentifier": "http://example.com/SvcType/CredentialIssuance",
                   "ServiceStatus": "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/withdrawn",
@@ -221,7 +221,7 @@ final class TrustedListManagerTests: XCTestCase {
                       "ServiceName": [{ "lang": "en", "value": "Sectigo ECC OV CA" }],
                       "ServiceDigitalIdentity": {
                         "X509Certificates": [
-                          "-----BEGIN CERTIFICATE-----\\nMIIDrjCCAzOgAwIBAgIQNb50Y4yz6d4oBXC3l4CzZzAKBggqhkjOPQQDAzCBiDEL\\nMAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0plcnNl\\neSBDaXR5MR4wHAYDVQQKExVUaGUgVVNFUlRSVVNUIE5ldHdvcmsxLjAsBgNVBAMT\\nJVVTRVJUcnVzdCBFQ0MgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTgxMTAy\\nMDAwMDAwWhcNMzAxMjMxMjM1OTU5WjCBlTELMAkGA1UEBhMCR0IxGzAZBgNVBAgT\\nEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEYMBYGA1UEChMP\\nU2VjdGlnbyBMaW1pdGVkMT0wOwYDVQQDEzRTZWN0aWdvIEVDQyBPcmdhbml6YXRp\\nb24gVmFsaWRhdGlvbiBTZWN1cmUgU2VydmVyIENBMFkwEwYHKoZIzj0CAQYIKoZI\\nzj0DAQcDQgAEnI5cCmFvoVij0NXO+vxE+f+6Bh57FhpyH0LTCrJmzfsPSXIhTSex\\nr92HOlz+aHqoGE0vSe/CSwLFoWcZ8W1jOaOCAW4wggFqMB8GA1UdIwQYMBaAFDrh\\nCYbUzxnClnZ0SXbc4DXGY2OaMB0GA1UdDgQWBBRNSu/ERrMSrU9OmrFZ4lGrCBB4\\nCDAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHSUEFjAU\\nBggrBgEFBQcDAQYIKwYBBQUHAwIwGwYDVR0gBBQwEjAGBgRVHSAAMAgGBmeBDAEC\\nAjBQBgNVHR8ESTBHMEWgQ6BBhj9odHRwOi8vY3JsLnVzZXJ0cnVzdC5jb20vVVNF\\nUlRydXN0RUNDQ2VydGlmaWNhdGlvbkF1dGhvcml0eS5jcmwwdgYIKwYBBQUHAQEE\\najBoMD8GCCsGAQUFBzAChjNodHRwOi8vY3J0LnVzZXJ0cnVzdC5jb20vVVNFUlRy\\ndXN0RUNDQWRkVHJ1c3RDQS5jcnQwJQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnVz\\nZXJ0cnVzdC5jb20wCgYIKoZIzj0EAwMDaQAwZgIxAOk//uo7i/MoeKdcyeqvjOXs\\nBJFGLI+1i0d+Tty7zEnn2w4DNS21TK8wmY3Kjm3EmQIxAPI1qHM/I+OS+hx0OZhG\\nfDoNifTe/GxgWZ1gOYQKzn6lwP0yGKlrP+7vrVC8IczJ4A==\\n-----END CERTIFICATE-----"
+                          { "val": "MIIDrjCCAzOgAwIBAgIQNb50Y4yz6d4oBXC3l4CzZzAKBggqhkjOPQQDAzCBiDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0plcnNleSBDaXR5MR4wHAYDVQQKExVUaGUgVVNFUlRSVVNUIE5ldHdvcmsxLjAsBgNVBAMTJVVTRVJUcnVzdCBFQ0MgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTgxMTAyMDAwMDAwWhcNMzAxMjMxMjM1OTU5WjCBlTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEYMBYGA1UEChMPU2VjdGlnbyBMaW1pdGVkMT0wOwYDVQQDEzRTZWN0aWdvIEVDQyBPcmdhbml6YXRpb24gVmFsaWRhdGlvbiBTZWN1cmUgU2VydmVyIENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEnI5cCmFvoVij0NXO+vxE+f+6Bh57FhpyH0LTCrJmzfsPSXIhTSexr92HOlz+aHqoGE0vSe/CSwLFoWcZ8W1jOaOCAW4wggFqMB8GA1UdIwQYMBaAFDrhCYbUzxnClnZ0SXbc4DXGY2OaMB0GA1UdDgQWBBRNSu/ERrMSrU9OmrFZ4lGrCBB4CDAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwGwYDVR0gBBQwEjAGBgRVHSAAMAgGBmeBDAECAjBQBgNVHR8ESTBHMEWgQ6BBhj9odHRwOi8vY3JsLnVzZXJ0cnVzdC5jb20vVVNFUlRydXN0RUNDQ2VydGlmaWNhdGlvbkF1dGhvcml0eS5jcmwwdgYIKwYBBQUHAQEEajBoMD8GCCsGAQUFBzAChjNodHRwOi8vY3J0LnVzZXJ0cnVzdC5jb20vVVNFUlRydXN0RUNDQWRkVHJ1c3RDQS5jcnQwJQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnVzZXJ0cnVzdC5jb20wCgYIKoZIzj0EAwMDaQAwZgIxAOk//uo7i/MoeKdcyeqvjOXsBJFGLI+1i0d+Tty7zEnn2w4DNS21TK8wmY3Kjm3EmQIxAPI1qHM/I+OS+hx0OZhGfDoNifTe/GxgWZ1gOYQKzn6lwP0yGKlrP+7vrVC8IczJ4A==" }
                         ]
                       },
                       "ServiceTypeIdentifier": "http://example.com/SvcType/IntermediateCA",

@@ -181,14 +181,14 @@ class TrustedListManager {
 
     /// Extract SecCertificate array from ServiceDigitalIdentity
     private func extractCertificates(from identity: ServiceDigitalIdentity) -> [SecCertificate]? {
-        guard let pemCertificates = identity.X509Certificates, !pemCertificates.isEmpty else {
+        guard let pkiObCertificates = identity.X509Certificates, !pkiObCertificates.isEmpty else {
             return nil
         }
 
         var certificates: [SecCertificate] = []
 
-        for pem in pemCertificates {
-            if let cert = createCertificate(from: pem) {
+        for pkiOb in pkiObCertificates {
+            if let cert = createCertificate(from: pkiOb) {
                 certificates.append(cert)
             } else {
                 print("TrustedListManager: [WARN] Failed to parse certificate")
@@ -198,9 +198,11 @@ class TrustedListManager {
         return certificates.isEmpty ? nil : certificates
     }
 
-    /// Create SecCertificate from PEM string
-    private func createCertificate(from pem: String) -> SecCertificate? {
-        guard let derData = X509CertificateOperations.extractDERFromPEM(pem) else {
+    /// Create SecCertificate from PKIOb
+    /// Per ETSI TS 119 602 public schema, val contains base64-encoded DER (no PEM markers)
+    private func createCertificate(from pkiOb: PKIOb) -> SecCertificate? {
+        // pkiOb.val is base64-encoded DER certificate without PEM markers
+        guard let derData = Data(base64Encoded: pkiOb.val, options: .ignoreUnknownCharacters) else {
             return nil
         }
         return SecCertificateCreateWithData(nil, derData as CFData)
@@ -308,20 +310,20 @@ class TrustedListManager {
                 }
 
                 // Get certificates from service
-                guard let pemCertificates = info.ServiceDigitalIdentity.X509Certificates,
-                      !pemCertificates.isEmpty else {
+                guard let pkiObCertificates = info.ServiceDigitalIdentity.X509Certificates,
+                      !pkiObCertificates.isEmpty else {
                     print("🔐 [TrustedList]   ⚠️ No certificates in service \(entityName)/\(serviceName)")
                     continue
                 }
 
-                print("🔐 [TrustedList]   Checking \(pemCertificates.count) certificate(s) in \(entityName)/\(serviceName)")
+                print("🔐 [TrustedList]   Checking \(pkiObCertificates.count) certificate(s) in \(entityName)/\(serviceName)")
 
                 // First, parse all certificates in this service
                 var allX509Certs: [Certificate] = []
                 var allSecCerts: [SecCertificate] = []
-                for (index, pem) in pemCertificates.enumerated() {
-                    if let x509Cert = convertPEMToX509Certificate(pem),
-                       let secCert = createCertificate(from: pem) {
+                for (index, pkiOb) in pkiObCertificates.enumerated() {
+                    if let x509Cert = convertToX509Certificate(pkiOb),
+                       let secCert = createCertificate(from: pkiOb) {
                         allX509Certs.append(x509Cert)
                         allSecCerts.append(secCert)
                     } else {
@@ -378,18 +380,14 @@ class TrustedListManager {
         return nil
     }
 
-    /// Convert PEM string to X509.Certificate
-    private func convertPEMToX509Certificate(_ pem: String) -> Certificate? {
-        // Check if PEM has delimiters
-        if pem.contains("-----BEGIN CERTIFICATE-----") {
-            return try? Certificate(pemEncoded: pem)
-        } else {
-            // Assume base64-encoded DER
-            guard let derData = Data(base64Encoded: pem, options: .ignoreUnknownCharacters) else {
-                return nil
-            }
-            return try? Certificate(derEncoded: Array(derData))
+    /// Convert PKIOb to X509.Certificate
+    /// Per ETSI TS 119 602 public schema, val contains base64-encoded DER (no PEM markers)
+    private func convertToX509Certificate(_ pkiOb: PKIOb) -> Certificate? {
+        // pkiOb.val is base64-encoded DER certificate without PEM markers
+        guard let derData = Data(base64Encoded: pkiOb.val, options: .ignoreUnknownCharacters) else {
+            return nil
         }
+        return try? Certificate(derEncoded: Array(derData))
     }
 
     // MARK: - Convenience Methods for Certificate-Based Search
