@@ -84,8 +84,18 @@ struct ServiceInformation: Codable {
     let ServiceSupplyPoints: [URIValue]?
 }
 
+/// PKI Object for X.509 certificate data per ETSI TS 119 602 public schema
+struct PKIOb: Codable {
+    /// Encoding URI (optional)
+    let encoding: String?
+    /// Specification reference (optional)
+    let specRef: String?
+    /// Base64-encoded DER certificate (required, no PEM markers)
+    let val: String
+}
+
 struct ServiceDigitalIdentity: Codable {
-    let X509Certificates: [String]?
+    let X509Certificates: [PKIOb]?
 }
 
 // MARK: - Common Types

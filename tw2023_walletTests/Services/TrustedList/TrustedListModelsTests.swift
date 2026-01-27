@@ -45,7 +45,7 @@ final class TrustedListModelsTests: XCTestCase {
                   ],
                   "ServiceDigitalIdentity": {
                     "X509Certificates": [
-                      "-----BEGIN CERTIFICATE-----\\nMIIBkTCB+wIJAKHBfpeg..\\n-----END CERTIFICATE-----"
+                      { "val": "MIIBkTCB+wIJAKHBfpeg" }
                     ]
                   },
                   "ServiceTypeIdentifier": "http://example.com/SvcType/CredentialIssuance",
@@ -128,7 +128,9 @@ final class TrustedListModelsTests: XCTestCase {
         let service = document.LoTE.TrustedEntitiesList[0].TrustedEntityServices[0].ServiceInformation
         XCTAssertNotNil(service.ServiceDigitalIdentity.X509Certificates)
         XCTAssertEqual(service.ServiceDigitalIdentity.X509Certificates?.count, 1)
-        XCTAssertTrue(service.ServiceDigitalIdentity.X509Certificates?.first?.contains("BEGIN CERTIFICATE") ?? false)
+        // Per ETSI TS 119 602 public schema, X509Certificates contains pkiOb objects with base64-encoded DER
+        XCTAssertNotNil(service.ServiceDigitalIdentity.X509Certificates?.first?.val)
+        XCTAssertFalse(service.ServiceDigitalIdentity.X509Certificates?.first?.val.isEmpty ?? true)
     }
 
     func testServiceTypeConstants() {

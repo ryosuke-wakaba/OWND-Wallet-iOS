@@ -111,10 +111,11 @@ enum PEMUtils {
     }
 
     /// Get certificate chain as base64 strings for x5c header
-    /// - Parameter filename: Name of the PEM file containing certificate(s)
+    /// - Parameter filename: Name of the file containing certificate(s)
+    /// - Parameter extension: File extension (default: "cer")
     /// - Returns: Array of base64-encoded certificate strings (DER format)
-    static func getCertificateChainForX5C(filename: String) throws -> [String] {
-        let pemString = try loadPEMFile(filename: filename)
+    static func getCertificateChainForX5C(filename: String, extension ext: String = "cer") throws -> [String] {
+        let pemString = try loadPEMFile(filename: filename, extension: ext)
         return try extractCertificateChainBase64(from: pemString)
     }
 
@@ -150,12 +151,18 @@ enum PEMUtils {
     // MARK: - Helper Methods
 
     /// Load PEM file content from bundle
-    /// - Parameter filename: Name of the file (with or without .pem extension)
+    /// - Parameter filename: Name of the file (with or without extension)
+    /// - Parameter extension: File extension (default: "key")
     /// - Returns: Content of the PEM file as string
-    static func loadPEMFile(filename: String) throws -> String {
-        let name = filename.hasSuffix(".pem") ? String(filename.dropLast(4)) : filename
+    static func loadPEMFile(filename: String, extension ext: String = "key") throws -> String {
+        // Remove extension if already included in filename
+        var name = filename
+        let extensionWithDot = ".\(ext)"
+        if name.hasSuffix(extensionWithDot) {
+            name = String(name.dropLast(extensionWithDot.count))
+        }
 
-        guard let url = Bundle.main.url(forResource: name, withExtension: "pem") else {
+        guard let url = Bundle.main.url(forResource: name, withExtension: ext) else {
             throw PEMError.fileNotFound(filename)
         }
 

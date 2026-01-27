@@ -66,9 +66,10 @@ Payload:
 ### Phase 1: Infrastructure
 
 #### 1.1 Provider Key Bundle
-- [ ] Provider秘密鍵PEM (`wallet_provider_key.pem`) をプロジェクトに追加 (要準備)
-- [ ] Provider証明書PEM (`wallet_provider_cert.pem`) をプロジェクトに追加 (要準備)
+- [ ] Provider秘密鍵 (`WalletProviderCert/wallet-provider-private.key`) を配置 (要準備)
+- [ ] Provider証明書 (`WalletProviderCert/wallet-provider.cer`) を配置 (要準備)
 - [x] PEM読み込みユーティリティを実装 (`tw2023_wallet/Utils/PEMUtils.swift`)
+- [x] ビルドスクリプトでWalletProviderCertからバンドルにコピー
 
 #### 1.2 Settings & Storage
 - [x] `PreferencesDataStore` に `useClientAttestation` 設定を追加
@@ -138,13 +139,61 @@ func issueToken(
 ### Phase 4: Testing
 
 #### 4.1 Unit Tests
-- [ ] `WalletAttestationServiceTests` - JWT生成テスト
-- [ ] `PEMUtilsTests` - PEM読み込みテスト
-- [ ] `VCIClientTests` - Attestationヘッダー送信テスト
+- [x] `WalletAttestationServiceTests` - JWT生成テスト
+- [x] `PEMUtilsTests` - PEM読み込みテスト
+- [x] `VCIClientTests` - Attestationヘッダー送信テスト
 
 #### 4.2 Integration Tests
 - [ ] トグル有効化 → Attestation生成フロー
 - [ ] トークンリクエスト with Attestationヘッダー
+
+## Test Cases
+
+### PEMUtilsTests (`tw2023_walletTests/Utils/PEMUtilsTests.swift`)
+
+PEM形式のファイル解析ユーティリティのテスト。
+
+| テストケース | 説明 |
+|------------|------|
+| `testCreatePrivateKeyFromPKCS8PEM` | PKCS#8形式のPEMから秘密鍵を作成できることを確認 |
+| `testCreatePrivateKeyFromInvalidPEMThrows` | 無効なPEMからは`PEMError`がスローされることを確認 |
+| `testCreatePrivateKeyFromEmptyStringThrows` | 空文字列からは`PEMError`がスローされることを確認 |
+| `testExtractCertificateChainForX5C` | 複数証明書を含むPEMからx5cヘッダー用のbase64チェーンを抽出できることを確認 |
+| `testExtractSingleCertificateChain` | 単一証明書PEMから1つの証明書を抽出できることを確認 |
+| `testExtractCertificateChainFromInvalidPEMThrows` | 無効なPEMからは`invalidPEMFormat`エラーがスローされることを確認 |
+| `testExtractedBase64HasNoNewlines` | 抽出されたbase64に改行が含まれないことを確認（x5c要件） |
+| `testCreateCertificateFromPEM` | PEMから`SecCertificate`を作成できることを確認 |
+| `testCreateCertificateFromInvalidPEMThrows` | 無効なPEMからは`PEMError`がスローされることを確認 |
+| `testPEMErrorDescriptions` | 全ての`PEMError`にローカライズされた説明があることを確認 |
+| `testFileNotFoundErrorIncludesFilename` | `fileNotFound`エラーにファイル名が含まれることを確認 |
+
+### WalletAttestationServiceTests (`tw2023_walletTests/Services/WalletAttestation/WalletAttestationServiceTests.swift`)
+
+Wallet Attestation JWT生成サービスのテスト。
+
+| テストケース | 説明 | 仕様参照 |
+|------------|------|---------|
+| `testClientAttestationPoPJWTHeaderFormat` | PoP JWTのヘッダー形式を検証（`typ: oauth-client-attestation-pop+jwt`, `alg: ES256`） | OAuth Attestation-Based Client Auth |
+| `testClientAttestationPoPJWTRequiredClaims` | PoP JWTに必須クレーム（`iss`, `aud`, `jti`, `iat`）が含まれることを確認 | OAuth Attestation-Based Client Auth |
+| `testClientAttestationPoPJWTAudienceMatchesInput` | PoP JWTの`aud`が入力されたaudience（認可サーバーissuer）と一致することを確認 | OAuth Attestation-Based Client Auth |
+| `testClientAttestationPoPJWTUniqueJti` | 各PoP JWTが一意の`jti`を持つことを確認（リプレイ攻撃防止） | OAuth Attestation-Based Client Auth |
+| `testClientAttestationPoPJWTIssMatchesClientId` | PoP JWTの`iss`がClient Attestationの`sub`（client_id）と一致することを確認 | OAuth Attestation-Based Client Auth |
+| `testGeneratePoPThrowsWhenNotEnabled` | アテステーションが無効の場合に`attestationNotEnabled`エラーがスローされることを確認 | - |
+| `testIsAttestationEnabledReflectsSettings` | `isAttestationEnabled()`が設定値を正しく反映することを確認 | - |
+
+### VCIClientTests - Attestationヘッダーテスト (`tw2023_walletTests/VCIClientTests.swift`)
+
+トークンリクエストにおけるAttestationヘッダー送信のテスト。
+
+| テストケース | 説明 |
+|------------|------|
+| `testTokenRequestIncludesAttestationHeaders` | クライアント認証有効時、トークンリクエストに`OAuth-Client-Attestation`と`OAuth-Client-Attestation-PoP`ヘッダーが含まれることを確認。各ヘッダーが有効なJWT形式（3パート）であることも検証 |
+| `testTokenRequestExcludesAttestationHeadersWhenDisabled` | クライアント認証無効時、トークンリクエストにAttestationヘッダーが含まれないことを確認 |
+
+### テスト実行時の注意事項
+
+- `testTokenRequestIncludesAttestationHeaders`は、Provider証明書がバンドルに含まれていない場合はスキップされます
+- テスト用の証明書データはテストファイル内にハードコードされています（実際のProvider証明書は不要）
 
 ## File Changes
 
@@ -153,8 +202,10 @@ func issueToken(
 |------|-------------|
 | `tw2023_wallet/Services/WalletAttestation/WalletAttestationService.swift` | Attestation生成サービス |
 | `tw2023_wallet/Utils/PEMUtils.swift` | PEMファイル読み込みユーティリティ |
-| `tw2023_wallet/Resources/wallet_provider_key.pem` | Provider秘密鍵 (要準備) |
-| `tw2023_wallet/Resources/wallet_provider_cert.pem` | Provider証明書 (要準備) |
+| `WalletProviderCert/wallet-provider-private.key` | Provider秘密鍵 (要準備、ビルド時コピー) |
+| `WalletProviderCert/wallet-provider.cer` | Provider証明書 (要準備、ビルド時コピー) |
+| `tw2023_walletTests/Utils/PEMUtilsTests.swift` | PEMUtilsユニットテスト |
+| `tw2023_walletTests/Services/WalletAttestation/WalletAttestationServiceTests.swift` | WalletAttestationServiceユニットテスト |
 
 ### Modified Files
 | Path | Changes |
@@ -164,6 +215,8 @@ func issueToken(
 | `tw2023_wallet/Feature/Constants.swift` | キーエイリアス追加 |
 | `tw2023_wallet/Services/OID/VCI/VCIClient.swift` | Attestationヘッダー送信 |
 | `Localizable.strings` | 多言語対応文字列追加 |
+| `tw2023_walletTests/VCIClientTests.swift` | Attestationヘッダーテスト追加 |
+| `tw2023_walletTests/AsynTestRunner.swift` | XCTSkipエラー処理の改善 |
 
 ## Data Flow
 

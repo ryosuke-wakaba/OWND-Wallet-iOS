@@ -101,5 +101,4 @@ TrustedListURLs.txt
 TrustedListConfig.json
 
 # Wallet Provider credentials (local only)
-wallet_provider_key.pem
-wallet_provider_cert.pem
+WalletProviderCert/

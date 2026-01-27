@@ -1,0 +1,201 @@
+{
+  "LoTE": {
+    "ListAndSchemeInformation": {
+      "LoTEVersionIdentifier": 1,
+      "LoTESequenceNumber": 8,
+      "SchemeOperatorName": [
+        {
+          "lang": "en",
+          "value": "Japan Trust Framework Authority"
+        },
+        {
+          "lang": "ja",
+          "value": "日本トラストフレームワーク機関"
+        }
+      ],
+      "SchemeOperatorAddress": {
+        "SchemeOperatorPostalAddress": [
+          {
+            "lang": "ja",
+            "StreetAddress": "霞が関1-2-3",
+            "Locality": "千代田区",
+            "PostalCode": "100-0001",
+            "Country": "Japan"
+          }
+        ],
+        "SchemeOperatorElectronicAddress": [
+          {
+            "lang": "en",
+            "uriValue": "mailto:contact@example.jp"
+          }
+        ]
+      },
+      "ListIssueDateTime": "2026-01-06T09:42:06.337Z",
+      "NextUpdate": "2026-01-13T09:42:06.337Z",
+      "LoTEType": "http://uri.etsi.org/TrstSvc/TrustedList/TSLType/EUlistofthelists",
+      "SchemeName": [
+        {
+          "lang": "en",
+          "value": "Japan Trusted List"
+        },
+        {
+          "lang": "ja",
+          "value": "日本トラストリスト"
+        }
+      ],
+      "SchemeInformationURI": [
+        {
+          "lang": "en",
+          "uriValue": "https://example.jp/trusted-list/info"
+        }
+      ],
+      "StatusDeterminationApproach": "http://uri.etsi.org/TrstSvc/TrustedList/TSLType/StatusDetn/EUappropriate",
+      "SchemeTerritory": "JP",
+      "HistoricalInformationPeriod": 65535
+    },
+    "TrustedEntitiesList": [
+      {
+        "TrustedEntityInformation": {
+          "TEName": [
+            {
+              "lang": "en",
+              "value": "Foo University"
+            },
+            {
+              "lang": "ja",
+              "value": "Foo 大学"
+            }
+          ],
+          "TETradeName": [
+            {
+              "lang": "en",
+              "value": "Foo University"
+            },
+            {
+              "lang": "ja",
+              "value": "Foo 大学"
+            }
+          ],
+          "TEAddress": {
+            "TEPostalAddress": [],
+            "TEElectronicAddress": []
+          },
+          "TEInformationURI": [
+            {
+              "lang": "en",
+              "uriValue": "https://foo.ac.jp"
+            }
+          ]
+        },
+        "TrustedEntityServices": [
+          {
+            "ServiceInformation": {
+              "ServiceName": [
+                {
+                  "lang": "en",
+                  "value": "Credential Issuer"
+                },
+                {
+                  "lang": "ja",
+                  "value": "Credential Issuer"
+                }
+              ],
+              "ServiceDigitalIdentity": {
+                "X509Certificates": [
+                  { "val": "MIIFdTCCBF2gAwIBAgIMPMf8cvkOA3hIRwXhMA0GCSqGSIb3DQEBDAUAMFwxCzAJBgNVBAYTAkJFMRkwFwYDVQQKExBHbG9iYWxTaWduIG52LXNhMTIwMAYDVQQDEylHbG9iYWxTaWduIEdDQyBSNDUgQUFUTCBDQSAyMDIwIC0gU3RhZ2luZzAeFw0yNTExMTAyMzQ5MjZaFw0yNjExMTEyMzQ5MjZaMIG0MQswCQYDVQQGEwJKUDEOMAwGA1UECBMFVG9reW8xFTATBgNVBAcTDFNoaW5hZ2F3YS1rdTEbMBkGA1UEBRMSQUFUTDIwMjUxMTEwMDE1MTc1MRcwFQYDVQQLEw5NYXJrZXRpbmcgRGVwdDEjMCEGA1UEChMaQ3liZXIgU2VjdXJpdHkgQ2xvdWQsIEluYy4xIzAhBgNVBAMTGkN5YmVyIFNlY3VyaXR5IENsb3VkLCBJbmMuMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9BNbZY4jm0nKj0e+AdLkMyTkRkmIesEkwjfHpeZe+wRX1ZJgmESvVE/dTswBrUV+32MFYFbhzCucyudKqbvYtaOCAqcwggKjMA4GA1UdDwEB/wQEAwIDyDCBowYIKwYBBQUHAQEEgZYwgZMwTgYIKwYBBQUHMAKGQmh0dHA6Ly9zZWN1cmUuc3RhZ2luZy5nbG9iYWxzaWduLmNvbS9jYWNlcnQvZ3NnY2NyNDVhYXRsY2EyMDIwLmNydDBBBggrBgEFBQcwAYY1aHR0cDovL29jc3Auc3RhZ2luZy5nbG9iYWxzaWduLmNvbS9nc2djY3I0NWFhdGxjYTIwMjAwgdoGA1UdIASB0jCBzzCBzAYKKwYBBAGgMgEoHjCBvTCBhgYIKwYBBQUHAgIwegx4VGhpcyBjZXJ0aWZpY2F0ZSBoYXMgYmVlbiBpc3N1ZWQgaW4gYWNjb3JkYW5jZSB3aXRoIHRoZSBHbG9iYWxTaWduIENQUyBsb2NhdGVkIGF0IGh0dHBzOi8vd3d3Lmdsb2JhbHNpZ24uY29tL3JlcG9zaXRvcnkvMDIGCCsGAQUFBwIBFiZodHRwczovL3d3dy5nbG9iYWxzaWduLmNvbS9yZXBvc2l0b3J5LzAJBgNVHRMEAjAAMEkGA1UdHwRCMEAwPqA8oDqGOGh0dHA6Ly9jcmwuc3RhZ2luZy5nbG9iYWxzaWduLmNvbS9nc2djY3I0NWFhdGxjYTIwMjAuY3JsMGIGCiqGSIb3LwEBCQEEVDBSAgEBhkpodHRwOi8vcjQ1YWF0bC10aW1lc3RhbXAuc3RhZ2luZy5nbG9iYWxzaWduLmNvbS90c2Evd2RyNHY0YXcyeTI1MG1pOWY1N3dlbwEBADAUBgNVHSUEDTALBgkqhkiG9y8BAQUwHwYDVR0jBBgwFoAUtHSI1Ckhqxvop6itC9HLridy0YAwHQYDVR0OBBYEFE/4+w5x7BfYMI8vPMxqd6zFA7v8MA0GCSqGSIb3DQEBDAUAA4IBAQA8EXIZjuOtvl/cIg/oG06ZXS8PpV5ZOcMXP2EpvD7cfbe7YKKcvmDZsZBb6MYpOSxABOZPCW2fvR+PI3ZK2yGEq9qcRJtZMZ7rRTecHWrkipc5/GHSPL3bfq0VH4xE3ZH53wzZ3WAc4R+w8dSrgfne0jU+vykum5FT7B/scHXlh79Oi1MxnMeYj5U/i0KF4zAQcf3r6RwY0dluQiLw43WwhbD3R3cJJuzh2sYoGHHgev/ZI6OvIx2IJIOImgh1SIu0dUbG1p2M0gbasvcbpjME90z9rZ/Ab5/2celMmeJn3jCy81RP6gbkunr62Z0tOurt8eCjhQEA5wS39VLD2q13" },
+                  { "val": "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" },
+                  { "val": "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" }
+                ]
+              },
+              "ServiceTypeIdentifier": "http://example.com/SvcType/CredentialIssuance",
+              "ServiceStatus": "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+              "StatusStartingTime": "2025-12-18T08:02:29.392Z",
+              "ServiceSupplyPoints": [
+                {
+                  "uriValue": "https://issuer.eujp.ownd-project.com"
+                }
+              ]
+            }
+          },
+          {
+            "ServiceInformation": {
+              "ServiceName": [
+                {
+                  "lang": "en",
+                  "value": "Credential Verifier"
+                },
+                {
+                  "lang": "ja",
+                  "value": "Credential Verifier"
+                }
+              ],
+              "ServiceDigitalIdentity": {},
+              "ServiceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+              "ServiceStatus": "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+              "StatusStartingTime": "2025-12-18T08:02:50.180Z"
+            }
+          }
+        ]
+      },
+      {
+        "TrustedEntityInformation": {
+          "TEName": [
+            {
+              "lang": "en",
+              "value": "OWND Project"
+            },
+            {
+              "lang": "ja",
+              "value": "OWND Project"
+            }
+          ],
+          "TETradeName": [
+            {
+              "lang": "en",
+              "value": "OWND Project"
+            },
+            {
+              "lang": "ja",
+              "value": "OWND Project"
+            }
+          ],
+          "TEAddress": {
+            "TEPostalAddress": [],
+            "TEElectronicAddress": []
+          },
+          "TEInformationURI": [
+            {
+              "lang": "en",
+              "uriValue": "https://www.ownd-project.com/"
+            }
+          ]
+        },
+        "TrustedEntityServices": [
+          {
+            "ServiceInformation": {
+              "ServiceName": [
+                {
+                  "lang": "en",
+                  "value": "OWND Wallet"
+                },
+                {
+                  "lang": "ja",
+                  "value": "OWND Wallet"
+                }
+              ],
+              "ServiceDigitalIdentity": {},
+              "ServiceTypeIdentifier": "http://uri.etsi.org/TrstSvc/Svctype/WalletProvider",
+              "ServiceStatus": "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+              "StatusStartingTime": "2025-12-18T08:01:31.076Z",
+              "ServiceSupplyPoints": [
+                {
+                  "uriValue": "https://www.ownd-project.com/serivce"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
