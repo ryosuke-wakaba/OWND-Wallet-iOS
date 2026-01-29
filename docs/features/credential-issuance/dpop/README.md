@@ -84,6 +84,41 @@ DPoPは、アクセストークンを発行時のクライアントに暗号学�
    |                        |                                  |
 ```
 
+## アクセストークンと公開鍵の紐付け方法
+
+RFC 9449では、アクセストークンとDPoP公開鍵を紐付ける方法として2通りの方式が定義されています。
+
+### 1. JWTアクセストークン方式（cnf.jkt）
+
+アクセストークンがJWT形式の場合、`cnf`（confirmation）クレーム内にDPoP公開鍵のJWK Thumbprint（`jkt`）を含めます。
+
+```json
+{
+  "iss": "https://issuer.example.com",
+  "sub": "user123",
+  "exp": 1234567890,
+  "cnf": {
+    "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"
+  }
+}
+```
+
+Resource Serverは、DPoP Proofの`jwk`ヘッダーからJWK Thumbprintを計算し、アクセストークンの`cnf.jkt`と一致することを検証します。
+
+### 2. Token Introspection方式
+
+アクセストークンがオペーク（不透明）トークンの場合、Authorization Serverが公開鍵のバインディング情報を内部的に保持します。Resource Serverは[Token Introspection](https://www.rfc-editor.org/rfc/rfc7662)エンドポイントを使用して、トークンの有効性とバインドされた公開鍵情報を取得します。
+
+```json
+{
+  "active": true,
+  "token_type": "DPoP",
+  "cnf": {
+    "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"
+  }
+}
+```
+
 ## DPoP Proof JWT
 
 ### JWT構造
@@ -166,11 +201,6 @@ ath = Base64URL(SHA256(access_token))
 | Credential | `Authorization` | `DPoP <access_token>` |
 | Credential | `DPoP` | DPoP Proof JWT (ath付き) |
 
-### レスポンスヘッダー
-
-| ヘッダー | 説明 |
-|---------|------|
-| `DPoP-Nonce` | 次回DPoP Proofで使用するnonce |
 
 ## 関連ドキュメント
 
