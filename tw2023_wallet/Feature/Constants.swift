@@ -24,7 +24,7 @@ struct Constants {
         static let WALLET_NAME = "OWND Wallet"
         // Wallet info link
         static let WALLET_LINK = "https://www.ownd-project.com/wallet/"
-        // Attestation validity duration in seconds (1 hour)
-        static let ATTESTATION_VALIDITY_SECONDS: TimeInterval = 3600
+        // Attestation validity duration in seconds (24 hours)
+        static let ATTESTATION_VALIDITY_SECONDS: TimeInterval = 86400
     }
 }
