@@ -1,8 +1,10 @@
-# Wallet Attestation 実装詳細ドキュメント
+# Credential Issuance - Wallet Attestation (Client Authentication)
 
 ## 概要
 
-本ドキュメントは、OWND Wallet iOSにおけるWallet Attestation（クライアント認証）機能の実装詳細について記載します。
+本ドキュメントは、OWND Wallet iOSにおけるWallet Attestation（クライアント認証）機能について記載します。
+
+OAuth 2.0 Attestation-Based Client Authentication を使用して、Walletの信頼性を証明します。Wallet ProviderがWalletに対して発行したAttestationをAuthorization Serverに提示することで、クライアント認証を行います。
 
 > **注意:** 本機能は「Wallet Attestation」と呼ばれますが、プロトコル仕様（OAuth 2.0 Attestation-Based Client Authentication）上でのJWTの名称は「Client Attestation」および「Client Attestation PoP」です。本ドキュメントでは、機能名として「Wallet Attestation」、JWT名として「Client Attestation」を使用します。
 
@@ -74,57 +76,12 @@
    |                        |                          |                   |
 ```
 
-## Wallet Attestation
+## Client Attestation JWT
 
-### 擬似ウォレットプロバイダー実装
+Wallet Providerが署名するJWT。Walletの公開鍵を含み、Walletの信頼性を証明します。
 
-本来、Wallet ProviderはWalletとは独立した外部サービスとして存在し、モバイルOSのDeviceCheck（iOS）やPlay Integrity（Android）を使用してWalletの信頼性を検証した上でAttestationを発行します。
+### Header
 
-本実装では、テスト・開発目的で擬似的にWallet Provider機能をウォレット内部に組み込んでいます。
-
-### Wallet Attestation生成の操作
-
-1. **設定画面でトグルをON**: ユーザーが設定画面で「クライアント認証」トグルを有効化
-2. **自動生成処理**: Attestation用キーペア（ES256）を生成し、Client Attestation JWTを生成・保存
-3. **クレデンシャル発行時の使用**: Token Request時に自動的にヘッダーを追加（期限切れの場合は自動再生成）
-
-### プロバイダーのキーペア情報
-
-#### Provider秘密鍵
-
-| 項目 | 値 |
-|------|-----|
-| ファイルパス | `WalletProviderCert/wallet-provider-private.key` |
-| ビルド後パス | `<app-bundle>/wallet-provider-private.key` |
-| フォーマット | PEM (SEC1 EC PRIVATE KEY) |
-| アルゴリズム | ECDSA P-256 (secp256r1) |
-
-#### Provider証明書
-
-| 項目 | 値 |
-|------|-----|
-| ファイルパス | `WalletProviderCert/wallet-provider.cer` |
-| ビルド後パス | `<app-bundle>/wallet-provider.cer` |
-| フォーマット | PEM (X.509 Certificate) |
-| アルゴリズム | ECDSA P-256 with SHA-256 |
-| 発行者 | CN=Test Root CA, O=Cyber Security Cloud, L=Sinagawa, ST=Tokyo, C=JP |
-| サブジェクト | CN=OWND Project, O=Cyber Security Cloud, L=Sinagawa, ST=Tokyo, C=JP |
-| 有効期間 | 2026-01-23 〜 2028-04-27 |
-
-#### Attestation定数
-
-| 定数 | 値 | 説明 |
-|------|-----|------|
-| `PROVIDER_ISSUER` | `https://wallet-provider.ownd-project.com` | Client Attestationの`iss`クレーム |
-| `CLIENT_ID` | `https://wallet.ownd-project.com` | Client Attestationの`sub`クレーム、PoP JWTの`iss`クレーム |
-| `WALLET_NAME` | `OWND Wallet` | Wallet名称（オプショナル） |
-| `WALLET_LINK` | `https://www.ownd-project.com/wallet/` | Wallet情報URL（オプショナル） |
-| `ATTESTATION_VALIDITY_SECONDS` | `86400` (24時間) | Client Attestationの有効期間 |
-| `KEY_WALLET_ATTESTATION` | `walletAttestationKey` | Attestation用キーペアのエイリアス |
-
-### Client Attestation JWT構造
-
-#### Header
 ```json
 {
   "typ": "oauth-client-attestation+jwt",
@@ -139,7 +96,8 @@
 | `alg` | `ES256` | ECDSA P-256 with SHA-256 |
 | `x5c` | 証明書チェーン（base64 DER） | HAIP 4.4.1 |
 
-#### Payload
+### Payload
+
 ```json
 {
   "iss": "https://wallet-provider.ownd-project.com",
@@ -169,11 +127,12 @@
 | `wallet_name` | OPTIONAL | Wallet名称 | OID4VCI Appendix E |
 | `wallet_link` | OPTIONAL | Wallet情報URL | OID4VCI Appendix E |
 
-## Wallet Attestation PoP
+## Client Attestation PoP JWT
 
-### Client Attestation PoP JWT構造
+Walletが署名するJWT。Client Attestationの`cnf.jwk`に対応する秘密鍵で署名し、Attestationの所有を証明します。
 
-#### Header
+### Header
+
 ```json
 {
   "typ": "oauth-client-attestation-pop+jwt",
@@ -186,7 +145,8 @@
 | `typ` | `oauth-client-attestation-pop+jwt` | OAuth Attestation-Based Client Auth 5.2 |
 | `alg` | `ES256` | ECDSA P-256 with SHA-256 |
 
-#### Payload
+### Payload
+
 ```json
 {
   "iss": "https://wallet.ownd-project.com",
@@ -203,7 +163,7 @@
 | `jti` | REQUIRED | 一意のJWT ID（リプレイ防止） | OAuth Attestation 5.2 |
 | `iat` | REQUIRED | 発行時刻（UNIX timestamp） | OAuth Attestation 5.2 |
 
-## HTTPヘッダー送信
+## HTTPヘッダー
 
 Token Endpointへのリクエスト時に以下のヘッダーを追加:
 
@@ -218,24 +178,12 @@ DPoP: <dpop_proof_jwt>  (optional)
 grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code&...
 ```
 
-## Authorization Server側での検証手順
+| Header | Value |
+|--------|-------|
+| `OAuth-Client-Attestation` | Client Attestation JWT |
+| `OAuth-Client-Attestation-PoP` | Client Attestation PoP JWT |
 
-#### 1. Client Attestation JWTの検証
+## 関連ドキュメント
 
-- `typ`が`oauth-client-attestation+jwt`であること
-- `x5c`ヘッダーから証明書チェーンを取得
-- Trust Anchorに対して証明書チェーンを検証
-- Leaf証明書から公開鍵を抽出
-- JWTの署名を検証
-- `exp`が未来であることを確認
-- `nbf`が過去であることを確認（存在する場合）
-
-#### 2. Client Attestation PoP JWTの検証
-
-- `typ`が`oauth-client-attestation-pop+jwt`であること
-- `iss`がClient Attestationの`sub`と一致すること
-- `aud`が認可サーバーのIssuer URLと一致すること
-- `jti`がユニークであること（リプレイ検出）※本実装では割愛
-- 署名がClient Attestationの`cnf.jwk`で検証できること
-- `iat`が合理的な範囲内であることを確認
-
+- [実装詳細](implementation.md)
+- [セキュリティ](security.md)
