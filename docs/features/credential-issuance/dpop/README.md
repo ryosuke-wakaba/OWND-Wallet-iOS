@@ -1,113 +1,178 @@
 # Credential Issuance - DPoP (RFC 9449)
 
-## Overview
+## 概要
 
-RFC 9449に基づくDPoP (Demonstrating Proof of Possession) を使用して、アクセストークンを送信者に紐付けます。
+本ドキュメントは、OWND Wallet iOSにおけるDPoP (Demonstrating Proof of Possession) 機能について記載します。
 
-## DPoP Integration Flow
+DPoPは、アクセストークンを発行時のクライアントに暗号学的にバインドすることで、トークン漏洩時の悪用を防止するセキュリティ機構です。
+
+## 参照仕様
+
+本実装は以下の仕様に準拠しています。
+
+### 1. RFC 9449: OAuth 2.0 Demonstrating Proof of Possession (DPoP)
+- URL: https://www.rfc-editor.org/rfc/rfc9449.html
+- DPoP Proof JWTの構造・生成方法を定義
+- `ath` (Access Token Hash) によるトークンバインディング
+- `DPoP-Nonce` によるリプレイ防止
+
+### 2. OID4VCI 1.0 - Nonce Endpoint
+- URL: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
+- Nonce Endpointでの`DPoP-Nonce`ヘッダー取得
+- Credential Endpoint呼び出し時のDPoP使用
+
+### 3. HAIP 4.4.2 - DPoP
+- URL: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0-05.html
+- 高保証プロファイルでのDPoP要件
+- Sender-Constrained Access Tokensの使用
+
+## 全体フロー
 
 ```
-1. Token Endpoint
-   Request:  DPoP: <dpop_proof_jwt>
-   Response: access_token, token_type="DPoP"
-
-2. Nonce Endpoint (OID4VCI 1.0)
-   Request:  POST /nonce
-   Response: c_nonce (body), DPoP-Nonce (header)
-
-3. Credential Endpoint
-   Request:  Authorization: DPoP <access_token>
-             DPoP: <dpop_proof_jwt_with_ath_and_nonce>
-   Response: credential
++------+                +--------+                        +--------+
+| User |                | Wallet |                        | Issuer |
++--+---+                +---+----+                        +----+---+
+   |                        |                                  |
+   |  [事前準備]             |                                  |
+   |                        |                                  |
+   |                        | DPoP用キーペア生成                |
+   |                        | (Secure Enclave)                 |
+   |                        +---+                              |
+   |                        |   |                              |
+   |                        |<--+                              |
+   |                        |                                  |
+   |  [Token Request]       |                                  |
+   |                        |                                  |
+   |                        | DPoP Proof生成                   |
+   |                        | (htm=POST, htu=token_url)        |
+   |                        +---+                              |
+   |                        |   |                              |
+   |                        |<--+                              |
+   |                        |                                  |
+   |                        | POST /token                      |
+   |                        | DPoP: <dpop_proof_jwt>           |
+   |                        +--------------------------------->|
+   |                        |                                  |
+   |                        |     access_token, token_type=DPoP|
+   |                        |<---------------------------------+
+   |                        |                                  |
+   |  [Nonce Request]       |                                  |
+   |                        |                                  |
+   |                        | POST /nonce                      |
+   |                        +--------------------------------->|
+   |                        |                                  |
+   |                        |     c_nonce, DPoP-Nonce (header) |
+   |                        |<---------------------------------+
+   |                        |                                  |
+   |  [Credential Request]  |                                  |
+   |                        |                                  |
+   |                        | DPoP Proof生成                   |
+   |                        | (htm=POST, htu=credential_url,   |
+   |                        |  ath=hash(access_token),         |
+   |                        |  nonce=dpop_nonce)               |
+   |                        +---+                              |
+   |                        |   |                              |
+   |                        |<--+                              |
+   |                        |                                  |
+   |                        | POST /credential                 |
+   |                        | Authorization: DPoP <access_token>
+   |                        | DPoP: <dpop_proof_jwt>           |
+   |                        +--------------------------------->|
+   |                        |                                  |
+   |                        |                       credential |
+   |                        |<---------------------------------+
+   |                        |                                  |
 ```
 
-## DPoP Proof JWT Structure
+## DPoP Proof JWT
+
+### JWT構造
+
+#### Header
 
 ```json
 {
-  "header": {
-    "typ": "dpop+jwt",
-    "alg": "ES256",
-    "jwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "..." }
-  },
-  "payload": {
-    "jti": "<unique-id>",
-    "htm": "POST",
-    "htu": "https://issuer.example.com/credential",
-    "iat": 1234567890,
-    "ath": "<base64url(sha256(access_token))>",
-    "nonce": "<server-provided-dpop-nonce>"
+  "typ": "dpop+jwt",
+  "alg": "ES256",
+  "jwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "...",
+    "y": "..."
   }
 }
 ```
 
-### Payload Fields
+| フィールド | 値 | 仕様 |
+|-----------|-----|------|
+| `typ` | `dpop+jwt` | RFC 9449 Section 4.2 |
+| `alg` | `ES256` | ECDSA P-256 with SHA-256 |
+| `jwk` | 公開鍵（JWK形式） | RFC 9449 Section 4.2 |
 
-| Field | Description |
-|-------|-------------|
-| `jti` | 一意のJWT ID（リプレイ防止） |
-| `htm` | HTTPメソッド（POST, GETなど） |
-| `htu` | HTTPターゲットURI |
-| `iat` | 発行時刻（Unix timestamp） |
-| `ath` | Access Token Hash（リソースサーバーへのリクエスト時のみ） |
-| `nonce` | サーバー提供のDPoP-Nonce（オプション） |
+#### Payload (Token Endpoint用)
 
-## DPoP Service API
-
-```swift
-// tw2023_wallet/Services/OID/VCI/DPoPService.swift
-enum DPoPService {
-    /// Token Endpoint用のDPoP Proof生成（athなし）
-    static func createProof(
-        httpMethod: String,
-        httpUri: String,
-        nonce: String? = nil
-    ) throws -> String
-
-    /// Resource Server用のDPoP Proof生成（ath付き）
-    static func createProofWithAccessToken(
-        httpMethod: String,
-        httpUri: String,
-        accessToken: String,
-        nonce: String? = nil
-    ) throws -> String
-
-    /// Access Token Hash計算
-    static func calculateAth(accessToken: String) throws -> String
+```json
+{
+  "jti": "<UUID>",
+  "htm": "POST",
+  "htu": "https://issuer.example.com/token",
+  "iat": 1234567890
 }
 ```
 
-## Security Benefits
+#### Payload (Credential Endpoint用 - ath・nonce付き)
 
-DPoP (RFC 9449) は以下のセキュリティ強化を提供:
+```json
+{
+  "jti": "<UUID>",
+  "htm": "POST",
+  "htu": "https://issuer.example.com/credential",
+  "iat": 1234567890,
+  "ath": "<base64url(sha256(access_token))>",
+  "nonce": "<server-provided-dpop-nonce>"
+}
+```
 
-### 1. Sender-Constrained Access Tokens
+### Payloadフィールド
 
-- Access Tokenは発行時のクライアントにバインド
-- 盗まれたトークンは攻撃者が使用不可
+| フィールド | 必須 | 説明 | 仕様 |
+|-----------|------|------|------|
+| `jti` | REQUIRED | 一意のJWT ID（リプレイ防止） | RFC 9449 Section 4.2 |
+| `htm` | REQUIRED | HTTPメソッド（大文字） | RFC 9449 Section 4.2 |
+| `htu` | REQUIRED | HTTPターゲットURI（クエリ・フラグメント除外） | RFC 9449 Section 4.2 |
+| `iat` | REQUIRED | 発行時刻（UNIX timestamp） | RFC 9449 Section 4.2 |
+| `ath` | CONDITIONAL | Access Token Hash（リソースサーバーリクエスト時） | RFC 9449 Section 4.2 |
+| `nonce` | OPTIONAL | サーバー提供のDPoP-Nonce | RFC 9449 Section 4.2 |
 
-### 2. Proof of Possession
+### athの計算
 
-- 各リクエストでクライアントの秘密鍵による署名が必要
-- トークン漏洩リスクの大幅な軽減
+Access Token Hash（`ath`）は以下の手順で計算します:
 
-### 3. Replay Protection
+```
+ath = Base64URL(SHA256(access_token))
+```
 
-- DPoP-Nonce によるリプレイ攻撃防止
-- jti (JWT ID) によるProof再利用防止
+1. アクセストークン文字列をASCIIエンコード
+2. SHA-256ハッシュを計算
+3. 結果をBase64URLエンコード（パディングなし）
 
-### 4. HAIP Compliance
+## HTTPヘッダー
 
-- OID4VCI High Assurance Interoperability Profile準拠
-- 高セキュリティ環境での相互運用性
+### リクエストヘッダー
 
-## Implementation Notes
+| エンドポイント | ヘッダー | 値 |
+|--------------|---------|-----|
+| Token | `DPoP` | DPoP Proof JWT |
+| Credential | `Authorization` | `DPoP <access_token>` |
+| Credential | `DPoP` | DPoP Proof JWT (ath付き) |
 
-- DPoP鍵はSecure Enclaveに保存
-- 各リクエストで新しいDPoP Proofを生成
-- サーバーからの`DPoP-Nonce`ヘッダーを適切に処理
+### レスポンスヘッダー
 
-## References
+| ヘッダー | 説明 |
+|---------|------|
+| `DPoP-Nonce` | 次回DPoP Proofで使用するnonce |
 
-- [RFC 9449: OAuth 2.0 DPoP](https://www.rfc-editor.org/rfc/rfc9449.html)
-- [HAIP (High Assurance Interoperability Profile)](https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0-05.html)
+## 関連ドキュメント
+
+- [実装詳細](implementation.md)
+- [セキュリティ](security.md)
