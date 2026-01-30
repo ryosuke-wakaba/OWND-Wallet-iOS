@@ -16,7 +16,6 @@ class PreferencesDataStore {
     private let lastBackupAtKey = "last_backup_at_key"
     private let preferSignedMetadataKey = "prefer_signed_metadata"
     private let useDPoPKey = "use_dpop"
-    private let useTrustListKey = "use_trust_list"
     private let useClientAttestationKey = "use_client_attestation"
     private let clientAttestationJwtKey = "client_attestation_jwt"
 
@@ -46,18 +45,6 @@ class PreferencesDataStore {
             return true
         }
         return defaults.bool(forKey: useDPoPKey)
-    }
-
-    func setUseTrustList(_ value: Bool) {
-        defaults.set(value, forKey: useTrustListKey)
-    }
-
-    func getUseTrustList() -> Bool {
-        // Return true (Trust List enabled) if the key has never been set
-        if defaults.object(forKey: useTrustListKey) == nil {
-            return true
-        }
-        return defaults.bool(forKey: useTrustListKey)
     }
 
     // MARK: - Client Attestation Settings

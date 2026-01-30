@@ -48,8 +48,10 @@ Settings
 │       ├── Export Account
 │       └── Import Account
 ├── Issuance Settings
-│   ├── Require Server Authentication (Toggle)
-│   └── Use DPoP (Toggle)
+│   ├── Use DPoP (Toggle)
+│   └── Use Client Attestation (Toggle)
+├── Trust List
+│   └── Require Server Authentication (Toggle)
 ├── Security (未実装)
 │   ├── App Lock (Toggle)
 │   ├── Lock Timeout (Picker)
