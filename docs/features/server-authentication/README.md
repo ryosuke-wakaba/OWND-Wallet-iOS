@@ -47,7 +47,7 @@ OID4VCI/OID4VPにおけるサーバー認証機能を提供します。X.509証�
 | [trusted-list.md](./trusted-list.md) | トラストリスト（Certificate-Based Search, LoTE Data Models） |
 | [chain-validation.md](./chain-validation.md) | 証明書チェーン検証（SecTrust API, useCustomAnchorsOnly, 検証フロー） |
 | [setup.md](./setup.md) | セットアップ、起動時ログ、トラブルシューティング |
-| [testing.md](./testing.md) | テスト（テストケース、証明書生成、有効期間の注意点） |
+| [server-authentication-tests.md](../../tests/server-authentication-tests.md) | テスト（テストケース、証明書生成、有効期間の注意点） |
 
 ## 関連ファイル
 
