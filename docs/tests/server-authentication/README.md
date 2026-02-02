@@ -12,7 +12,6 @@
 |--------------|----------|------------|
 | TrustAnchorManagerTests.swift | TrustAnchorManagerの単体テスト | [詳細](./trust-anchor-manager-tests.md) |
 | X509ChainValidationTests.swift | 証明書チェーン検証の統合テスト | [詳細](./x509-chain-validation-tests.md) |
-| X509HashValidationTests.swift | x509_hash Client ID検証テスト（OID4VP 1.0） | [詳細](./x509-hash-validation-tests.md) |
 | TrustedListManagerTests.swift | TrustedListManagerの単体テスト | [詳細](./trusted-list-manager-tests.md) |
 | TrustedListModelsTests.swift | LoTEデータモデルのパーステスト | [詳細](./trusted-list-models-tests.md) |
 | JAdESSignatureVerifierTests.swift | JAdES Baseline-B署名検証テスト | [詳細](./jades-signature-verifier-tests.md) |
