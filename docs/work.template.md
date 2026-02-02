@@ -20,7 +20,7 @@
 - docs/features/credential-issuance
 - docs/features/credential-presentation
 - docs/data-storage.md
-- docs/server-authentication
+- docs/features/server-authentication
 
 ### ブランチ
 - 現在のブランチで対応して下さい。

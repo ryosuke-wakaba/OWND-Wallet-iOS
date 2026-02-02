@@ -4,7 +4,7 @@
 
 OID4VCI 1.0 Section 12.2.2/12.2.3に準拠したメタデータの取得と検証機能を提供します。Issuerメタデータの信頼性を検証するため、署名付きメタデータ(Signed Metadata)に対応しています。
 
-トラストリストと証明書チェーン検証の詳細は [サーバー認証](../../server-authentication/README.md) を参照してください。
+トラストリストと証明書チェーン検証の詳細は [サーバー認証](../server-authentication/README.md) を参照してください。
 
 ### 主な機能
 
@@ -87,7 +87,7 @@ classDiagram
     X5CJWTVerifier --> TrustedListManager : uses
 ```
 
-> **Note**: TrustedListManager, X5CJWTVerifier, TrustAnchorManager, X509CertificateOperations の詳細は [サーバー認証](../../server-authentication/README.md) を参照してください。
+> **Note**: TrustedListManager, X5CJWTVerifier, TrustAnchorManager, X509CertificateOperations の詳細は [サーバー認証](../server-authentication/README.md) を参照してください。
 
 ## Sequence Diagram
 
@@ -163,7 +163,7 @@ sequenceDiagram
     end
 ```
 
-> **Note**: TrustedListManager内部処理フローと証明書チェーン検証フローの詳細は [サーバー認証](../../server-authentication/README.md) を参照してください。
+> **Note**: TrustedListManager内部処理フローと証明書チェーン検証フローの詳細は [サーバー認証](../server-authentication/README.md) を参照してください。
 
 ## API Reference
 
@@ -293,7 +293,7 @@ enum MetadataError: LocalizedError {
 }
 ```
 
-> **Note**: TrustedListError の詳細は [サーバー認証](../../server-authentication/components.md) を参照してください。
+> **Note**: TrustedListError の詳細は [サーバー認証](../server-authentication/components.md) を参照してください。
 
 ## Data Models
 
@@ -318,7 +318,7 @@ enum MetadataError: LocalizedError {
 }
 ```
 
-> **Note**: LoTE Document Structure の詳細は [サーバー認証](../../server-authentication/trusted-list.md) を参照してください。
+> **Note**: LoTE Document Structure の詳細は [サーバー認証](../server-authentication/trusted-list.md) を参照してください。
 
 ## Implementation Files
 
@@ -406,7 +406,7 @@ let metadata = try await retrieveAllMetadata(
 
 ### Build Phase設定
 
-TrustedListConfig.jsonをアプリバンドルにコピーするBuild Phaseスクリプトの設定は [サーバー認証 - セットアップ](../../server-authentication/setup.md#3-xcode-build-phaseの設定) を参照してください。
+TrustedListConfig.jsonをアプリバンドルにコピーするBuild Phaseスクリプトの設定は [サーバー認証 - セットアップ](../server-authentication/setup.md#3-xcode-build-phaseの設定) を参照してください。
 
 ## References
 
@@ -418,7 +418,7 @@ TrustedListConfig.jsonをアプリバンドルにコピーするBuild Phaseス�
 
 ### Related Documentation
 
-- [サーバー認証](../../server-authentication/README.md) - トラストリスト、証明書チェーン検証
+- [サーバー認証](../server-authentication/README.md) - トラストリスト、証明書チェーン検証
 - [API Reference](./api.md)
 - [Security](./security.md)
 

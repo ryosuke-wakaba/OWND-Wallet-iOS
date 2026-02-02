@@ -14,7 +14,7 @@ OID4VCI/OID4VPにおけるサーバー認証機能を提供します。X.509証�
 
 ### 使用される機能
 
-- **OID4VCI**: 署名付きメタデータの検証 → [Metadata Verification](../features/credential-issuance/metadata-verification.md)
+- **OID4VCI**: 署名付きメタデータの検証 → [Metadata Verification](../credential-issuance/metadata-verification.md)
 - **OID4VP**: Request Object JWTの検証
 
 ## アーキテクチャ
@@ -88,4 +88,4 @@ OID4VCI/OID4VPにおけるサーバー認証機能を提供します。X.509証�
 
 ### Related Documentation
 
-- [Metadata Verification](../features/credential-issuance/metadata-verification.md) - 発行時のメタデータ検証
+- [Metadata Verification](../credential-issuance/metadata-verification.md) - 発行時のメタデータ検証
