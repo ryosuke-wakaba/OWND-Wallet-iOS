@@ -104,7 +104,7 @@ struct CredentialOfferView: View {
     ) -> some View {
         let issuerDisplayName = issuerMetaData.getCredentialIssuerDisplayName()
         let credentialDisplayName = targetCredential.getCredentialDisplayName()
-        let displayNames = targetCredential.getClaimNames()
+        let displayNames = targetCredential.getClaimNames(locale: "ja-JP")
 
         return VStack {
             HStack {
