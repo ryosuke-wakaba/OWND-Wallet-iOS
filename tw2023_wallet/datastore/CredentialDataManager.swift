@@ -73,17 +73,44 @@ extension Datastore_CredentialData {
         }
     }
 
+    // Reserved/technical claims that should not be displayed to users
+    private static let reservedClaims: Set<String> = [
+        "_sd", "_sd_alg", "iss", "iat", "exp", "nbf", "cnf", "vct", "sub", "jti", "status"
+    ]
+
     private func getDisclosure() -> [String: String]? {
         switch self.format {
             case "vc+sd-jwt", "dc+sd-jwt":  // OID4VCI 1.0: Support both old and new format names
-                guard let decoded = try? SDJwtUtil.decodeSDJwt(self.credential) else {
-                    return nil
+                var disclosure = [String: String]()
+
+                // 1. Extract disclosures (selectively disclosable claims)
+                if let decoded = try? SDJwtUtil.decodeSDJwt(self.credential) {
+                    for d in decoded {
+                        if let key = d.key, let value = d.value {
+                            disclosure[key] = value
+                        }
+                    }
                 }
-                var disclousre = [String: String]()
-                for d in decoded {
-                    disclousre[d.key!] = d.value
+
+                // 2. Extract claims from JWT payload (always visible claims)
+                let parts = self.credential.split(separator: "~")
+                if let issuerJwt = parts.first,
+                   let payload = try? decodeJWTPayload(jwt: String(issuerJwt)) {
+                    for (key, value) in payload {
+                        // Skip reserved/technical claims
+                        if Self.reservedClaims.contains(key) {
+                            continue
+                        }
+                        // Skip if already in disclosure (from SD part)
+                        if disclosure[key] != nil {
+                            continue
+                        }
+                        // Convert value to string
+                        disclosure[key] = convertDisclosureValue(value: value)
+                    }
                 }
-                return disclousre
+
+                return disclosure.isEmpty ? nil : disclosure
             case "jwt_vc_json":
                 guard let tmp = try? decodeJWTPayload(jwt: self.credential),
                     let vcDict = tmp["vc"] as? [String: Any],
