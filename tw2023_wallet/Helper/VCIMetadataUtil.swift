@@ -69,13 +69,12 @@ class VCIMetadataUtil {
 
         switch credentialsSupported {
             case let credentialsSupported as CredentialSupportedJwtVcJson:
-                // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to credentialDefinition.credentialSubject
+                // OID4VCI 1.0: Use credentialMetadata.claims, fallback to credentialDefinition.credentialSubject
                 if let metadata = credentialsSupported.credentialMetadata,
                    let metadataClaims = metadata.claims {
-                    for claim in metadataClaims {
-                        // Use the last element of path as the claim key
-                        if let lastName = claim.path.last, let display = claim.display {
-                            displayMap[lastName] = display
+                    for (claimKey, claimValue) in metadataClaims {
+                        if let display = claimValue.display {
+                            displayMap[claimKey] = display
                         }
                     }
                 } else if let credentialSubject = credentialsSupported.credentialDefinition.credentialSubject {
@@ -87,13 +86,12 @@ class VCIMetadataUtil {
                 }
 
             case let credentialsSupported as CredentialSupportedVcSdJwt:
-                // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to claims
+                // OID4VCI 1.0: Use credentialMetadata.claims, fallback to claims
                 if let metadata = credentialsSupported.credentialMetadata,
                    let metadataClaims = metadata.claims {
-                    for claim in metadataClaims {
-                        // Use the last element of path as the claim key
-                        if let lastName = claim.path.last, let display = claim.display {
-                            displayMap[lastName] = display
+                    for (claimKey, claimValue) in metadataClaims {
+                        if let display = claimValue.display {
+                            displayMap[claimKey] = display
                         }
                     }
                 } else if let credentialSubject = credentialsSupported.claims {

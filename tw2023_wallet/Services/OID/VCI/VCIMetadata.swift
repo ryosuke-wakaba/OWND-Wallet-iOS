@@ -53,67 +53,38 @@ struct ClaimOnlyMandatory: Codable {
     var mandatory: Bool?
 }
 
-// OID4VCI 1.0: New credential_metadata structure (array-based with path)
-struct ClaimMetadata: Codable {
-    let path: [String]
-    let mandatory: Bool?
-    let display: [ClaimDisplay]?
-}
-
-// OID4VCI 1.0: credential_metadata entry for map-based structure
+// OID4VCI 1.0: credential_metadata entry (map-based structure)
 struct ClaimMetadataEntry: Codable {
     let display: [ClaimDisplay]?
 }
 
-// CredentialMetadata supports both array-based (claims) and map-based structures
+// OID4VCI 1.0: credential_metadata with map-based claims structure
 struct CredentialMetadata: Codable {
-    let claims: [ClaimMetadata]?
-    let display: [CredentialDisplay]?
     // Map-based structure: key is claim name, value contains display info
-    let claimsMap: [String: ClaimMetadataEntry]?
+    let claims: [String: ClaimMetadataEntry]?
 
-    init(claims: [ClaimMetadata]? = nil, display: [CredentialDisplay]? = nil, claimsMap: [String: ClaimMetadataEntry]? = nil) {
+    init(claims: [String: ClaimMetadataEntry]? = nil) {
         self.claims = claims
-        self.display = display
-        self.claimsMap = claimsMap
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: DynamicKey.self)
-
-        // Try to decode known fields
-        var decodedClaims: [ClaimMetadata]? = nil
-        var decodedDisplay: [CredentialDisplay]? = nil
-        var decodedClaimsMap: [String: ClaimMetadataEntry] = [:]
+        var decodedClaims: [String: ClaimMetadataEntry] = [:]
 
         for key in container.allKeys {
-            if key.stringValue == "claims" {
-                decodedClaims = try container.decodeIfPresent([ClaimMetadata].self, forKey: key)
-            } else if key.stringValue == "display" {
-                decodedDisplay = try container.decodeIfPresent([CredentialDisplay].self, forKey: key)
-            } else {
-                // Unknown key - treat as claim entry in map-based structure
-                if let entry = try? container.decode(ClaimMetadataEntry.self, forKey: key) {
-                    decodedClaimsMap[key.stringValue] = entry
-                }
+            // Decode each key as a claim entry
+            if let entry = try? container.decode(ClaimMetadataEntry.self, forKey: key) {
+                decodedClaims[key.stringValue] = entry
             }
         }
 
-        self.claims = decodedClaims
-        self.display = decodedDisplay
-        self.claimsMap = decodedClaimsMap.isEmpty ? nil : decodedClaimsMap
+        self.claims = decodedClaims.isEmpty ? nil : decodedClaims
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: DynamicKey.self)
         if let claims = claims {
-            try container.encode(claims, forKey: DynamicKey(stringValue: "claims")!)
-        }
-        if let display = display {
-            try container.encode(display, forKey: DynamicKey(stringValue: "display")!)
-        }
-        if let claimsMap = claimsMap {
-            for (key, value) in claimsMap {
+            for (key, value) in claims {
                 try container.encode(value, forKey: DynamicKey(stringValue: key)!)
             }
         }
@@ -185,24 +156,10 @@ struct CredentialSupportedVcSdJwt: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Try credentialMetadata first
-        if let metadata = self.credentialMetadata {
-            // Try array-based claims first
-            if let metadataClaims = metadata.claims {
-                var names: [String] = []
-                for claim in metadataClaims {
-                    // Use the last element of path as the claim name
-                    if let lastName = claim.path.last {
-                        names.append(lastName)
-                    }
-                }
-                return names
-            }
-
-            // Try map-based claimsMap
-            if let claimsMap = metadata.claimsMap {
-                return getLocalizedClaimNamesFromMap(claimsMap: claimsMap, locale: locale)
-            }
+        // OID4VCI 1.0: Use credentialMetadata
+        if let metadata = self.credentialMetadata,
+           let metadataClaims = metadata.claims {
+            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, locale: locale)
         }
 
         guard let claims = self.claims else {
@@ -247,24 +204,10 @@ struct CredentialSupportedJwtVcJson: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Try credentialMetadata first
-        if let metadata = self.credentialMetadata {
-            // Try array-based claims first
-            if let metadataClaims = metadata.claims {
-                var names: [String] = []
-                for claim in metadataClaims {
-                    // Use the last element of path as the claim name
-                    if let lastName = claim.path.last {
-                        names.append(lastName)
-                    }
-                }
-                return names
-            }
-
-            // Try map-based claimsMap
-            if let claimsMap = metadata.claimsMap {
-                return getLocalizedClaimNamesFromMap(claimsMap: claimsMap, locale: locale)
-            }
+        // OID4VCI 1.0: Use credentialMetadata
+        if let metadata = self.credentialMetadata,
+           let metadataClaims = metadata.claims {
+            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, locale: locale)
         }
 
         return self.credentialDefinition.getClaimNames(locale: locale)
