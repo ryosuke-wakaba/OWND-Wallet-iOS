@@ -62,30 +62,40 @@ struct ClaimMetadataEntry: Codable {
 struct CredentialMetadata: Codable {
     // Map-based structure: key is claim name, value contains display info
     let claims: [String: ClaimMetadataEntry]?
+    // Preserves the order of claim keys as they appear in JSON
+    let claimOrder: [String]?
 
-    init(claims: [String: ClaimMetadataEntry]? = nil) {
+    init(claims: [String: ClaimMetadataEntry]? = nil, claimOrder: [String]? = nil) {
         self.claims = claims
+        self.claimOrder = claimOrder
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: DynamicKey.self)
         var decodedClaims: [String: ClaimMetadataEntry] = [:]
+        var order: [String] = []
 
         for key in container.allKeys {
             // Decode each key as a claim entry
             if let entry = try? container.decode(ClaimMetadataEntry.self, forKey: key) {
                 decodedClaims[key.stringValue] = entry
+                order.append(key.stringValue)
             }
         }
 
         self.claims = decodedClaims.isEmpty ? nil : decodedClaims
+        self.claimOrder = order.isEmpty ? nil : order
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: DynamicKey.self)
         if let claims = claims {
-            for (key, value) in claims {
-                try container.encode(value, forKey: DynamicKey(stringValue: key)!)
+            // Use claimOrder to preserve order when encoding
+            let keysToEncode = claimOrder ?? Array(claims.keys)
+            for key in keysToEncode {
+                if let value = claims[key] {
+                    try container.encode(value, forKey: DynamicKey(stringValue: key)!)
+                }
             }
         }
     }
@@ -159,7 +169,7 @@ struct CredentialSupportedVcSdJwt: CredentialConfiguration {
         // OID4VCI 1.0: Use credentialMetadata
         if let metadata = self.credentialMetadata,
            let metadataClaims = metadata.claims {
-            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, locale: locale)
+            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
         }
 
         guard let claims = self.claims else {
@@ -207,7 +217,7 @@ struct CredentialSupportedJwtVcJson: CredentialConfiguration {
         // OID4VCI 1.0: Use credentialMetadata
         if let metadata = self.credentialMetadata,
            let metadataClaims = metadata.claims {
-            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, locale: locale)
+            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
         }
 
         return self.credentialDefinition.getClaimNames(locale: locale)
@@ -292,9 +302,12 @@ func getLocalizedClaimNames(claims: ClaimMap, locale: String) -> [String] {
 }
 
 // OID4VCI 1.0: Get localized claim names from map-based credential_metadata structure
-func getLocalizedClaimNamesFromMap(claimsMap: [String: ClaimMetadataEntry], locale: String) -> [String] {
+func getLocalizedClaimNamesFromMap(claimsMap: [String: ClaimMetadataEntry], order: [String]?, locale: String) -> [String] {
     var result: [String] = []
-    for (claimKey, claimValue) in claimsMap {
+    // Use order if provided, otherwise iterate through claimsMap keys
+    let keys = order ?? Array(claimsMap.keys)
+    for claimKey in keys {
+        guard let claimValue = claimsMap[claimKey] else { continue }
         if let displays = claimValue.display {
             if displays.isEmpty {
                 result.append(claimKey)
