@@ -84,8 +84,9 @@ struct SubmissionCredential: Codable, Equatable {
             }
         }
 
-        // Only include disclosures that should be submitted
-        let selectedDisclosures = discloseClaims.filter { $0.isSubmit }.map { $0.disclosure }
+        // Only include actual SD-JWT disclosures that should be submitted
+        // (filter out direct payload claims which have disclosure.disclosure == nil)
+        let selectedDisclosures = discloseClaims.filter { $0.isSubmit && $0.disclosure.disclosure != nil }.map { $0.disclosure }
         print("[createVpTokenForSdJwtVc] ===== DEBUG: Selected Disclosures =====")
         print("[createVpTokenForSdJwtVc] Total discloseClaims: \(discloseClaims.count)")
         print("[createVpTokenForSdJwtVc] Selected disclosures (isSubmit=true): \(selectedDisclosures.count)")

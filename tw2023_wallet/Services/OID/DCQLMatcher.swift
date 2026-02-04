@@ -146,18 +146,34 @@ class DCQLMatcher {
         allDisclosures: [Disclosure],
         directPayloadClaimKeys: Set<String>
     ) -> [DisclosureWithOptionality]? {
+        var result: [DisclosureWithOptionality] = []
+
         guard let claims = credentialQuery.claims else {
             // OID4VP 1.0 Section 6.4.1: If claims is absent, the Verifier is requesting
             // no claims that are selectively disclosable; the Wallet MUST return only
             // the claims that are mandatory to present (SD-JWT and KB-JWT only).
-            print("[DCQLMatcher] No claims specified in query, returning all disclosures as non-submit")
-            return allDisclosures.map { disclosure in
-                DisclosureWithOptionality(
+            print("[DCQLMatcher] No claims specified in query, returning all claims as non-submit")
+
+            // Add disclosures
+            for disclosure in allDisclosures {
+                result.append(DisclosureWithOptionality(
                     disclosure: disclosure,
                     isSubmit: false,  // Do not submit selectively disclosable claims
                     isUserSelectable: false
-                )
+                ))
             }
+            // Add direct payload claims
+            for key in directPayloadClaimKeys {
+                if let value = sourcePayload[key] {
+                    let disclosure = Disclosure(disclosure: nil, key: key, value: value)
+                    result.append(DisclosureWithOptionality(
+                        disclosure: disclosure,
+                        isSubmit: false,
+                        isUserSelectable: false
+                    ))
+                }
+            }
+            return result
         }
 
         // Build a map of claim paths to their requirements
@@ -188,33 +204,48 @@ class DCQLMatcher {
         print("[DCQLMatcher] Required claims from disclosures: \(requiredFromDisclosures.sorted())")
         print("[DCQLMatcher] All required claims are present")
 
-        // Create disclosures with optionality
-        // Only disclosures need to be submitted; direct payload claims are already visible
-        return allDisclosures.map { disclosure in
+        // Create disclosures with optionality from SD-JWT disclosures
+        for disclosure in allDisclosures {
             guard let dkey = disclosure.key else {
-                return DisclosureWithOptionality(
+                result.append(DisclosureWithOptionality(
                     disclosure: disclosure,
                     isSubmit: false,
                     isUserSelectable: false
-                )
+                ))
+                continue
             }
 
             if requiredPaths.contains(dkey) {
                 // This claim is required by the query and is a disclosure
-                return DisclosureWithOptionality(
+                result.append(DisclosureWithOptionality(
                     disclosure: disclosure,
                     isSubmit: true,
                     isUserSelectable: false
-                )
+                ))
             } else {
                 // This claim is not required, don't submit
-                return DisclosureWithOptionality(
+                result.append(DisclosureWithOptionality(
                     disclosure: disclosure,
                     isSubmit: false,
                     isUserSelectable: false
-                )
+                ))
             }
         }
+
+        // Add direct payload claims (always visible, no disclosure needed)
+        for key in directPayloadClaimKeys {
+            if let value = sourcePayload[key] {
+                let disclosure = Disclosure(disclosure: nil, key: key, value: value)
+                let isRequired = requiredPaths.contains(key)
+                result.append(DisclosureWithOptionality(
+                    disclosure: disclosure,
+                    isSubmit: isRequired,  // Mark as submit if required by query
+                    isUserSelectable: false
+                ))
+            }
+        }
+
+        return result
     }
 
     /// Extract JWT payload from the issuer-signed JWT
