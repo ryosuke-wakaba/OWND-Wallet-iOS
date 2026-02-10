@@ -43,9 +43,13 @@ class KeyBindingImpl: KeyBinding {
             throw KeyBindingImplError.UnexpectedDisclosureValue
         }
 
-        let sd =
-            issuerSignedJwt + "~"
-            + selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
+        // RFC 9901: SD-JWT format for sd_hash calculation
+        // - With disclosures: <JWT>~<D1>~<D2>~
+        // - Without disclosures: <JWT>~ (single tilde, not double)
+        let disclosurePart = selectedDisclosures.isEmpty
+            ? ""
+            : selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
+        let sd = issuerSignedJwt + "~" + disclosurePart
 
         print("[KeyBinding] SD string for hash (first 500 chars): \(String(sd.prefix(500)))")
         print("[KeyBinding] SD string length: \(sd.count)")
