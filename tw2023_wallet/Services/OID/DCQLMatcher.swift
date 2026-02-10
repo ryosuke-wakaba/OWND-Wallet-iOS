@@ -35,10 +35,15 @@ class DCQLMatcher {
 
         // Get disclosures (selectively disclosable claims)
         let allDisclosures = SDJwtUtil.decodeDisclosure(sdJwtParts.disclosures)
+        // Build sourcePayload from disclosures
+        // Note: Include claims even if value is nil/empty, because DCQL matching
+        // checks for claim KEY existence, not value. Claims with null/empty values
+        // should still be matchable.
         var sourcePayload = Dictionary(
             uniqueKeysWithValues: allDisclosures.compactMap { disclosure in
-                if let key = disclosure.key, let value = disclosure.value {
-                    return (key, value)
+                if let key = disclosure.key {
+                    // Use empty string for nil values to ensure key is present in sourcePayload
+                    return (key, disclosure.value ?? "")
                 } else {
                     return nil
                 }
@@ -46,6 +51,7 @@ class DCQLMatcher {
         )
 
         // Also extract claims directly from JWT payload (non-selectively-disclosable claims)
+        // These are claims with selectivelyDisclosable: "never" or "always" in Type Metadata
         var directPayloadClaimKeys: Set<String> = []
         if let jwtPayload = try? getJwtPayload(sdJwtParts.issuerSignedJwt) {
             for (key, value) in jwtPayload {
@@ -53,8 +59,12 @@ class DCQLMatcher {
                 guard !DCQLMatcher.reservedJwtClaims.contains(key) else { continue }
 
                 // Convert value to string
+                // Handle null values (NSNull) explicitly - claim exists but has no value
                 let stringValue: String
-                if let strVal = value as? String {
+                if value is NSNull {
+                    // Null values should still be included - claim key exists
+                    stringValue = ""
+                } else if let strVal = value as? String {
                     stringValue = strVal
                 } else if let boolVal = value as? Bool {
                     stringValue = boolVal ? "true" : "false"
