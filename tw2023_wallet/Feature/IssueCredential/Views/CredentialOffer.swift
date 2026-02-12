@@ -142,7 +142,8 @@ struct CredentialOfferView: View {
                     Text("issuing_authority_information")
                         .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
                         .padding(.top, 32)
-                        .modifier(BodyBlack())
+                        .padding(.bottom, 16)
+                        .modifier(BodyGray())
 
                     IssuerDetail(
                         issuerMetadata: issuerMetaData, showTitle: false)
