@@ -438,11 +438,28 @@ class SharingRequestViewModel {
         let format = credential.format
         let credentialFormat = CredentialFormat(formatString: format)
 
+        print("[filterCredentialByDcql] ===== Checking credential: \(credential.id) =====")
+        print("[filterCredentialByDcql] Format: \(format), isSDJWT: \(credentialFormat?.isSDJWT ?? false)")
+
         if credentialFormat?.isSDJWT == true {
             // Match means all required claims exist (either as disclosures or direct payload)
-            return dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload) != nil
+            let matchResult = dcqlQuery.firstMatchedCredentialQuery(sdJwt: credential.payload)
+            let matched = matchResult != nil
+            print("[filterCredentialByDcql] Credential \(credential.id) match result: \(matched)")
+            if matched {
+                print("[filterCredentialByDcql] Matched with \(matchResult!.disclosuresWithOptionality.count) claims")
+            } else {
+                print("[filterCredentialByDcql] NO MATCH - checking required claims in DCQL query:")
+                for cq in dcqlQuery.credentials {
+                    if let claims = cq.claims {
+                        let paths = claims.compactMap { $0.pathAsStrings.last }
+                        print("[filterCredentialByDcql] Query requires claims: \(paths)")
+                    }
+                }
+            }
+            return matched
         } else {
-            // TODO: Support other formats if needed
+            print("[filterCredentialByDcql] Skipping non-SD-JWT credential")
             return false
         }
     }
