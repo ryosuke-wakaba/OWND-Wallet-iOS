@@ -35,6 +35,19 @@ class DCQLMatcher {
 
         // Get disclosures (selectively disclosable claims)
         let allDisclosures = SDJwtUtil.decodeDisclosure(sdJwtParts.disclosures)
+
+        // DEBUG: Print all raw disclosures
+        print("[DCQLMatcher] ===== DEBUG: Raw Disclosures =====")
+        print("[DCQLMatcher] Number of raw disclosure strings: \(sdJwtParts.disclosures.count)")
+        for (i, disclosureStr) in sdJwtParts.disclosures.enumerated() {
+            print("[DCQLMatcher] Raw disclosure[\(i)]: \(disclosureStr.prefix(50))...")
+        }
+
+        print("[DCQLMatcher] ===== DEBUG: Decoded Disclosures =====")
+        for (i, disclosure) in allDisclosures.enumerated() {
+            print("[DCQLMatcher] Disclosure[\(i)]: key='\(disclosure.key ?? "nil")', value='\(disclosure.value ?? "nil")', disclosure='\(disclosure.disclosure?.prefix(30) ?? "nil")...'")
+        }
+
         // Build sourcePayload from disclosures
         // Note: Include claims even if value is nil/empty, because DCQL matching
         // checks for claim KEY existence, not value. Claims with null/empty values
@@ -43,49 +56,50 @@ class DCQLMatcher {
             uniqueKeysWithValues: allDisclosures.compactMap { disclosure in
                 if let key = disclosure.key {
                     // Use empty string for nil values to ensure key is present in sourcePayload
-                    return (key, disclosure.value ?? "")
+                    let value = disclosure.value ?? ""
+                    print("[DCQLMatcher] Adding disclosure to sourcePayload: key='\(key)', value='\(value.prefix(50))'")
+                    return (key, value)
                 } else {
+                    print("[DCQLMatcher] Skipping disclosure with nil key")
                     return nil
                 }
             }
         )
 
+        print("[DCQLMatcher] ===== DEBUG: sourcePayload from disclosures =====")
+        print("[DCQLMatcher] sourcePayload keys after disclosures: \(sourcePayload.keys.sorted())")
+
         // Also extract claims directly from JWT payload (non-selectively-disclosable claims)
         // These are claims with selectivelyDisclosable: "never" or "always" in Type Metadata
+        print("[DCQLMatcher] ===== DEBUG: JWT Payload Claims =====")
         var directPayloadClaimKeys: Set<String> = []
         if let jwtPayload = try? getJwtPayload(sdJwtParts.issuerSignedJwt) {
+            print("[DCQLMatcher] JWT payload has \(jwtPayload.count) keys: \(jwtPayload.keys.sorted())")
             for (key, value) in jwtPayload {
                 // Skip reserved claims
-                guard !DCQLMatcher.reservedJwtClaims.contains(key) else { continue }
+                if DCQLMatcher.reservedJwtClaims.contains(key) {
+                    print("[DCQLMatcher] Skipping reserved claim: \(key)")
+                    continue
+                }
 
-                // Convert value to string
-                // Handle null values (NSNull) explicitly - claim exists but has no value
-                let stringValue: String
+                // Convert value to string using the common convertDisclosureValue function
+                // This ensures consistent formatting across the app (no <null>, no brackets for arrays)
+                let stringValue = convertDisclosureValue(value: value)
                 if value is NSNull {
-                    // Null values should still be included - claim key exists
-                    stringValue = ""
-                } else if let strVal = value as? String {
-                    stringValue = strVal
-                } else if let boolVal = value as? Bool {
-                    stringValue = boolVal ? "true" : "false"
-                } else if let numVal = value as? NSNumber {
-                    stringValue = numVal.stringValue
-                } else {
-                    // For complex types, use JSON serialization
-                    if let data = try? JSONSerialization.data(withJSONObject: value),
-                       let str = String(data: data, encoding: .utf8) {
-                        stringValue = str
-                    } else {
-                        stringValue = String(describing: value)
-                    }
+                    print("[DCQLMatcher] JWT payload claim '\(key)' is NSNull, using empty string")
                 }
 
                 // Only add if not already in disclosures (disclosures take precedence)
                 if sourcePayload[key] == nil {
                     directPayloadClaimKeys.insert(key)
                     sourcePayload[key] = stringValue
+                    print("[DCQLMatcher] Adding direct payload claim: key='\(key)', value='\(stringValue.prefix(50))'")
+                } else {
+                    print("[DCQLMatcher] Skipping direct payload claim '\(key)' - already in disclosures")
                 }
             }
+        } else {
+            print("[DCQLMatcher] ERROR: Failed to extract JWT payload")
         }
 
         print("[DCQLMatcher] Credential has \(allDisclosures.count) disclosures")
