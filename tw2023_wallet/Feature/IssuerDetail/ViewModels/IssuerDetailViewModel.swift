@@ -12,6 +12,7 @@ class IssuerDetailViewModel {
     var isLoading = false
     var hasLoadedData = false
     var certInfo: CertificateInfo? = nil
+    var jwtIssuer: String? = nil
 
     func loadData(credential: Credential?) async {
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
@@ -23,6 +24,9 @@ class IssuerDetailViewModel {
         isLoading = true
 
         if let credential = credential {
+            // Extract JWT issuer (iss claim) from credential payload
+            extractJwtIssuer(credential: credential)
+
             do {
                 try await processX509Certificate(credential: credential)
             }
@@ -34,6 +38,22 @@ class IssuerDetailViewModel {
         isLoading = false
         hasLoadedData = true
         print("done")
+    }
+
+    private func extractJwtIssuer(credential: Credential) {
+        let format = credential.format
+        let credentialFormat = CredentialFormat(formatString: format)
+
+        let info: [String: Any]
+        if credentialFormat?.isSDJWT == true {
+            info = JWTParsingUtil.extractSDJwtInfo(credential: credential.payload, format: format)
+        } else {
+            info = JWTParsingUtil.extractInfoFromJwt(jwt: credential.payload, format: format)
+        }
+
+        if let iss = info["iss"] as? String, !iss.isEmpty {
+            jwtIssuer = iss
+        }
     }
 
     func respectForHeader(header: [String: Any], credential: Credential) async throws {

@@ -984,6 +984,23 @@
         }
       }
     },
+    "issuer_identifier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iss"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iss"
+          }
+        }
+      }
+    },
     "issuing_authority_information" : {
       "extractionState" : "manual",
       "localizations" : {

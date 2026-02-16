@@ -66,6 +66,14 @@ struct IssuerDetail: View {
                 }
                 .padding(.vertical, 6)
             }
+
+            if let jwtIssuer = viewModel.jwtIssuer {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("issuer_identifier").modifier(SubHeadLineGray())
+                    Text(jwtIssuer).modifier(BodyBlack())
+                }
+                .padding(.vertical, 6)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
