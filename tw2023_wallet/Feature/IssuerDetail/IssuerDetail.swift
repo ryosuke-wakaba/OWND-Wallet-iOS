@@ -34,17 +34,28 @@ struct IssuerDetail: View {
             }
             .padding(.top, 16)
 
-            if let verifierCertificate = viewModel.certInfo {
-                if let issuerCertificate = verifierCertificate.issuer {
-                    HStack {
-                        Image("verifier_mark")
-                        Text("verified by \(issuerCertificate.organization ?? "")").modifier(
-                            SubHeadLineGray())
-                    }
-                    .padding(.leading, 16)
-                    .padding(.bottom, 16)
-                    .multilineTextAlignment(.center)
+            if let verifierCertificate = viewModel.certInfo,
+               let issuerCertificate = verifierCertificate.issuer {
+                HStack {
+                    Image("verifier_mark")
+                    Text("verified by \(issuerCertificate.organization ?? "")").modifier(
+                        SubHeadLineGray())
                 }
+                .padding(.leading, 16)
+                .padding(.bottom, 16)
+                .multilineTextAlignment(.center)
+            }
+
+            if let jwtIssuer = viewModel.jwtIssuer {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("issuer_identifier").modifier(SubHeadLineGray())
+                    Text(jwtIssuer).modifier(BodyBlack())
+                }
+                .padding(.vertical, 6)
+            }
+
+            if let verifierCertificate = viewModel.certInfo {
+                Divider().padding(.vertical, 8)
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("cert_location").modifier(SubHeadLineGray())
@@ -55,22 +66,16 @@ struct IssuerDetail: View {
                     }.modifier(BodyBlack())
                 }
                 .padding(.vertical, 6)
+
                 VStack(alignment: .leading, spacing: 0) {
                     Text("cert_country").modifier(SubHeadLineGray())
                     Text(verifierCertificate.country ?? "").modifier(BodyBlack())
                 }
                 .padding(.vertical, 6)
+
                 VStack(alignment: .leading, spacing: 0) {
                     Text("cert_domain").modifier(SubHeadLineGray())
                     Text("https://\(verifierCertificate.domain ?? "")/").modifier(BodyBlack())
-                }
-                .padding(.vertical, 6)
-            }
-
-            if let jwtIssuer = viewModel.jwtIssuer {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("issuer_identifier").modifier(SubHeadLineGray())
-                    Text(jwtIssuer).modifier(BodyBlack())
                 }
                 .padding(.vertical, 6)
             }

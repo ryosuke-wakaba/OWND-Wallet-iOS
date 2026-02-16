@@ -237,13 +237,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Domain"
+            "value" : "Common Name(CN)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ドメイン"
+            "value" : "Common Name(CN)"
           }
         }
       }
