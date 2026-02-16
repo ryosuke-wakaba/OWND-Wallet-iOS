@@ -54,6 +54,13 @@ struct IssuerCertificateResult {
     let issuerSecCertificates: [SecCertificate]
 }
 
+/// Result of public key matching search
+struct PublicKeyMatchResult {
+    let entity: TrustedEntity
+    let service: TrustedEntityService
+    let matchedCertificate: Certificate
+}
+
 /// Manages trusted lists (LoTE format) for certificate validation.
 /// This class is responsible for fetching and searching LoTE documents.
 /// The LoTE configuration (which LoTEs to use and their service types) should be
@@ -425,6 +432,162 @@ class TrustedListManager {
 
         let result = try await findIssuerCertificate(for: certificateToMatch, searchInfos: searchInfos)
         return result.issuerSecCertificates
+    }
+
+    // MARK: - Public Key Matching
+
+    /// Check if a certificate's public key matches any service in the trust list
+    /// - Parameters:
+    ///   - certificate: The certificate to check
+    ///   - searchInfos: Array of context-based search infos
+    /// - Returns: PublicKeyMatchResult if found, nil otherwise
+    func findServiceByPublicKey(
+        certificate: Certificate,
+        searchInfos: [LoTEContextSearchInfo]
+    ) async throws -> PublicKeyMatchResult? {
+        guard !searchInfos.isEmpty else {
+            print("🔐 [TrustedList] ❌ No LoTE context configured for public key search")
+            throw TrustedListError.noLoTEConfigured
+        }
+
+        let leafPublicKeyBytes = certificate.publicKey.subjectPublicKeyInfoBytes
+        let leafSubject = X509CertificateOperations.extractSubjectDN(from: certificate)
+        let leafKeyHexFull = Data(leafPublicKeyBytes).map { String(format: "%02x", $0) }.joined()
+
+        print("🔐 [TrustedList] ========== Finding Service by Public Key ==========")
+        print("🔐 [TrustedList] Certificate Subject: \(leafSubject)")
+        print("🔐 [TrustedList] Search contexts: \(searchInfos.count)")
+
+        for searchInfo in searchInfos {
+            print("🔐 [TrustedList] Searching in: \(searchInfo.url)")
+            print("🔐 [TrustedList]   Context: \(searchInfo.contextName)")
+
+            do {
+                let document = try await fetchTrustedList(from: searchInfo.url)
+
+                // Check LoTEType condition
+                if let requiredLoTEType = searchInfo.condition.loteType {
+                    let actualLoTEType = document.LoTE.ListAndSchemeInformation.LoTEType
+                    if actualLoTEType != requiredLoTEType {
+                        print("🔐 [TrustedList]   ⚠️ LoTEType mismatch: expected \(requiredLoTEType), got \(actualLoTEType ?? "(none)")")
+                        continue
+                    }
+                    print("🔐 [TrustedList]   ✓ LoTEType matched: \(requiredLoTEType)")
+                }
+
+                // Search for matching public key
+                if let result = searchForPublicKeyInDocument(
+                    document,
+                    leafPublicKeyBytes: leafPublicKeyBytes,
+                    condition: searchInfo.condition
+                ) {
+                    print("🔐 [TrustedList] ✅ Found matching public key!")
+                    print("🔐 [TrustedList]   Entity: \(result.entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown")")
+                    print("🔐 [TrustedList]   Service: \(result.service.ServiceInformation.ServiceName.first?.value ?? "Unknown")")
+                    print("🔐 [TrustedList] ================================================")
+                    return result
+                }
+            } catch {
+                print("🔐 [TrustedList] ⚠️ Error searching in \(searchInfo.url): \(error)")
+            }
+        }
+
+        print("🔐 [TrustedList] ❌ No matching public key found in trust list")
+        print("🔐 [TrustedList] ================================================")
+        return nil
+    }
+
+    /// Search for matching public key in a document
+    private func searchForPublicKeyInDocument(
+        _ document: LoTEDocument,
+        leafPublicKeyBytes: ArraySlice<UInt8>,
+        condition: LoTEContextSearchInfo.SearchCondition
+    ) -> PublicKeyMatchResult? {
+        print("🔐 [TrustedList]   Condition: serviceTypeIdentifier=\(condition.serviceTypeIdentifier ?? "(any)"), status=\(condition.status ?? "(any)")")
+
+        var servicesChecked = 0
+        var servicesMatchedCondition = 0
+
+        for entity in document.LoTE.TrustedEntitiesList {
+            let entityName = entity.TrustedEntityInformation.TEName.first?.value ?? "Unknown"
+            for service in entity.TrustedEntityServices {
+                let info = service.ServiceInformation
+                let serviceName = info.ServiceName.first?.value ?? "Unknown"
+                servicesChecked += 1
+
+                // Check serviceTypeIdentifier condition
+                if let requiredType = condition.serviceTypeIdentifier {
+                    if info.ServiceTypeIdentifier != requiredType {
+                        print("🔐 [TrustedList]   Skipping \(entityName)/\(serviceName): ServiceType=\(info.ServiceTypeIdentifier) (expected \(requiredType))")
+                        continue
+                    }
+                }
+
+                // Check status condition
+                if let requiredStatus = condition.status {
+                    if info.ServiceStatus != requiredStatus {
+                        print("🔐 [TrustedList]   Skipping \(entityName)/\(serviceName): Status=\(info.ServiceStatus) (expected \(requiredStatus))")
+                        continue
+                    }
+                }
+
+                servicesMatchedCondition += 1
+                print("🔐 [TrustedList]   Checking \(entityName)/\(serviceName) (condition matched)")
+
+                // Get certificates from service
+                guard let pkiObCertificates = info.ServiceDigitalIdentity.X509Certificates,
+                      !pkiObCertificates.isEmpty else {
+                    print("🔐 [TrustedList]   ⚠️ No certificates in \(entityName)/\(serviceName)")
+                    continue
+                }
+
+                // Check each certificate's public key
+                for (index, pkiOb) in pkiObCertificates.enumerated() {
+                    if let x509Cert = convertToX509Certificate(pkiOb) {
+                        let certPublicKeyBytes = x509Cert.publicKey.subjectPublicKeyInfoBytes
+                        let leafKeyHex = Data(leafPublicKeyBytes).prefix(16).map { String(format: "%02x", $0) }.joined()
+                        let certKeyHex = Data(certPublicKeyBytes).prefix(16).map { String(format: "%02x", $0) }.joined()
+                        print("🔐 [TrustedList]   Comparing keys in \(entityName)/\(serviceName)[\(index)]:")
+                        print("🔐 [TrustedList]     Leaf key (first 16 bytes): \(leafKeyHex)...")
+                        print("🔐 [TrustedList]     Cert key (first 16 bytes): \(certKeyHex)...")
+                        print("🔐 [TrustedList]     Leaf key size: \(leafPublicKeyBytes.count), Cert key size: \(certPublicKeyBytes.count)")
+                        if certPublicKeyBytes.elementsEqual(leafPublicKeyBytes) {
+                            print("🔐 [TrustedList]   ✓ Public key matched in \(entityName)/\(serviceName)")
+                            return PublicKeyMatchResult(
+                                entity: entity,
+                                service: service,
+                                matchedCertificate: x509Cert
+                            )
+                        } else {
+                            print("🔐 [TrustedList]   ✗ Public key NOT matched")
+                        }
+                    } else {
+                        print("🔐 [TrustedList]   ⚠️ Failed to parse certificate[\(index)] in \(entityName)/\(serviceName)")
+                    }
+                }
+            }
+        }
+
+        print("🔐 [TrustedList]   Summary: checked \(servicesChecked) services, \(servicesMatchedCondition) matched condition")
+        return nil
+    }
+
+    /// Check if a certificate's public key is trusted (exists in trust list)
+    /// - Parameters:
+    ///   - certificate: The certificate to check
+    ///   - searchInfos: Array of context-based search infos
+    /// - Returns: true if the public key is found in the trust list
+    func isPublicKeyTrusted(
+        certificate: Certificate,
+        searchInfos: [LoTEContextSearchInfo]
+    ) async -> Bool {
+        do {
+            let result = try await findServiceByPublicKey(certificate: certificate, searchInfos: searchInfos)
+            return result != nil
+        } catch {
+            print("🔐 [TrustedList] Error checking public key trust: \(error)")
+            return false
+        }
     }
 }
 

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import X509
 
 @Observable
 class IssuerDetailViewModel {
@@ -125,22 +126,49 @@ class IssuerDetailViewModel {
         else {
             return
         }
-        // SignatureUtilを使用して証明書チェーンの検証
+
+        // DERデータからX509.Certificateに変換
         let pemCertificate = certificates[0].0
         let derCertificates = certificates.map { $0.1 }
-        guard let secCerts = X509CertificateOperations.derDataToSecCertificates(derCertificates) else {
+        var x509Certificates: [Certificate] = []
+        for derData in derCertificates {
+            do {
+                let cert = try Certificate(derEncoded: Array(derData))
+                x509Certificates.append(cert)
+            } catch {
+                print("🔐 [IssuerDetail] Failed to parse DER certificate: \(error)")
+                return
+            }
+        }
+
+        guard let leafCertificate = x509Certificates.first else {
+            print("🔐 [IssuerDetail] No leaf certificate found")
             return
         }
-        let validationResult = X509CertificateOperations.validateCertificateChainWithCustomAnchors(certificates: secCerts)
-        switch validationResult {
-        case .success:
-            let pemCertificateInData = pemCertificate.data(using: .ascii)
-            certInfo =
-                pemCertificateInData != nil
-                ? x509Certificate2CertificateInfo(pemData: pemCertificateInData!) : nil
-        case .failure(let error):
-            // TODO: 検証に失敗した場合の見せ方は要検討
-            print("Certificate validation failed: \(error.errorDescription ?? "unknown")")
+
+        // トラストリストでリーフ証明書の公開鍵が一致するサービスを検索
+        let contextSearchInfos = TrustedListConfigLoader.createContextSearchInfos(
+            contextName: "IssuerCertificateVerification"
+        )
+
+        if !contextSearchInfos.isEmpty {
+            print("🔐 [IssuerDetail] Using TrustedList for public key verification")
+            let isTrusted = await TrustedListManager.shared.isPublicKeyTrusted(
+                certificate: leafCertificate,
+                searchInfos: contextSearchInfos
+            )
+
+            if isTrusted {
+                print("🔐 [IssuerDetail] ✅ Leaf certificate public key is trusted")
+                let pemCertificateInData = pemCertificate.data(using: .ascii)
+                certInfo =
+                    pemCertificateInData != nil
+                    ? x509Certificate2CertificateInfo(pemData: pemCertificateInData!) : nil
+            } else {
+                print("🔐 [IssuerDetail] ❌ Leaf certificate public key not found in trust list")
+            }
+        } else {
+            print("🔐 [IssuerDetail] No TrustedList configured for IssuerCertificateVerification")
         }
     }
 }
