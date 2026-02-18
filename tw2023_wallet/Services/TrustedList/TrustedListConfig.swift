@@ -91,13 +91,13 @@ enum TrustedListConfigLoader {
     /// 指定されたコンテキスト名からLoTEContextSearchInfo配列を生成
     /// 全てのLoTEを検索して、指定されたコンテキストを持つものを返す
     /// - Parameter contextName: 検索するコンテキスト名（例: "AccessCertificateVerification"）
-    /// - Returns: LoTEContextSearchInfo配列（トラストリスト設定が無効の場合は空配列）
+    /// - Returns: LoTEContextSearchInfo配列（サーバー認証要求設定が無効の場合は空配列）
     static func createContextSearchInfos(
         contextName: String
     ) -> [LoTEContextSearchInfo] {
-        // トラストリスト使用設定を確認
-        guard PreferencesDataStore.shared.getUseTrustList() else {
-            print("TrustedListConfigLoader: Trust List is disabled, skipping config load")
+        // サーバー認証要求設定を確認
+        guard PreferencesDataStore.shared.getPreferSignedMetadata() else {
+            print("TrustedListConfigLoader: Server authentication is disabled, skipping config load")
             return []
         }
 
