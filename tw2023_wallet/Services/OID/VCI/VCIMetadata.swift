@@ -53,16 +53,52 @@ struct ClaimOnlyMandatory: Codable {
     var mandatory: Bool?
 }
 
-// OID4VCI 1.0: New credential_metadata structure
-struct ClaimMetadata: Codable {
-    let path: [String]
-    let mandatory: Bool?
+// OID4VCI 1.0: credential_metadata entry (map-based structure)
+struct ClaimMetadataEntry: Codable {
     let display: [ClaimDisplay]?
 }
 
+// OID4VCI 1.0: credential_metadata with map-based claims structure
 struct CredentialMetadata: Codable {
-    let claims: [ClaimMetadata]?
-    let display: [CredentialDisplay]?
+    // Map-based structure: key is claim name, value contains display info
+    let claims: [String: ClaimMetadataEntry]?
+    // Preserves the order of claim keys as they appear in JSON
+    let claimOrder: [String]?
+
+    init(claims: [String: ClaimMetadataEntry]? = nil, claimOrder: [String]? = nil) {
+        self.claims = claims
+        self.claimOrder = claimOrder
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DynamicKey.self)
+        var decodedClaims: [String: ClaimMetadataEntry] = [:]
+        var order: [String] = []
+
+        for key in container.allKeys {
+            // Decode each key as a claim entry
+            if let entry = try? container.decode(ClaimMetadataEntry.self, forKey: key) {
+                decodedClaims[key.stringValue] = entry
+                order.append(key.stringValue)
+            }
+        }
+
+        self.claims = decodedClaims.isEmpty ? nil : decodedClaims
+        self.claimOrder = order.isEmpty ? nil : order
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: DynamicKey.self)
+        if let claims = claims {
+            // Use claimOrder to preserve order when encoding
+            let keysToEncode = claimOrder ?? Array(claims.keys)
+            for key in keysToEncode {
+                if let value = claims[key] {
+                    try container.encode(value, forKey: DynamicKey(stringValue: key)!)
+                }
+            }
+        }
+    }
 }
 
 struct ProofSigningAlgValuesSupported: Codable {
@@ -130,16 +166,10 @@ struct CredentialSupportedVcSdJwt: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to claims
-        if let metadata = self.credentialMetadata, let metadataClaims = metadata.claims {
-            var names: [String] = []
-            for claim in metadataClaims {
-                // Use the last element of path as the claim name
-                if let lastName = claim.path.last {
-                    names.append(lastName)
-                }
-            }
-            return names
+        // OID4VCI 1.0: Use credentialMetadata
+        if let metadata = self.credentialMetadata,
+           let metadataClaims = metadata.claims {
+            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
         }
 
         guard let claims = self.claims else {
@@ -184,16 +214,10 @@ struct CredentialSupportedJwtVcJson: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Try credentialMetadata.claims first, fallback to credentialDefinition
-        if let metadata = self.credentialMetadata, let metadataClaims = metadata.claims {
-            var names: [String] = []
-            for claim in metadataClaims {
-                // Use the last element of path as the claim name
-                if let lastName = claim.path.last {
-                    names.append(lastName)
-                }
-            }
-            return names
+        // OID4VCI 1.0: Use credentialMetadata
+        if let metadata = self.credentialMetadata,
+           let metadataClaims = metadata.claims {
+            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
         }
 
         return self.credentialDefinition.getClaimNames(locale: locale)
@@ -245,6 +269,45 @@ struct CredentialSupportedFormat: Decodable {
 func getLocalizedClaimNames(claims: ClaimMap, locale: String) -> [String] {
     var result: [String] = []
     for (claimKey, claimValue) in claims {
+        if let displays = claimValue.display {
+            if displays.isEmpty {
+                result.append(claimKey)
+            }
+            else {
+                // Priority is given to those matching LOCALE.
+                let firstElmMatchingToLocale = displays.first(where: {
+                    ($0.locale == locale) && ($0.name != nil)
+                })
+                if let elm = firstElmMatchingToLocale {
+                    result.append(elm.name!)
+                }
+                else {
+                    // If there is no match for Locale, use the first element.
+                    // And, If `name` does not exist for the first element, `claimKey` is used.
+                    let firstDisplay = displays.first!  // `displays` is not empty
+                    if let firstDisplayName = firstDisplay.name {
+                        result.append(firstDisplayName)
+                    }
+                    else {
+                        result.append(claimKey)
+                    }
+                }
+            }
+        }
+        else {
+            result.append(claimKey)
+        }
+    }
+    return result
+}
+
+// OID4VCI 1.0: Get localized claim names from map-based credential_metadata structure
+func getLocalizedClaimNamesFromMap(claimsMap: [String: ClaimMetadataEntry], order: [String]?, locale: String) -> [String] {
+    var result: [String] = []
+    // Use order if provided, otherwise iterate through claimsMap keys
+    let keys = order ?? Array(claimsMap.keys)
+    for claimKey in keys {
+        guard let claimValue = claimsMap[claimKey] else { continue }
         if let displays = claimValue.display {
             if displays.isEmpty {
                 result.append(claimKey)
