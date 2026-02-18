@@ -150,6 +150,78 @@ final class DecodingCredentialResponseTests: XCTestCase {
         XCTAssertEqual(deferredResponse.notificationId, "12345")
         XCTAssertEqual(deferredResponse.credential, "example-credential")
     }
+
+    // MARK: - OID4VCI v1 Format Tests
+
+    /// Test decoding OID4VCI v1 format with credentials array
+    func testDecodeV1CredentialsArray() throws {
+        let jsonString = """
+        {
+            "credentials": [
+                {"credential": "test-credential-jwt"}
+            ],
+            "c_nonce": "test-nonce",
+            "c_nonce_expires_in": 3600
+        }
+        """
+        let jsonData = jsonString.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let response = try decoder.decode(CredentialResponse.self, from: jsonData)
+
+        // Verify v1 format fields
+        XCTAssertNotNil(response.credentials)
+        XCTAssertEqual(response.credentials?.count, 1)
+        XCTAssertEqual(response.credentials?.first?.credential, "test-credential-jwt")
+
+        // Verify credentialString computed property works with v1 format
+        XCTAssertEqual(response.credentialString, "test-credential-jwt")
+
+        // Verify legacy field is nil
+        XCTAssertNil(response.credential)
+    }
+
+    /// Test that credentialString returns legacy format when v1 not present
+    func testCredentialStringFallbackToLegacy() throws {
+        let jsonString = """
+        {
+            "credential": "legacy-credential-jwt",
+            "c_nonce": "test-nonce"
+        }
+        """
+        let jsonData = jsonString.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let response = try decoder.decode(CredentialResponse.self, from: jsonData)
+
+        // Verify legacy field
+        XCTAssertEqual(response.credential, "legacy-credential-jwt")
+
+        // Verify credentialString computed property falls back to legacy
+        XCTAssertEqual(response.credentialString, "legacy-credential-jwt")
+
+        // Verify v1 fields are nil
+        XCTAssertNil(response.credentials)
+    }
+
+    /// Test that v1 format takes precedence over legacy format (if both present)
+    func testV1TakesPrecedenceOverLegacy() throws {
+        let jsonString = """
+        {
+            "credential": "legacy-credential",
+            "credentials": [
+                {"credential": "v1-credential"}
+            ]
+        }
+        """
+        let jsonData = jsonString.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let response = try decoder.decode(CredentialResponse.self, from: jsonData)
+
+        // credentialString should prefer v1 format
+        XCTAssertEqual(response.credentialString, "v1-credential")
+    }
 }
 
 final class VCIClientTests: XCTestCase {
@@ -478,7 +550,7 @@ final class VCIClientTests: XCTestCase {
                     credentialOffer: offer, metaData: metadata)
                 let credentialResponse = try await vciClient.issueCredential(
                     payload: payload, accessToken: "dummy-token", using: mockSession)
-                XCTAssertEqual(credentialResponse.credential, "example-credential")
+                XCTAssertEqual(credentialResponse.credentialString, "example-credential")
                 XCTAssertEqual(credentialResponse.cNonce, "example-c-nonce")
                 XCTAssertEqual(credentialResponse.cNonceExpiresIn, 86400)
             }
@@ -531,7 +603,7 @@ final class VCIClientTests: XCTestCase {
                     url: issuerMetadataUrl,
                     statusCode: 200,
                     httpVersion: nil,
-                    headerFields: nil)
+                    headerFields: ["Content-Type": "application/json"])
             )
 
             MockURLProtocol.mockResponses[authServerMetadataUrl.absoluteString] = (
@@ -540,7 +612,7 @@ final class VCIClientTests: XCTestCase {
                     url: authServerMetadataUrl,
                     statusCode: 200,
                     httpVersion: nil,
-                    headerFields: nil)
+                    headerFields: ["Content-Type": "application/json"])
             )
 
             // Step 3: Retrieve all metadata
@@ -629,9 +701,9 @@ final class VCIClientTests: XCTestCase {
                     using: mockSession
                 )
 
-                // Verify credential response
-                XCTAssertNotNil(credentialResponse.credential)
-                XCTAssertEqual(credentialResponse.credential, "example-credential")
+                // Verify credential response (OID4VCI v1 format: credentials array)
+                XCTAssertNotNil(credentialResponse.credentialString)
+                XCTAssertEqual(credentialResponse.credentialString, "example-credential")
                 XCTAssertEqual(credentialResponse.cNonce, "example-c-nonce")
 
                 // Success: Full flow completed

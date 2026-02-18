@@ -49,7 +49,7 @@ class CredentialRequestService {
         print("[CredentialRequest] Credential response received")
 
         // Validate response
-        if credentialResponse.credential == nil {
+        if credentialResponse.credentialString == nil {
             if credentialResponse.transactionId == nil {
                 print("[CredentialRequest] ERROR: No credential or transaction ID in response")
                 throw CredentialIssuanceError.transactionIdIsRequired
