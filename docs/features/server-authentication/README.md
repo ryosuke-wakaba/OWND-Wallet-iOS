@@ -1,8 +1,8 @@
-# X.509証明書チェーン検証機能
+# サーバー認証
 
 ## 概要
 
-X.509証明書チェーン検証とトラストリスト（ETSI TS 119 602 LoTE形式）管理機能を提供します。
+OID4VCI/OID4VPにおけるサーバー認証機能を提供します。X.509証明書チェーン検証とトラストリスト（ETSI TS 119 602 LoTE形式）管理により、Issuer/Verifierの信頼性を検証します。
 
 ### 主な機能
 
@@ -14,7 +14,7 @@ X.509証明書チェーン検証とトラストリスト（ETSI TS 119 602 LoTE�
 
 ### 使用される機能
 
-- **OID4VCI**: 署名付きメタデータの検証 → [Metadata Verification](../features/credential-issuance/metadata-verification.md)
+- **OID4VCI**: 署名付きメタデータの検証 → [Metadata Verification](../credential-issuance/metadata-verification.md)
 - **OID4VP**: Request Object JWTの検証
 
 ## アーキテクチャ
@@ -47,7 +47,7 @@ X.509証明書チェーン検証とトラストリスト（ETSI TS 119 602 LoTE�
 | [trusted-list.md](./trusted-list.md) | トラストリスト（Certificate-Based Search, LoTE Data Models） |
 | [chain-validation.md](./chain-validation.md) | 証明書チェーン検証（SecTrust API, useCustomAnchorsOnly, 検証フロー） |
 | [setup.md](./setup.md) | セットアップ、起動時ログ、トラブルシューティング |
-| [testing.md](./testing.md) | テスト（テストケース、証明書生成、有効期間の注意点） |
+| [server-authentication/](../../tests/server-authentication/) | テスト（テストケース、証明書生成、有効期間の注意点） |
 
 ## 関連ファイル
 
@@ -88,4 +88,4 @@ X.509証明書チェーン検証とトラストリスト（ETSI TS 119 602 LoTE�
 
 ### Related Documentation
 
-- [Metadata Verification](../features/credential-issuance/metadata-verification.md) - 発行時のメタデータ検証
+- [Metadata Verification](../credential-issuance/metadata-verification.md) - 発行時のメタデータ検証
