@@ -265,12 +265,31 @@ struct CredentialRequestV1: Codable {
     let credentialResponseEncryption: CredentialRequestCredentialResponseEncryption?
 }
 
+// OID4VCI v1: Credential item in credentials array
+struct CredentialItem: Codable {
+    let credential: String
+}
+
 struct CredentialResponse: Codable {
-    let credential: String?  // todo suppoert `ldp_vc`
+    // Legacy format (pre-v1): {"credential": "..."}
+    let credential: String?
+    // OID4VCI v1 format: {"credentials": [{"credential": "..."}]}
+    let credentials: [CredentialItem]?
     let transactionId: String?
     let cNonce: String?
     let cNonceExpiresIn: Int?
     let notificationId: String?
+
+    /// Returns the credential string from either format (v1 or legacy)
+    /// For v1 format, returns the first credential in the array
+    var credentialString: String? {
+        // Prefer v1 format (credentials array)
+        if let credentials = credentials, let firstItem = credentials.first {
+            return firstItem.credential
+        }
+        // Fall back to legacy format
+        return credential
+    }
 }
 
 // OID4VCI 1.0: Simplified credential request creation
@@ -445,7 +464,7 @@ func postCredentialRequest(
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
     let credentialResponse = try decoder.decode(CredentialResponse.self, from: data)
-    if credentialResponse.credential != nil {
+    if credentialResponse.credentialString != nil {
         print("[VCI] Credential received successfully")
     }
     if let transactionId = credentialResponse.transactionId {

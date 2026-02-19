@@ -42,7 +42,7 @@ class CredentialStorageService {
         metadata: Metadata,
         credentialConfigurationId: String
     ) throws -> Datastore_CredentialData {
-        guard let credentialToSave = credentialResponse.credential else {
+        guard let credentialToSave = credentialResponse.credentialString else {
             throw CredentialIssuanceError.credentialToBeConvertedDoesNotExist
         }
 
