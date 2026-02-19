@@ -109,11 +109,20 @@ class CredentialOfferViewModel: ObservableObject {
         }
 
         let offerIds = offer.credentialConfigurationIds
+        print("Credential offer IDs: \(offerIds)")
+        print("Available credential configurations: \(metadata.credentialIssuerMetadata.credentialConfigurationsSupported.keys)")
 
         // OID4VCI 1.0: Use credential_configuration_id directly
         // todo: support multiple credential offer
         guard let firstOfferCredential = offerIds.first else {
             throw CredentialIssuanceError.credentialOfferConfigurationIsEmpty
+        }
+
+        print("Target credential ID: \(firstOfferCredential)")
+        if let config = metadata.credentialIssuerMetadata.credentialConfigurationsSupported[firstOfferCredential] {
+            print("Found credential config with format: \(config.format)")
+        } else {
+            print("WARNING: Credential config not found for ID: \(firstOfferCredential)")
         }
 
         dataModel.targetCredentialId = firstOfferCredential

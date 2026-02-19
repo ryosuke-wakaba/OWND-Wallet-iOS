@@ -18,20 +18,31 @@ enum CredentialFormat: String, CaseIterable {
     /// JWT VC JSON format
     case jwtVCJson = "jwt_vc_json"
 
+    /// mso_mdoc format (ISO/IEC 18013-5) - metadata parsing only, issuance not yet supported
+    case msoMdoc = "mso_mdoc"
+
     /// Returns true if the format is an SD-JWT variant (vc+sd-jwt or dc+sd-jwt)
     var isSDJWT: Bool {
         return self == .sdJwtVC || self == .dcSDJWT
     }
 
+    /// Returns true if the format is mso_mdoc (ISO/IEC 18013-5)
+    var isMsoMdoc: Bool {
+        return self == .msoMdoc
+    }
+
     /// Returns the claim name for the type/vct field
     /// - SD-JWT formats use "vct" (verifiable credential type)
     /// - JWT VC JSON uses "type"
+    /// - mso_mdoc uses "doctype"
     var typeClaimName: String {
         switch self {
         case .sdJwtVC, .dcSDJWT:
             return "vct"
         case .jwtVCJson:
             return "type"
+        case .msoMdoc:
+            return "doctype"
         }
     }
 

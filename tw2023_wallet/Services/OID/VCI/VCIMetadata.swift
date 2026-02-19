@@ -263,6 +263,108 @@ struct CredentialSupportedLdpVc: CredentialConfiguration {
 
 typealias CredentialSupportedJwtVcJsonLd = CredentialSupportedLdpVc
 
+// MARK: - mso_mdoc (ISO/IEC 18013-5)
+// Minimal support for metadata parsing. Full credential issuance support is not yet implemented.
+
+/// mso_mdoc claim entry (different from JWT-based claims)
+struct MsoMdocClaimEntry: Codable {
+    let path: [String]?
+    let valueType: String?
+    let mandatory: Bool?
+    let display: [ClaimDisplay]?
+}
+
+/// mso_mdoc credential_metadata structure
+struct MsoMdocCredentialMetadata: Codable {
+    let claims: [MsoMdocClaimEntry]?
+    let display: [CredentialDisplay]?
+}
+
+struct CredentialSupportedMsoMdoc: CredentialConfiguration {
+    let format: String
+    let scope: String?
+    let cryptographicBindingMethodsSupported: [String]?
+    let proofTypesSupported: [String: ProofSigningAlgValuesSupported]?
+
+    // mso_mdoc specific fields
+    let doctype: String?
+    let credentialMetadata: MsoMdocCredentialMetadata?
+
+    // Stored as strings (converted from either integer COSE IDs or string algorithm names)
+    private let _credentialSigningAlgValuesSupported: [String]?
+
+    // CredentialConfiguration protocol conformance
+    var credentialSigningAlgValuesSupported: [String]? {
+        return _credentialSigningAlgValuesSupported
+    }
+
+    // Display comes from credential_metadata for mso_mdoc
+    var display: [CredentialDisplay]? {
+        return credentialMetadata?.display
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case format
+        case scope
+        case cryptographicBindingMethodsSupported
+        case proofTypesSupported
+        case doctype
+        case credentialMetadata
+        case credentialSigningAlgValuesSupported
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        format = try container.decode(String.self, forKey: .format)
+        scope = try container.decodeIfPresent(String.self, forKey: .scope)
+        cryptographicBindingMethodsSupported = try container.decodeIfPresent([String].self, forKey: .cryptographicBindingMethodsSupported)
+        proofTypesSupported = try container.decodeIfPresent([String: ProofSigningAlgValuesSupported].self, forKey: .proofTypesSupported)
+        doctype = try container.decodeIfPresent(String.self, forKey: .doctype)
+        credentialMetadata = try container.decodeIfPresent(MsoMdocCredentialMetadata.self, forKey: .credentialMetadata)
+
+        // Handle credential_signing_alg_values_supported as either [Int] or [String]
+        if let intValues = try? container.decode([Int].self, forKey: .credentialSigningAlgValuesSupported) {
+            _credentialSigningAlgValuesSupported = intValues.map { String($0) }
+        } else if let stringValues = try? container.decode([String].self, forKey: .credentialSigningAlgValuesSupported) {
+            _credentialSigningAlgValuesSupported = stringValues
+        } else {
+            _credentialSigningAlgValuesSupported = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(format, forKey: .format)
+        try container.encodeIfPresent(scope, forKey: .scope)
+        try container.encodeIfPresent(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
+        try container.encodeIfPresent(proofTypesSupported, forKey: .proofTypesSupported)
+        try container.encodeIfPresent(doctype, forKey: .doctype)
+        try container.encodeIfPresent(credentialMetadata, forKey: .credentialMetadata)
+        try container.encodeIfPresent(_credentialSigningAlgValuesSupported, forKey: .credentialSigningAlgValuesSupported)
+    }
+
+    func getClaimNames(locale: String = "ja-JP") -> [String] {
+        guard let claims = credentialMetadata?.claims else {
+            return []
+        }
+        var result: [String] = []
+        for claim in claims {
+            if let displays = claim.display, !displays.isEmpty {
+                let matchingDisplay = displays.first { $0.locale == locale && $0.name != nil }
+                if let name = matchingDisplay?.name ?? displays.first?.name {
+                    result.append(name)
+                } else if let path = claim.path, let lastPath = path.last {
+                    result.append(lastPath)
+                }
+            } else if let path = claim.path, let lastPath = path.last {
+                result.append(lastPath)
+            }
+        }
+        return result
+    }
+}
+
 struct CredentialSupportedFormat: Decodable {
     let format: String
 }
@@ -358,6 +460,16 @@ func decodeCredentialSupported(from jsonData: Data) throws -> CredentialConfigur
             return try decoder.decode(CredentialSupportedJwtVcJson.self, from: jsonData)
         case "ldp_vc":
             return try decoder.decode(CredentialSupportedLdpVc.self, from: jsonData)
+        case CredentialFormat.msoMdoc.rawValue:
+            do {
+                return try decoder.decode(CredentialSupportedMsoMdoc.self, from: jsonData)
+            } catch {
+                print("mso_mdoc decoding error: \(error)")
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    print("mso_mdoc JSON: \(jsonString)")
+                }
+                throw error
+            }
         default:
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(codingPath: [], debugDescription: "Invalid format value"))
@@ -399,15 +511,16 @@ struct CredentialIssuerMetadata: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         var credentialsSupportedDict = [String: CredentialConfiguration]()
-        let credentialsSupportedContainer = try container.nestedContainer(
-            keyedBy: DynamicKey.self, forKey: .credentialConfigurationsSupported)
-        for key in credentialsSupportedContainer.allKeys {
-            let credentialJSON = try credentialsSupportedContainer.decode(JSON.self, forKey: key)
-            let credentialData = try JSONSerialization.data(
-                withJSONObject: credentialJSON.object, options: [])
+        // Decode as JSON to preserve original keys (avoid convertFromSnakeCase affecting dictionary keys)
+        let credentialsSupportedJSON = try container.decode(JSON.self, forKey: .credentialConfigurationsSupported)
+        if let dictionary = credentialsSupportedJSON.dictionary {
+            for (originalKey, credentialJSON) in dictionary {
+                let credentialData = try JSONSerialization.data(
+                    withJSONObject: credentialJSON.object, options: [])
 
-            let credentialSupported = try decodeCredentialSupported(from: credentialData)
-            credentialsSupportedDict[key.stringValue] = credentialSupported
+                let credentialSupported = try decodeCredentialSupported(from: credentialData)
+                credentialsSupportedDict[originalKey] = credentialSupported  // Use original key
+            }
         }
 
         credentialIssuer = try container.decode(String.self, forKey: .credentialIssuer)
