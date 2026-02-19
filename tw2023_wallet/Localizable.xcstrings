@@ -237,13 +237,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Domain"
+            "value" : "Common Name(CN)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ドメイン"
+            "value" : "Common Name(CN)"
           }
         }
       }
@@ -980,6 +980,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@が発行しました"
+          }
+        }
+      }
+    },
+    "issuer_identifier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iss"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iss"
           }
         }
       }
