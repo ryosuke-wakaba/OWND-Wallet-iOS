@@ -518,3 +518,114 @@ final class DecodingVCIMetadataTests: XCTestCase {
     }
 
 }
+
+// MARK: - Credential Metadata Alphabetical Sort Tests
+
+final class CredentialMetadataAlphabeticalSortTests: XCTestCase {
+
+    func testCredentialMetadataClaimOrderIsAlphabetical() throws {
+        // Test that claimOrder is sorted alphabetically
+        let jsonString = "{\"format\":\"dc+sd-jwt\",\"vct\":\"TestCredential\",\"credential_metadata\":{\"z\":{\"display\":[{\"name\":\"Zebra\",\"locale\":\"en\"}]},\"a\":{\"display\":[{\"name\":\"Apple\",\"locale\":\"en\"}]},\"m\":{\"display\":[{\"name\":\"Mango\",\"locale\":\"en\"}]}}}"
+
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            XCTFail("Failed to convert JSON string to data")
+            return
+        }
+
+        let credential = try decodeCredentialSupported(from: jsonData)
+
+        guard let vcSdJwt = credential as? CredentialSupportedVcSdJwt else {
+            XCTFail("Expected CredentialSupportedVcSdJwt type")
+            return
+        }
+
+        XCTAssertNotNil(vcSdJwt.credentialMetadata, "credentialMetadata should not be nil")
+
+        // Verify claim order is alphabetically sorted
+        let claimOrder = vcSdJwt.credentialMetadata?.claimOrder
+        XCTAssertNotNil(claimOrder, "claimOrder should not be nil")
+        XCTAssertEqual(claimOrder, ["a", "m", "z"], "claimOrder should be alphabetically sorted: a, m, z. Actual: \(String(describing: claimOrder))")
+
+        // Verify getClaimNames returns names in alphabetical order
+        let claimNames = vcSdJwt.getClaimNames(locale: "en")
+        XCTAssertEqual(claimNames, ["Apple", "Mango", "Zebra"], "claimNames should be alphabetically sorted. Actual: \(claimNames)")
+    }
+
+    func testCredentialMetadataClaimOrderWithSnakeCaseKeys() throws {
+        // Test alphabetical sorting with snake_case keys (converted to camelCase by decoder)
+        let jsonString = "{\"format\":\"dc+sd-jwt\",\"vct\":\"PersonCredential\",\"credential_metadata\":{\"family_name\":{\"display\":[{\"name\":\"Family Name\",\"locale\":\"en\"}]},\"given_name\":{\"display\":[{\"name\":\"Given Name\",\"locale\":\"en\"}]},\"birth_date\":{\"display\":[{\"name\":\"Birth Date\",\"locale\":\"en\"}]},\"address\":{\"display\":[{\"name\":\"Address\",\"locale\":\"en\"}]}}}"
+
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            XCTFail("Failed to convert JSON string to data")
+            return
+        }
+
+        let credential = try decodeCredentialSupported(from: jsonData)
+
+        guard let vcSdJwt = credential as? CredentialSupportedVcSdJwt else {
+            XCTFail("Expected CredentialSupportedVcSdJwt type")
+            return
+        }
+
+        // Verify claim order is alphabetically sorted (camelCase keys)
+        let claimOrder = vcSdJwt.credentialMetadata?.claimOrder
+        XCTAssertNotNil(claimOrder, "claimOrder should not be nil")
+        // Keys are converted from snake_case to camelCase, then sorted alphabetically
+        XCTAssertEqual(claimOrder, ["address", "birthDate", "familyName", "givenName"], "claimOrder should be alphabetically sorted. Actual: \(String(describing: claimOrder))")
+
+        // Verify getClaimNames returns names in alphabetical order
+        let claimNames = vcSdJwt.getClaimNames(locale: "en")
+        XCTAssertEqual(claimNames, ["Address", "Birth Date", "Family Name", "Given Name"], "claimNames should be alphabetically sorted. Actual: \(claimNames)")
+    }
+
+    func testCredentialMetadataClaimOrderConsistency() throws {
+        // Test that claim order is consistent across multiple decodings
+        let jsonString = "{\"format\":\"dc+sd-jwt\",\"vct\":\"TestCredential\",\"credential_metadata\":{\"c\":{},\"b\":{},\"a\":{}}}"
+
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            XCTFail("Failed to convert JSON string to data")
+            return
+        }
+
+        // Decode multiple times and verify order is consistent
+        for _ in 0..<5 {
+            let credential = try decodeCredentialSupported(from: jsonData)
+            guard let vcSdJwt = credential as? CredentialSupportedVcSdJwt else {
+                XCTFail("Expected CredentialSupportedVcSdJwt type")
+                return
+            }
+
+            let claimOrder = vcSdJwt.credentialMetadata?.claimOrder
+            XCTAssertEqual(claimOrder, ["a", "b", "c"], "claimOrder should be consistently sorted: a, b, c. Actual: \(String(describing: claimOrder))")
+        }
+    }
+
+    func testFullMetadataDecodingWithAlphabeticalOrder() throws {
+        // Test the full decoding flow produces alphabetically sorted claims
+        let fullMetadataJson = "{\"credential_issuer\":\"https://example.com\",\"credential_endpoint\":\"https://example.com/credentials\",\"credential_configurations_supported\":{\"TestCredential\":{\"format\":\"dc+sd-jwt\",\"vct\":\"Test\",\"credential_metadata\":{\"z_claim\":{\"display\":[{\"name\":\"Zebra\",\"locale\":\"en\"}]},\"a_claim\":{\"display\":[{\"name\":\"Apple\",\"locale\":\"en\"}]},\"m_claim\":{\"display\":[{\"name\":\"Mango\",\"locale\":\"en\"}]}}}}}"
+
+        guard let jsonData = fullMetadataJson.data(using: .utf8) else {
+            XCTFail("Failed to convert JSON string to data")
+            return
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+        let metadata = try decoder.decode(CredentialIssuerMetadata.self, from: jsonData)
+
+        guard let credential = metadata.credentialConfigurationsSupported["TestCredential"] as? CredentialSupportedVcSdJwt else {
+            XCTFail("Expected TestCredential to be CredentialSupportedVcSdJwt")
+            return
+        }
+
+        let claimOrder = credential.credentialMetadata?.claimOrder
+        XCTAssertNotNil(claimOrder, "claimOrder should not be nil")
+        // Keys converted to camelCase: z_claim -> zClaim, a_claim -> aClaim, m_claim -> mClaim
+        // Then sorted alphabetically
+        XCTAssertEqual(claimOrder, ["aClaim", "mClaim", "zClaim"], "claimOrder should be alphabetically sorted. Actual: \(String(describing: claimOrder))")
+
+        let claimNames = credential.getClaimNames(locale: "en")
+        XCTAssertEqual(claimNames, ["Apple", "Mango", "Zebra"], "claim names should be in alphabetical order. Actual: \(claimNames)")
+    }
+}

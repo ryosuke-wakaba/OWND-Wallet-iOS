@@ -54,7 +54,7 @@ struct DcqlClaimQuery: Codable {
     /// Convert path elements to strings for display or matching
     /// Filters out null values and converts integers to strings
     var pathAsStrings: [String] {
-        return path.compactMap { element in
+        let result = path.compactMap { element -> String? in
             switch element {
             case .string(let str):
                 return str
@@ -66,6 +66,8 @@ struct DcqlClaimQuery: Codable {
                 return nil
             }
         }
+        print("[DcqlClaimQuery.pathAsStrings] path=\(path), result=\(result)")
+        return result
     }
 }
 

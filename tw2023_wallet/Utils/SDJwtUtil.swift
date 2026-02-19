@@ -40,15 +40,38 @@ struct Disclosure: Codable {
 }
 
 func convertDisclosureValue(value: Any) -> String {
+    // Handle nil/null values - return empty string for display
+    if value is NSNull {
+        return ""
+    }
+
+    // Check if value is Optional.none (nil) using reflection
+    let mirror = Mirror(reflecting: value)
+    if mirror.displayStyle == .optional && mirror.children.isEmpty {
+        return ""
+    }
+
     if let boolValue = value as? Bool {
         return boolValue ? "Yes" : "No"
     }
     else if let arrayValue = value as? [Any] {
-        // Convert array elements to strings and join with comma
+        // Convert array elements to strings and join with comma (no brackets)
         return arrayValue.map { convertDisclosureValue(value: $0) }.joined(separator: ", ")
     }
+    else if let stringValue = value as? String {
+        return stringValue
+    }
+    else if let numberValue = value as? NSNumber {
+        return numberValue.stringValue
+    }
     else {
-        return String(describing: value)
+        // For other complex types, try to create readable representation
+        let described = String(describing: value)
+        // Filter out <null> representation
+        if described == "<null>" || described == "nil" || described == "Optional(nil)" {
+            return ""
+        }
+        return described
     }
 }
 
@@ -97,22 +120,37 @@ struct SDJwtUtil {
 
     static func decodeDisclosure(_ disclosures: [String]) -> [Disclosure] {
         return disclosures.map { d in
-            let decodedString =
-                String(
-                    data: Data(base64Encoded: base64urlToBase64(base64url: d)) ?? Data(),
-                    encoding: .utf8) ?? ""
-            guard
-                let decoded = try? JSONSerialization.jsonObject(
-                    with: decodedString.data(using: .utf8)!) as? [Any]
-            else {
+            print("[SDJwtUtil.decodeDisclosure] Processing disclosure: \(d.prefix(50))...")
+
+            let base64Converted = base64urlToBase64(base64url: d)
+            guard let base64Data = Data(base64Encoded: base64Converted) else {
+                print("[SDJwtUtil.decodeDisclosure] ERROR: Failed to decode base64: \(base64Converted.prefix(50))")
                 return Disclosure(disclosure: d, key: nil, value: nil)
             }
 
-            var key: String?
-            var value: String?
+            let decodedString = String(data: base64Data, encoding: .utf8) ?? ""
+            print("[SDJwtUtil.decodeDisclosure] Decoded JSON string: \(decodedString)")
 
-            key = decoded[1] as? String
-            value = convertDisclosureValue(value: decoded[2])
+            guard let jsonData = decodedString.data(using: .utf8),
+                  let decoded = try? JSONSerialization.jsonObject(with: jsonData) as? [Any]
+            else {
+                print("[SDJwtUtil.decodeDisclosure] ERROR: Failed to parse JSON")
+                return Disclosure(disclosure: d, key: nil, value: nil)
+            }
+
+            print("[SDJwtUtil.decodeDisclosure] Decoded array has \(decoded.count) elements")
+
+            // Safely access array elements
+            guard decoded.count >= 3 else {
+                print("[SDJwtUtil.decodeDisclosure] ERROR: Disclosure array has less than 3 elements")
+                return Disclosure(disclosure: d, key: nil, value: nil)
+            }
+
+            let key = decoded[1] as? String
+            let rawValue = decoded[2]
+            let value = convertDisclosureValue(value: rawValue)
+
+            print("[SDJwtUtil.decodeDisclosure] Extracted: key='\(key ?? "nil")', rawValue type=\(type(of: rawValue)), value='\(value)'")
 
             return Disclosure(disclosure: d, key: key, value: value)
         }

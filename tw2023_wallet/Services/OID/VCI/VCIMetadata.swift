@@ -62,7 +62,7 @@ struct ClaimMetadataEntry: Codable {
 struct CredentialMetadata: Codable {
     // Map-based structure: key is claim name, value contains display info
     let claims: [String: ClaimMetadataEntry]?
-    // Preserves the order of claim keys as they appear in JSON
+    // Alphabetically sorted claim keys
     let claimOrder: [String]?
 
     init(claims: [String: ClaimMetadataEntry]? = nil, claimOrder: [String]? = nil) {
@@ -73,25 +73,26 @@ struct CredentialMetadata: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: DynamicKey.self)
         var decodedClaims: [String: ClaimMetadataEntry] = [:]
-        var order: [String] = []
 
         for key in container.allKeys {
             // Decode each key as a claim entry
             if let entry = try? container.decode(ClaimMetadataEntry.self, forKey: key) {
                 decodedClaims[key.stringValue] = entry
-                order.append(key.stringValue)
             }
         }
 
         self.claims = decodedClaims.isEmpty ? nil : decodedClaims
-        self.claimOrder = order.isEmpty ? nil : order
+
+        // Sort claim keys alphabetically for consistent display order
+        let sortedKeys = decodedClaims.keys.sorted()
+        self.claimOrder = sortedKeys.isEmpty ? nil : sortedKeys
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: DynamicKey.self)
         if let claims = claims {
-            // Use claimOrder to preserve order when encoding
-            let keysToEncode = claimOrder ?? Array(claims.keys)
+            // Use claimOrder for consistent encoding order
+            let keysToEncode = claimOrder ?? Array(claims.keys).sorted()
             for key in keysToEncode {
                 if let value = claims[key] {
                     try container.encode(value, forKey: DynamicKey(stringValue: key)!)
@@ -404,6 +405,7 @@ struct CredentialIssuerMetadata: Codable {
             let credentialJSON = try credentialsSupportedContainer.decode(JSON.self, forKey: key)
             let credentialData = try JSONSerialization.data(
                 withJSONObject: credentialJSON.object, options: [])
+
             let credentialSupported = try decodeCredentialSupported(from: credentialData)
             credentialsSupportedDict[key.stringValue] = credentialSupported
         }
@@ -486,3 +488,4 @@ struct DynamicKey: CodingKey {
         return nil
     }
 }
+

@@ -292,16 +292,56 @@ class CredentialListUITests: XCTestCase {
 
 ### Running Tests
 
+**Xcode GUI**:
 ```bash
 # All tests
-xcodebuild test -scheme tw2023_wallet
-
-# Unit tests only
-⌘ + U in Xcode
+⌘ + U
 
 # Specific test
-xcodebuild test -scheme tw2023_wallet -only-testing:CredentialDataManagerTests
+Test Navigator → 右クリック → Run
 ```
+
+**コマンドライン (推奨: ビルドとテスト実行を分離)**:
+
+```bash
+# DerivedDataのパスを確認（Xcodeで一度ビルドした後）
+DERIVED_DATA_PATH=~/Library/Developer/Xcode/DerivedData/tw2023_wallet-*
+
+# 1. テスト用にビルド (初回または変更後)
+xcodebuild build-for-testing \
+  -project tw2023_wallet.xcodeproj \
+  -scheme tw2023_wallet \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -derivedDataPath "$DERIVED_DATA_PATH"
+
+# 2. ビルド済みテストを実行 (高速)
+xcodebuild test-without-building \
+  -project tw2023_wallet.xcodeproj \
+  -scheme tw2023_wallet \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -derivedDataPath "$DERIVED_DATA_PATH"
+
+# 特定のテストクラスのみ実行
+xcodebuild test-without-building \
+  -project tw2023_wallet.xcodeproj \
+  -scheme tw2023_wallet \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -derivedDataPath "$DERIVED_DATA_PATH" \
+  -only-testing:'tw2023_walletTests/JsonKeyOrderExtractionTests'
+
+# 特定のテストメソッドのみ実行
+xcodebuild test-without-building \
+  -project tw2023_wallet.xcodeproj \
+  -scheme tw2023_wallet \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -derivedDataPath "$DERIVED_DATA_PATH" \
+  -only-testing:'tw2023_walletTests/JsonKeyOrderExtractionTests/testFullMetadataDecodingPreservesClaimOrder'
+```
+
+**ポイント**:
+- `build-for-testing` と `test-without-building` を分離することで、コード変更がない場合はビルドをスキップできる
+- `-derivedDataPath` を指定してキャッシュを活用する
+- 不要な `sleep` や `log stream` は避ける
 
 ### Code Coverage
 

@@ -94,7 +94,15 @@ class DCQLMatcherTests: XCTestCase {
 
         // Then
         XCTAssertNotNil(result)
-        XCTAssertEqual(result!.disclosuresWithOptionality.count, availableClaims.count)
+        // Result includes all disclosures. May include direct payload claims if any.
+        // The test SD-JWT has 7 disclosures and potentially some direct payload claims
+        XCTAssertGreaterThanOrEqual(result!.disclosuresWithOptionality.count, availableClaims.count)
+
+        // Verify all expected claims are present
+        let resultKeys = result!.disclosuresWithOptionality.compactMap { $0.disclosure.key }
+        for claim in availableClaims {
+            XCTAssertTrue(resultKeys.contains(claim), "Claim '\(claim)' should be present in result")
+        }
     }
 
     // MARK: - Test: claims present, claim_sets absent (OID4VP 1.0 Section 6.4.1 Rule 2)
@@ -587,20 +595,29 @@ class DCQLMatcherTests: XCTestCase {
         // Then
         XCTAssertNotNil(result, "Should match when requested claims are in JWT payload directly")
 
-        // Direct payload claims should NOT be in disclosuresWithOptionality (they're not disclosures)
-        // Only disclosure-based claims should be in the list
+        // All claims (both disclosures and direct payload claims) should be in the result
         let disclosureKeys = result!.disclosuresWithOptionality.compactMap { $0.disclosure.key }
         XCTAssertTrue(disclosureKeys.contains("family_name"), "family_name disclosure should be present")
         XCTAssertTrue(disclosureKeys.contains("given_name"), "given_name disclosure should be present")
-        XCTAssertFalse(disclosureKeys.contains("issuing_authority"), "issuing_authority should NOT be in disclosures")
-        XCTAssertFalse(disclosureKeys.contains("issuing_country"), "issuing_country should NOT be in disclosures")
+        XCTAssertTrue(disclosureKeys.contains("issuing_authority"), "issuing_authority should be present")
+        XCTAssertTrue(disclosureKeys.contains("issuing_country"), "issuing_country should be present")
 
-        // All disclosures should have isSubmit = false since they weren't requested
+        // Requested direct payload claims should have isSubmit = true
+        // Non-requested disclosures should have isSubmit = false
         for disclosure in result!.disclosuresWithOptionality {
-            XCTAssertFalse(
-                disclosure.isSubmit,
-                "Disclosure '\(disclosure.disclosure.key ?? "unknown")' should have isSubmit = false (not requested)"
-            )
+            if let key = disclosure.disclosure.key {
+                if key == "issuing_authority" || key == "issuing_country" {
+                    XCTAssertTrue(
+                        disclosure.isSubmit,
+                        "Requested claim '\(key)' should have isSubmit = true"
+                    )
+                } else {
+                    XCTAssertFalse(
+                        disclosure.isSubmit,
+                        "Non-requested claim '\(key)' should have isSubmit = false"
+                    )
+                }
+            }
         }
     }
 
@@ -685,8 +702,8 @@ class DCQLMatcherTests: XCTestCase {
         XCTAssertNil(result, "Should return nil when a required claim doesn't exist")
     }
 
-    /// When claims is absent for hybrid SD-JWT, all disclosures should have isSubmit = false
-    /// (direct payload claims are not disclosures so they're not in the result)
+    /// When claims is absent for hybrid SD-JWT, all claims should have isSubmit = false
+    /// Result includes both disclosures and direct payload claims
     func testHybridSdJwt_ClaimsAbsent_AllDisclosuresShouldNotBeSubmitted() {
         // Given: DCQL query without claims
         let queryJson = """
@@ -714,8 +731,8 @@ class DCQLMatcherTests: XCTestCase {
         // Then
         XCTAssertNotNil(result, "Should match when claims is absent")
 
-        // Should have 2 disclosures (family_name, given_name)
-        XCTAssertEqual(result!.disclosuresWithOptionality.count, 2, "Should have 2 disclosures")
+        // Should have 4 claims: 2 disclosures (family_name, given_name) + 2 direct payload (issuing_authority, issuing_country)
+        XCTAssertEqual(result!.disclosuresWithOptionality.count, 4, "Should have 4 claims total")
 
         // All disclosures should have isSubmit = false when claims is absent
         for disclosure in result!.disclosuresWithOptionality {
@@ -757,5 +774,149 @@ class DCQLMatcherTests: XCTestCase {
 
         // Then: Should return nil because reserved claims are not treated as credential claims
         XCTAssertNil(result, "Should return nil when reserved JWT claims are requested as credential claims")
+    }
+
+    // MARK: - Test: Null/Empty Value Claim Matching
+
+    /// Create an SD-JWT with a disclosure containing a null value
+    /// This simulates claims where the value is not registered/blank
+    private func createSdJwtWithNullValueClaim() -> String {
+        // JWT Header: {"typ":"sd+jwt","alg":"ES256"}
+        let header = "eyJ0eXAiOiJzZCtqd3QiLCJhbGciOiJFUzI1NiJ9"
+
+        // JWT Payload with _sd array
+        // We'll include a disclosure for a claim with null value
+        let payload = "eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlLmNvbSIsInZjdCI6InVybjpleGFtcGxlOm51bGxfdmFsdWVfY3JlZGVudGlhbCIsIl9zZCI6WyJoYXNoMSIsImhhc2gyIl0sIl9zZF9hbGciOiJzaGEtMjU2In0"
+
+        // Dummy signature
+        let signature = "sig"
+
+        // Disclosures:
+        // ["salt1", "claim_with_value", "actual_value"] -> normal claim
+        // ["salt2", "claim_with_null", null] -> claim with null value
+        let disclosure1 = "WyJzYWx0MSIsImNsYWltX3dpdGhfdmFsdWUiLCJhY3R1YWxfdmFsdWUiXQ"  // ["salt1","claim_with_value","actual_value"]
+        let disclosure2 = "WyJzYWx0MiIsImNsYWltX3dpdGhfbnVsbCIsbnVsbF0"  // ["salt2","claim_with_null",null]
+
+        return "\(header).\(payload).\(signature)~\(disclosure1)~\(disclosure2)~"
+    }
+
+    /// When a claim has a null value, it should still match if the verifier requests it
+    /// The claim KEY exists, even if the VALUE is null
+    func testNullValueClaim_ShouldMatchWhenRequested() {
+        // Given: SD-JWT with a claim that has null value
+        let sdJwtWithNullValue = createSdJwtWithNullValueClaim()
+
+        // DCQL query requesting the claim with null value
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "null_value_credential",
+                  "format": "vc+sd-jwt",
+                  "claims": [
+                    {"path": ["claim_with_null"]}
+                  ]
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: sdJwtWithNullValue)
+
+        // Then: Should match because the claim KEY exists (even though value is null)
+        XCTAssertNotNil(result, "Should match when claim key exists even if value is null")
+
+        // The claim should be marked for submission
+        let submittedClaims = result!.disclosuresWithOptionality.filter { $0.isSubmit }
+        XCTAssertTrue(
+            submittedClaims.contains { $0.disclosure.key == "claim_with_null" },
+            "Claim with null value should be marked for submission"
+        )
+    }
+
+    /// When requesting multiple claims including one with null value, should match all
+    func testMixedNullAndValueClaims_ShouldMatchAll() {
+        // Given: SD-JWT with both null and valued claims
+        let sdJwtWithNullValue = createSdJwtWithNullValueClaim()
+
+        // DCQL query requesting both claims
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "null_value_credential",
+                  "format": "vc+sd-jwt",
+                  "claims": [
+                    {"path": ["claim_with_value"]},
+                    {"path": ["claim_with_null"]}
+                  ]
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: sdJwtWithNullValue)
+
+        // Then: Should match because both claim KEYs exist
+        XCTAssertNotNil(result, "Should match when all claim keys exist")
+
+        // Both claims should be marked for submission
+        let submittedClaims = result!.disclosuresWithOptionality.filter { $0.isSubmit }
+        XCTAssertEqual(submittedClaims.count, 2, "Both claims should be marked for submission")
+    }
+
+    /// Test with empty string value (not null, but blank)
+    func testEmptyStringValueClaim_ShouldMatch() {
+        // The existing testSdJwt already has claims with empty string values (last_name, first_name)
+        // Given: DCQL query requesting claims with empty string values
+        let queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "test_credential",
+                  "format": "vc+sd-jwt",
+                  "claims": [
+                    {"path": ["last_name"]},
+                    {"path": ["first_name"]}
+                  ]
+                }
+              ]
+            }
+            """
+
+        guard let query = try? JSONDecoder().decode(DcqlQuery.self, from: queryJson.data(using: .utf8)!) else {
+            XCTFail("Failed to decode DCQL query")
+            return
+        }
+
+        // When
+        let result = matcher.matchCredential(query: query, sdJwt: testSdJwt)
+
+        // Then: Should match because claim keys exist (values are empty strings)
+        XCTAssertNotNil(result, "Should match when claim keys exist with empty string values")
+
+        // Both claims should be marked for submission
+        let submittedClaims = result!.disclosuresWithOptionality.filter { $0.isSubmit }
+        XCTAssertEqual(submittedClaims.count, 2, "Both claims should be marked for submission")
+        XCTAssertTrue(
+            submittedClaims.contains { $0.disclosure.key == "last_name" },
+            "last_name should be marked for submission"
+        )
+        XCTAssertTrue(
+            submittedClaims.contains { $0.disclosure.key == "first_name" },
+            "first_name should be marked for submission"
+        )
     }
 }

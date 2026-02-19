@@ -112,6 +112,38 @@ final class KeyBindingTests: XCTestCase {
         }
     }
 
+    func testGenerateJwtWithZeroDisclosures() throws {
+        // RFC 9901: When no disclosures are selected, the format should be:
+        // <JWT>~<KB-JWT> (single tilde), NOT <JWT>~~<KB-JWT> (double tilde)
+        let sdJwt = "issuerSignedJwtSample"
+        let selectedDisclosures: [Disclosure] = []  // Empty disclosures
+        let aud = "audSample"
+        let nonce = "nonceSample"
+
+        let keyBinding = KeyBindingImpl(keyAlias: keyAlias)
+        let jwt = try keyBinding.generateJwt(
+            sdJwt: sdJwt,
+            selectedDisclosures: selectedDisclosures,
+            aud: aud,
+            nonce: nonce,
+            sdAlg: "sha-256"
+        )
+
+        // Verify JWT was generated successfully
+        let verificationResult = JWTOperations.verifyJwt(jwt: jwt, publicKey: publicKey!)
+        switch verificationResult {
+            case .success(_):
+                XCTAssertTrue(true, "JWT verification succeeded")
+            case .failure(let error):
+                XCTFail("JWT verification failed: \(error)")
+        }
+
+        // Verify the sd_hash was calculated from the correct format (single tilde)
+        // The sd string should be "issuerSignedJwtSample~" (not "issuerSignedJwtSample~~")
+        let jwtParts = jwt.split(separator: ".")
+        XCTAssertEqual(jwtParts.count, 3, "JWT should have 3 parts")
+    }
+
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {

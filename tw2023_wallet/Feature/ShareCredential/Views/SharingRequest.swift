@@ -63,6 +63,9 @@ struct SharingRequest: View {
                                         .modifier(Title3Black())
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
+                                    Divider()
+                                        .padding(.vertical, 8)
+
                                     // ------------ logo to logo section ------------
                                     if let logoView = clientInfo.logoImage {
                                         HStack {
@@ -78,6 +81,9 @@ struct SharingRequest: View {
                                         }
                                         .padding(.vertical, 16)
                                     }
+
+                                    Divider()
+                                        .padding(.vertical, 8)
 
                                     // ------------ sharing data info section ------------
                                     Text(
@@ -147,6 +153,9 @@ struct SharingRequest: View {
                                         ProvideID(clientInfo: clientInfo)
                                     }
 
+                                    Divider()
+                                        .padding(.vertical, 8)
+
                                     // ------------ recipient org info section ------------
                                     VStack(alignment: .leading, spacing: 0) {
                                         Text("recipient _organization_information")
@@ -155,6 +164,9 @@ struct SharingRequest: View {
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)  // 左寄せ
                                     .padding(.vertical, 16)
+
+                                    Divider()
+                                        .padding(.vertical, 8)
 
                                     // ------------ sharing button section ------------
                                     if viewModel.dcqlQuery == nil

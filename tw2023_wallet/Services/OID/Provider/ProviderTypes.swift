@@ -125,10 +125,13 @@ struct SubmissionCredential: Codable, Equatable {
             throw OpenIdProviderIllegalInputException.illegalDisclosureInput
         }
 
-        let vpToken =
-            issuerSignedJwt + "~"
-            + selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
-            + keyBindingJwt
+        // RFC 9901: SD-JWT+KB format
+        // - With disclosures: <JWT>~<D1>~<D2>~<KB-JWT>
+        // - Without disclosures: <JWT>~<KB-JWT> (single tilde, not double)
+        let disclosurePart = selectedDisclosures.isEmpty
+            ? ""
+            : selectedDisclosures.map { $0.disclosure! }.joined(separator: "~") + "~"
+        let vpToken = issuerSignedJwt + "~" + disclosurePart + keyBindingJwt
 
         print("### Created vpToken\n\(vpToken)")
 
