@@ -53,52 +53,106 @@ struct ClaimOnlyMandatory: Codable {
     var mandatory: Bool?
 }
 
-// OID4VCI 1.0: credential_metadata entry (map-based structure)
+// OID4VCI 1.0: credential_metadata entry (map-based structure - legacy)
 struct ClaimMetadataEntry: Codable {
     let display: [ClaimDisplay]?
 }
 
-// OID4VCI 1.0: credential_metadata with map-based claims structure
-struct CredentialMetadata: Codable {
-    // Map-based structure: key is claim name, value contains display info
-    let claims: [String: ClaimMetadataEntry]?
-    // Alphabetically sorted claim keys
-    let claimOrder: [String]?
+// OID4VCI 1.0: Array-based claim entry (used by EUDI servers)
+struct ArrayClaimEntry: Codable {
+    let path: [String]?
+    let valueType: String?
+    let mandatory: Bool?
+    let display: [ClaimDisplay]?
+}
 
-    init(claims: [String: ClaimMetadataEntry]? = nil, claimOrder: [String]? = nil) {
-        self.claims = claims
-        self.claimOrder = claimOrder
+// OID4VCI 1.0: credential_metadata structure
+// Supports both array-based claims (EUDI servers) and map-based claims (legacy)
+struct CredentialMetadata: Codable {
+    // Array-based structure (EUDI servers): claims is an array of entries with path
+    let claimsArray: [ArrayClaimEntry]?
+    // Map-based structure (legacy): key is claim name, value contains display info
+    let claimsMap: [String: ClaimMetadataEntry]?
+    // Display info for the credential itself
+    let display: [CredentialDisplay]?
+
+    // For protocol conformance
+    var claims: [String: ClaimMetadataEntry]? {
+        return claimsMap
+    }
+    var claimOrder: [String]? {
+        return claimsMap?.keys.sorted()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case claims
+        case display
+    }
+
+    init(claimsArray: [ArrayClaimEntry]? = nil, claimsMap: [String: ClaimMetadataEntry]? = nil, display: [CredentialDisplay]? = nil) {
+        self.claimsArray = claimsArray
+        self.claimsMap = claimsMap
+        self.display = display
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: DynamicKey.self)
-        var decodedClaims: [String: ClaimMetadataEntry] = [:]
+        let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        for key in container.allKeys {
-            // Decode each key as a claim entry
-            if let entry = try? container.decode(ClaimMetadataEntry.self, forKey: key) {
-                decodedClaims[key.stringValue] = entry
-            }
+        // Try to decode display
+        self.display = try container.decodeIfPresent([CredentialDisplay].self, forKey: .display)
+
+        // Try array-based claims first (EUDI servers)
+        if let arrayBasedClaims = try? container.decode([ArrayClaimEntry].self, forKey: .claims) {
+            self.claimsArray = arrayBasedClaims
+            self.claimsMap = nil
         }
-
-        self.claims = decodedClaims.isEmpty ? nil : decodedClaims
-
-        // Sort claim keys alphabetically for consistent display order
-        let sortedKeys = decodedClaims.keys.sorted()
-        self.claimOrder = sortedKeys.isEmpty ? nil : sortedKeys
+        // Fall back to map-based claims (legacy)
+        else if let mapBasedClaims = try? container.decode([String: ClaimMetadataEntry].self, forKey: .claims) {
+            self.claimsArray = nil
+            self.claimsMap = mapBasedClaims
+        }
+        else {
+            self.claimsArray = nil
+            self.claimsMap = nil
+        }
     }
 
     func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: DynamicKey.self)
-        if let claims = claims {
-            // Use claimOrder for consistent encoding order
-            let keysToEncode = claimOrder ?? Array(claims.keys).sorted()
-            for key in keysToEncode {
-                if let value = claims[key] {
-                    try container.encode(value, forKey: DynamicKey(stringValue: key)!)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(display, forKey: .display)
+        if let claimsArray = claimsArray {
+            try container.encode(claimsArray, forKey: .claims)
+        } else if let claimsMap = claimsMap {
+            try container.encode(claimsMap, forKey: .claims)
+        }
+    }
+
+    /// Get localized claim names from either array or map-based claims
+    func getLocalizedClaimNames(locale: String = "ja-JP") -> [String] {
+        // Array-based claims (EUDI servers)
+        if let claimsArray = claimsArray {
+            var result: [String] = []
+            for claim in claimsArray {
+                if let displays = claim.display, !displays.isEmpty {
+                    let matchingDisplay = displays.first { $0.locale == locale && $0.name != nil }
+                    if let name = matchingDisplay?.name ?? displays.first?.name {
+                        result.append(name)
+                    } else if let path = claim.path, let lastPath = path.last {
+                        result.append(lastPath)
+                    }
+                } else if let path = claim.path, let lastPath = path.last {
+                    result.append(lastPath)
                 }
             }
+            return result
         }
+
+        // Map-based claims (legacy)
+        if let claimsMap = claimsMap {
+            return getLocalizedClaimNamesFromMap(claimsMap: claimsMap, order: claimOrder, locale: locale)
+        }
+
+        return []
     }
 }
 
@@ -167,12 +221,15 @@ struct CredentialSupportedVcSdJwt: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Use credentialMetadata
-        if let metadata = self.credentialMetadata,
-           let metadataClaims = metadata.claims {
-            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
+        // OID4VCI 1.0: Use credentialMetadata (supports both array and map-based claims)
+        if let metadata = self.credentialMetadata {
+            let result = metadata.getLocalizedClaimNames(locale: locale)
+            if !result.isEmpty {
+                return result
+            }
         }
 
+        // Fall back to legacy claims field
         guard let claims = self.claims else {
             return []
         }
@@ -215,10 +272,12 @@ struct CredentialSupportedJwtVcJson: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Use credentialMetadata
-        if let metadata = self.credentialMetadata,
-           let metadataClaims = metadata.claims {
-            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
+        // OID4VCI 1.0: Use credentialMetadata (supports both array and map-based claims)
+        if let metadata = self.credentialMetadata {
+            let result = metadata.getLocalizedClaimNames(locale: locale)
+            if !result.isEmpty {
+                return result
+            }
         }
 
         return self.credentialDefinition.getClaimNames(locale: locale)
