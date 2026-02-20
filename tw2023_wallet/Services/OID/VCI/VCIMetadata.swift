@@ -237,6 +237,37 @@ struct CredentialSupportedVcSdJwt: CredentialConfiguration {
         return getLocalizedClaimNames(claims: claims, locale: locale)
     }
 
+    func getCredentialDisplayName(locale: String = "ja-JP") -> String {
+        let defaultCredentialDisplay = "Unknown Credential"
+
+        // First, check top-level display
+        if let credentialDisplays = self.display, !credentialDisplays.isEmpty {
+            for d in credentialDisplays {
+                if let displayLocale = d.locale, displayLocale == locale {
+                    return d.name
+                }
+            }
+            if let firstDisplay = credentialDisplays.first {
+                return firstDisplay.name
+            }
+        }
+
+        // OID4VCI 1.0: Fall back to credential_metadata.display
+        if let metadata = self.credentialMetadata,
+           let metadataDisplays = metadata.display, !metadataDisplays.isEmpty {
+            for d in metadataDisplays {
+                if let displayLocale = d.locale, displayLocale == locale {
+                    return d.name
+                }
+            }
+            if let firstDisplay = metadataDisplays.first {
+                return firstDisplay.name
+            }
+        }
+
+        return defaultCredentialDisplay
+    }
+
 }
 
 struct JwtVcJsonCredentialDefinition: Codable {
