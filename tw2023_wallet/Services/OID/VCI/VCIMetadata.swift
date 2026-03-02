@@ -53,52 +53,106 @@ struct ClaimOnlyMandatory: Codable {
     var mandatory: Bool?
 }
 
-// OID4VCI 1.0: credential_metadata entry (map-based structure)
+// OID4VCI 1.0: credential_metadata entry (map-based structure - legacy)
 struct ClaimMetadataEntry: Codable {
     let display: [ClaimDisplay]?
 }
 
-// OID4VCI 1.0: credential_metadata with map-based claims structure
-struct CredentialMetadata: Codable {
-    // Map-based structure: key is claim name, value contains display info
-    let claims: [String: ClaimMetadataEntry]?
-    // Alphabetically sorted claim keys
-    let claimOrder: [String]?
+// OID4VCI 1.0: Array-based claim entry (used by EUDI servers)
+struct ArrayClaimEntry: Codable {
+    let path: [String]?
+    let valueType: String?
+    let mandatory: Bool?
+    let display: [ClaimDisplay]?
+}
 
-    init(claims: [String: ClaimMetadataEntry]? = nil, claimOrder: [String]? = nil) {
-        self.claims = claims
-        self.claimOrder = claimOrder
+// OID4VCI 1.0: credential_metadata structure
+// Supports both array-based claims (EUDI servers) and map-based claims (legacy)
+struct CredentialMetadata: Codable {
+    // Array-based structure (EUDI servers): claims is an array of entries with path
+    let claimsArray: [ArrayClaimEntry]?
+    // Map-based structure (legacy): key is claim name, value contains display info
+    let claimsMap: [String: ClaimMetadataEntry]?
+    // Display info for the credential itself
+    let display: [CredentialDisplay]?
+
+    // For protocol conformance
+    var claims: [String: ClaimMetadataEntry]? {
+        return claimsMap
+    }
+    var claimOrder: [String]? {
+        return claimsMap?.keys.sorted()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case claims
+        case display
+    }
+
+    init(claimsArray: [ArrayClaimEntry]? = nil, claimsMap: [String: ClaimMetadataEntry]? = nil, display: [CredentialDisplay]? = nil) {
+        self.claimsArray = claimsArray
+        self.claimsMap = claimsMap
+        self.display = display
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: DynamicKey.self)
-        var decodedClaims: [String: ClaimMetadataEntry] = [:]
+        let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        for key in container.allKeys {
-            // Decode each key as a claim entry
-            if let entry = try? container.decode(ClaimMetadataEntry.self, forKey: key) {
-                decodedClaims[key.stringValue] = entry
-            }
+        // Try to decode display
+        self.display = try container.decodeIfPresent([CredentialDisplay].self, forKey: .display)
+
+        // Try array-based claims first (EUDI servers)
+        if let arrayBasedClaims = try? container.decode([ArrayClaimEntry].self, forKey: .claims) {
+            self.claimsArray = arrayBasedClaims
+            self.claimsMap = nil
         }
-
-        self.claims = decodedClaims.isEmpty ? nil : decodedClaims
-
-        // Sort claim keys alphabetically for consistent display order
-        let sortedKeys = decodedClaims.keys.sorted()
-        self.claimOrder = sortedKeys.isEmpty ? nil : sortedKeys
+        // Fall back to map-based claims (legacy)
+        else if let mapBasedClaims = try? container.decode([String: ClaimMetadataEntry].self, forKey: .claims) {
+            self.claimsArray = nil
+            self.claimsMap = mapBasedClaims
+        }
+        else {
+            self.claimsArray = nil
+            self.claimsMap = nil
+        }
     }
 
     func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: DynamicKey.self)
-        if let claims = claims {
-            // Use claimOrder for consistent encoding order
-            let keysToEncode = claimOrder ?? Array(claims.keys).sorted()
-            for key in keysToEncode {
-                if let value = claims[key] {
-                    try container.encode(value, forKey: DynamicKey(stringValue: key)!)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(display, forKey: .display)
+        if let claimsArray = claimsArray {
+            try container.encode(claimsArray, forKey: .claims)
+        } else if let claimsMap = claimsMap {
+            try container.encode(claimsMap, forKey: .claims)
+        }
+    }
+
+    /// Get localized claim names from either array or map-based claims
+    func getLocalizedClaimNames(locale: String = "ja-JP") -> [String] {
+        // Array-based claims (EUDI servers)
+        if let claimsArray = claimsArray {
+            var result: [String] = []
+            for claim in claimsArray {
+                if let displays = claim.display, !displays.isEmpty {
+                    let matchingDisplay = displays.first { $0.locale == locale && $0.name != nil }
+                    if let name = matchingDisplay?.name ?? displays.first?.name {
+                        result.append(name)
+                    } else if let path = claim.path, let lastPath = path.last {
+                        result.append(lastPath)
+                    }
+                } else if let path = claim.path, let lastPath = path.last {
+                    result.append(lastPath)
                 }
             }
+            return result
         }
+
+        // Map-based claims (legacy)
+        if let claimsMap = claimsMap {
+            return getLocalizedClaimNamesFromMap(claimsMap: claimsMap, order: claimOrder, locale: locale)
+        }
+
+        return []
     }
 }
 
@@ -167,17 +221,51 @@ struct CredentialSupportedVcSdJwt: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Use credentialMetadata
-        if let metadata = self.credentialMetadata,
-           let metadataClaims = metadata.claims {
-            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
+        // OID4VCI 1.0: Use credentialMetadata (supports both array and map-based claims)
+        if let metadata = self.credentialMetadata {
+            let result = metadata.getLocalizedClaimNames(locale: locale)
+            if !result.isEmpty {
+                return result
+            }
         }
 
+        // Fall back to legacy claims field
         guard let claims = self.claims else {
             return []
         }
 
         return getLocalizedClaimNames(claims: claims, locale: locale)
+    }
+
+    func getCredentialDisplayName(locale: String = "ja-JP") -> String {
+        let defaultCredentialDisplay = "Unknown Credential"
+
+        // First, check top-level display
+        if let credentialDisplays = self.display, !credentialDisplays.isEmpty {
+            for d in credentialDisplays {
+                if let displayLocale = d.locale, displayLocale == locale {
+                    return d.name
+                }
+            }
+            if let firstDisplay = credentialDisplays.first {
+                return firstDisplay.name
+            }
+        }
+
+        // OID4VCI 1.0: Fall back to credential_metadata.display
+        if let metadata = self.credentialMetadata,
+           let metadataDisplays = metadata.display, !metadataDisplays.isEmpty {
+            for d in metadataDisplays {
+                if let displayLocale = d.locale, displayLocale == locale {
+                    return d.name
+                }
+            }
+            if let firstDisplay = metadataDisplays.first {
+                return firstDisplay.name
+            }
+        }
+
+        return defaultCredentialDisplay
     }
 
 }
@@ -215,10 +303,12 @@ struct CredentialSupportedJwtVcJson: CredentialConfiguration {
     let credentialMetadata: CredentialMetadata?
 
     func getClaimNames(locale: String = "ja-JP") -> [String] {
-        // OID4VCI 1.0: Use credentialMetadata
-        if let metadata = self.credentialMetadata,
-           let metadataClaims = metadata.claims {
-            return getLocalizedClaimNamesFromMap(claimsMap: metadataClaims, order: metadata.claimOrder, locale: locale)
+        // OID4VCI 1.0: Use credentialMetadata (supports both array and map-based claims)
+        if let metadata = self.credentialMetadata {
+            let result = metadata.getLocalizedClaimNames(locale: locale)
+            if !result.isEmpty {
+                return result
+            }
         }
 
         return self.credentialDefinition.getClaimNames(locale: locale)
@@ -262,6 +352,108 @@ struct CredentialSupportedLdpVc: CredentialConfiguration {
 }
 
 typealias CredentialSupportedJwtVcJsonLd = CredentialSupportedLdpVc
+
+// MARK: - mso_mdoc (ISO/IEC 18013-5)
+// Minimal support for metadata parsing. Full credential issuance support is not yet implemented.
+
+/// mso_mdoc claim entry (different from JWT-based claims)
+struct MsoMdocClaimEntry: Codable {
+    let path: [String]?
+    let valueType: String?
+    let mandatory: Bool?
+    let display: [ClaimDisplay]?
+}
+
+/// mso_mdoc credential_metadata structure
+struct MsoMdocCredentialMetadata: Codable {
+    let claims: [MsoMdocClaimEntry]?
+    let display: [CredentialDisplay]?
+}
+
+struct CredentialSupportedMsoMdoc: CredentialConfiguration {
+    let format: String
+    let scope: String?
+    let cryptographicBindingMethodsSupported: [String]?
+    let proofTypesSupported: [String: ProofSigningAlgValuesSupported]?
+
+    // mso_mdoc specific fields
+    let doctype: String?
+    let credentialMetadata: MsoMdocCredentialMetadata?
+
+    // Stored as strings (converted from either integer COSE IDs or string algorithm names)
+    private let _credentialSigningAlgValuesSupported: [String]?
+
+    // CredentialConfiguration protocol conformance
+    var credentialSigningAlgValuesSupported: [String]? {
+        return _credentialSigningAlgValuesSupported
+    }
+
+    // Display comes from credential_metadata for mso_mdoc
+    var display: [CredentialDisplay]? {
+        return credentialMetadata?.display
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case format
+        case scope
+        case cryptographicBindingMethodsSupported
+        case proofTypesSupported
+        case doctype
+        case credentialMetadata
+        case credentialSigningAlgValuesSupported
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        format = try container.decode(String.self, forKey: .format)
+        scope = try container.decodeIfPresent(String.self, forKey: .scope)
+        cryptographicBindingMethodsSupported = try container.decodeIfPresent([String].self, forKey: .cryptographicBindingMethodsSupported)
+        proofTypesSupported = try container.decodeIfPresent([String: ProofSigningAlgValuesSupported].self, forKey: .proofTypesSupported)
+        doctype = try container.decodeIfPresent(String.self, forKey: .doctype)
+        credentialMetadata = try container.decodeIfPresent(MsoMdocCredentialMetadata.self, forKey: .credentialMetadata)
+
+        // Handle credential_signing_alg_values_supported as either [Int] or [String]
+        if let intValues = try? container.decode([Int].self, forKey: .credentialSigningAlgValuesSupported) {
+            _credentialSigningAlgValuesSupported = intValues.map { String($0) }
+        } else if let stringValues = try? container.decode([String].self, forKey: .credentialSigningAlgValuesSupported) {
+            _credentialSigningAlgValuesSupported = stringValues
+        } else {
+            _credentialSigningAlgValuesSupported = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(format, forKey: .format)
+        try container.encodeIfPresent(scope, forKey: .scope)
+        try container.encodeIfPresent(cryptographicBindingMethodsSupported, forKey: .cryptographicBindingMethodsSupported)
+        try container.encodeIfPresent(proofTypesSupported, forKey: .proofTypesSupported)
+        try container.encodeIfPresent(doctype, forKey: .doctype)
+        try container.encodeIfPresent(credentialMetadata, forKey: .credentialMetadata)
+        try container.encodeIfPresent(_credentialSigningAlgValuesSupported, forKey: .credentialSigningAlgValuesSupported)
+    }
+
+    func getClaimNames(locale: String = "ja-JP") -> [String] {
+        guard let claims = credentialMetadata?.claims else {
+            return []
+        }
+        var result: [String] = []
+        for claim in claims {
+            if let displays = claim.display, !displays.isEmpty {
+                let matchingDisplay = displays.first { $0.locale == locale && $0.name != nil }
+                if let name = matchingDisplay?.name ?? displays.first?.name {
+                    result.append(name)
+                } else if let path = claim.path, let lastPath = path.last {
+                    result.append(lastPath)
+                }
+            } else if let path = claim.path, let lastPath = path.last {
+                result.append(lastPath)
+            }
+        }
+        return result
+    }
+}
 
 struct CredentialSupportedFormat: Decodable {
     let format: String
@@ -358,6 +550,16 @@ func decodeCredentialSupported(from jsonData: Data) throws -> CredentialConfigur
             return try decoder.decode(CredentialSupportedJwtVcJson.self, from: jsonData)
         case "ldp_vc":
             return try decoder.decode(CredentialSupportedLdpVc.self, from: jsonData)
+        case CredentialFormat.msoMdoc.rawValue:
+            do {
+                return try decoder.decode(CredentialSupportedMsoMdoc.self, from: jsonData)
+            } catch {
+                print("mso_mdoc decoding error: \(error)")
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    print("mso_mdoc JSON: \(jsonString)")
+                }
+                throw error
+            }
         default:
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(codingPath: [], debugDescription: "Invalid format value"))
@@ -399,15 +601,16 @@ struct CredentialIssuerMetadata: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         var credentialsSupportedDict = [String: CredentialConfiguration]()
-        let credentialsSupportedContainer = try container.nestedContainer(
-            keyedBy: DynamicKey.self, forKey: .credentialConfigurationsSupported)
-        for key in credentialsSupportedContainer.allKeys {
-            let credentialJSON = try credentialsSupportedContainer.decode(JSON.self, forKey: key)
-            let credentialData = try JSONSerialization.data(
-                withJSONObject: credentialJSON.object, options: [])
+        // Decode as JSON to preserve original keys (avoid convertFromSnakeCase affecting dictionary keys)
+        let credentialsSupportedJSON = try container.decode(JSON.self, forKey: .credentialConfigurationsSupported)
+        if let dictionary = credentialsSupportedJSON.dictionary {
+            for (originalKey, credentialJSON) in dictionary {
+                let credentialData = try JSONSerialization.data(
+                    withJSONObject: credentialJSON.object, options: [])
 
-            let credentialSupported = try decodeCredentialSupported(from: credentialData)
-            credentialsSupportedDict[key.stringValue] = credentialSupported
+                let credentialSupported = try decodeCredentialSupported(from: credentialData)
+                credentialsSupportedDict[originalKey] = credentialSupported  // Use original key
+            }
         }
 
         credentialIssuer = try container.decode(String.self, forKey: .credentialIssuer)
